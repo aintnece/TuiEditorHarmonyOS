@@ -19,7 +19,7 @@ const KATEX_PREFIX: string = 'https://unpkg.com/katex@0.16.22/';
 
 @Component
 export struct MdPreview {
-  @Prop editorCore: EditorCore;
+  @Prop editorCore: EditorCore | null = null;
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
 
@@ -34,6 +34,8 @@ export struct MdPreview {
   private changeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
+    if (!this.editorCore) return;
+
     const self: MdPreview = this;
 
     // 监听 EditorCore 内容变更，300ms 防抖后更新预览
@@ -55,6 +57,8 @@ export struct MdPreview {
   }
 
   aboutToDisappear(): void {
+    if (!this.editorCore) return;
+
     this.editorCore.off('change', this.changeHandler);
     if (this.debounceTimer !== 0) {
       clearTimeout(this.debounceTimer);
@@ -129,6 +133,8 @@ export struct MdPreview {
   // ── 渲染逻辑 ──
 
   private doRender(): void {
+    if (!this.editorCore) return;
+
     const markdown: string = this.editorCore.getMarkdown();
     if (markdown === this.lastRendered) return;
 

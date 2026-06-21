@@ -29,3 +29,14 @@ Phase 4.6: ContextMenu — 右键上下文菜单组件
 **Assigned to**: Claude Code
 **Completed**: 2026-06-21 — ContextMenu component created, MdEditor gesture wired, EditorPage integrated with pasteboard support
 **Next step**: Hermes 审查 diff → DevEco Studio 编译验证 → commit
+
+---
+
+## Bug Fix (2026-06-21): @Prop Type Mismatch Fix
+
+**Root cause**: EditorPage declares `editor: Editor | null` and `core: EditorCore | null`, but child components declared @Prop types as non-null. In ArkTS strict mode, `Editor | null` cannot be assigned to `@Prop editor: Editor`. ArkTS silently uses the default value instead, causing Toolbar to operate on a DIFFERENT Editor instance.
+
+**Files modified** (no commit):
+- `entry/src/main/ets/components/Toolbar.ets` — @Prop editor → `Editor | null`, null guards on all 22 button handlers + aboutToAppear
+- `entry/src/main/ets/editor/markdown/MdEditor.ets` — @Prop editorCore → `EditorCore | null`, null guards on aboutToAppear/Disappear, build callbacks, focus()
+- `entry/src/main/ets/editor/markdown/MdPreview.ets` — @Prop editorCore → `EditorCore | null`, null guards on aboutToAppear/Disappear, doRender()

@@ -14,7 +14,7 @@ import { I18n } from '../i18n/I18n';
 
 @Component
 export struct Toolbar {
-  @Prop editor: Editor = Editor.factory();
+  @Prop editor: Editor | null = null;
   @Prop themeColors: ThemeColors = new ThemeColors();
   onExport?: () => void;
   onLink?: () => void;
@@ -28,7 +28,9 @@ export struct Toolbar {
   private core: EditorCore | null = null;
 
   aboutToAppear(): void {
-    this.core = this.editor.getCore();
+    if (this.editor) {
+      this.core = this.editor.getCore();
+    }
   }
 
   private get isMarkdown(): boolean {
@@ -77,7 +79,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('B').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Bold'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Bold'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'bold' : ''; })
         if (this.hoveredButton === 'bold') {
           this.buildTooltip(this.i18n.get('Bold'))
@@ -89,7 +91,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('I').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Italic'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Italic'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'italic' : ''; })
         if (this.hoveredButton === 'italic') {
           this.buildTooltip(this.i18n.get('Italic'))
@@ -101,7 +103,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('S').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Strike'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Strike'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'strike' : ''; })
         if (this.hoveredButton === 'strike') {
           this.buildTooltip(this.i18n.get('Strike'))
@@ -113,7 +115,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('<>').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Code'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Code'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'code' : ''; })
         if (this.hoveredButton === 'code') {
           this.buildTooltip(this.i18n.get('Code'))
@@ -127,7 +129,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('H').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Heading', '2'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Heading', '2'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'heading' : ''; })
         if (this.hoveredButton === 'heading') {
           this.buildTooltip(this.i18n.get('Heading'))
@@ -139,7 +141,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('❝').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Quote'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Quote'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'quote' : ''; })
         if (this.hoveredButton === 'quote') {
           this.buildTooltip(this.i18n.get('Quote'))
@@ -151,7 +153,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('•').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('BulletList'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('BulletList'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'bullet' : ''; })
         if (this.hoveredButton === 'bullet') {
           this.buildTooltip(this.i18n.get('BulletList'))
@@ -163,7 +165,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('1.').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('OrderedList'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('OrderedList'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'ordered' : ''; })
         if (this.hoveredButton === 'ordered') {
           this.buildTooltip(this.i18n.get('OrderedList'))
@@ -175,7 +177,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('☑').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('TaskList'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('TaskList'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'task' : ''; })
         if (this.hoveredButton === 'task') {
           this.buildTooltip(this.i18n.get('TaskList'))
@@ -187,7 +189,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('{ }').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('Codeblock'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('Codeblock'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'codeblock' : ''; })
         if (this.hoveredButton === 'codeblock') {
           this.buildTooltip(this.i18n.get('Codeblock'))
@@ -202,7 +204,7 @@ export struct Toolbar {
         Button({ type: ButtonType.Normal }) { Text('🔗').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => {
-            if (this.onLink) { this.onLink(); } else { this.editor.exec('Link'); }
+            if (this.onLink) { this.onLink(); } else if (this.editor) { this.editor.exec('Link'); }
           })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'link' : ''; })
         if (this.hoveredButton === 'link') {
@@ -216,7 +218,7 @@ export struct Toolbar {
         Button({ type: ButtonType.Normal }) { Text('🖼').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => {
-            if (this.onImage) { this.onImage(); } else { this.editor.exec('Image'); }
+            if (this.onImage) { this.onImage(); } else if (this.editor) { this.editor.exec('Image'); }
           })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'image' : ''; })
         if (this.hoveredButton === 'image') {
@@ -230,7 +232,7 @@ export struct Toolbar {
         Button({ type: ButtonType.Normal }) { Text('⊞').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => {
-            if (this.onTable) { this.onTable(); } else { this.editor.exec('Table'); }
+            if (this.onTable) { this.onTable(); } else if (this.editor) { this.editor.exec('Table'); }
           })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'table' : ''; })
         if (this.hoveredButton === 'table') {
@@ -243,7 +245,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('—').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.exec('HorizontalRule'); })
+          .onClick(() => { if (this.editor) { this.editor.exec('HorizontalRule'); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'hr' : ''; })
         if (this.hoveredButton === 'hr') {
           this.buildTooltip(this.i18n.get('HorizontalRule'))
@@ -264,7 +266,7 @@ export struct Toolbar {
           .width(32).height(32).padding(0)
           .backgroundColor(this.isEditActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
-          .onClick(() => { this.editor.changeMode(EditorType.Markdown); this.editor.changeViewMode(ViewMode.Editor); })
+          .onClick(() => { if (this.editor) { this.editor.changeMode(EditorType.Markdown); this.editor.changeViewMode(ViewMode.Editor); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'edit' : ''; })
         if (this.hoveredButton === 'edit') {
           this.buildTooltip(this.i18n.get('Markdown'))
@@ -283,7 +285,7 @@ export struct Toolbar {
           .width(32).height(32).padding(0)
           .backgroundColor(this.isSplitActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
-          .onClick(() => { this.editor.changeViewMode(ViewMode.Split); })
+          .onClick(() => { if (this.editor) { this.editor.changeViewMode(ViewMode.Split); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'split' : ''; })
         if (this.hoveredButton === 'split') {
           this.buildTooltip(this.i18n.get('ScrollSync'))
@@ -302,7 +304,7 @@ export struct Toolbar {
           .width(32).height(32).padding(0)
           .backgroundColor(this.isPreviewActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
-          .onClick(() => { this.editor.changeViewMode(ViewMode.Preview); })
+          .onClick(() => { if (this.editor) { this.editor.changeViewMode(ViewMode.Preview); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'preview' : ''; })
         if (this.hoveredButton === 'preview') {
           this.buildTooltip(this.i18n.get('Preview'))
@@ -321,7 +323,7 @@ export struct Toolbar {
           .width(32).height(32).padding(0)
           .backgroundColor(this.isWysiwygActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
-          .onClick(() => { this.editor.changeMode(EditorType.Wysiwyg); })
+          .onClick(() => { if (this.editor) { this.editor.changeMode(EditorType.Wysiwyg); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'wysiwyg' : ''; })
         if (this.hoveredButton === 'wysiwyg') {
           this.buildTooltip(this.i18n.get('WYSIWYG'))
@@ -335,7 +337,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('↶').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.undo(); })
+          .onClick(() => { if (this.editor) { this.editor.undo(); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'undo' : ''; })
         if (this.hoveredButton === 'undo') {
           this.buildTooltip(this.i18n.get('Undo'))
@@ -347,7 +349,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('↷').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { this.editor.redo(); })
+          .onClick(() => { if (this.editor) { this.editor.redo(); } })
           .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'redo' : ''; })
         if (this.hoveredButton === 'redo') {
           this.buildTooltip(this.i18n.get('Redo'))

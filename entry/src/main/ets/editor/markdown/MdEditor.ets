@@ -13,7 +13,7 @@ import { Handler } from '../../event/EventEmitter';
 
 @Component
 export struct MdEditor {
-  @Prop editorCore: EditorCore;
+  @Prop editorCore: EditorCore | null = null;
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
   @Prop placeholder: string = '开始编辑…';
@@ -30,6 +30,8 @@ export struct MdEditor {
   private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
+    if (!this.editorCore) return;
+
     this.editorText = this.editorCore.getMarkdown();
     this.updateLineCount();
 
@@ -51,6 +53,8 @@ export struct MdEditor {
   }
 
   aboutToDisappear(): void {
+    if (!this.editorCore) return;
+
     this.editorCore.off('change', this.changeHandler);
     this.editorCore.off('caretChange', this.caretChangeHandler);
   }
@@ -76,19 +80,25 @@ export struct MdEditor {
         .borderWidth(0)
         .onChange((value: string) => {
           this.editorText = value;
-          this.editorCore.onContentChange(value);
+          if (this.editorCore) {
+            this.editorCore.onContentChange(value);
+          }
           this.updateLineCount();
         })
         .onTextSelectionChange((selectionStart: number, selectionEnd: number) => {
-          this.editorCore.updateSelection(selectionStart, selectionEnd);
-          this.cursorLine = this.editorCore.state.cursorLine;
-          this.cursorCol = this.editorCore.state.cursorCol;
+          if (this.editorCore) {
+            this.editorCore.updateSelection(selectionStart, selectionEnd);
+            this.cursorLine = this.editorCore.state.cursorLine;
+            this.cursorCol = this.editorCore.state.cursorCol;
+          }
         })
         .onEditChange((status: boolean) => {
-          if (status) {
-            this.editorCore.focus();
-          } else {
-            this.editorCore.blur();
+          if (this.editorCore) {
+            if (status) {
+              this.editorCore.focus();
+            } else {
+              this.editorCore.blur();
+            }
           }
         })
         .gesture(
@@ -148,7 +158,9 @@ export struct MdEditor {
 
   /** 聚焦编辑器 */
   focus(): void {
-    this.controller.caretPosition(this.editorCore.state.selectionStart);
+    if (this.editorCore) {
+      this.controller.caretPosition(this.editorCore.state.selectionStart);
+    }
   }
 
   // ── 私有 ──
