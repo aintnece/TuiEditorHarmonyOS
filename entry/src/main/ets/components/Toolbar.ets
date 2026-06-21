@@ -67,7 +67,7 @@ export struct Toolbar {
       // ── B 粗体 ──
       Button({ type: ButtonType.Normal }) { Text('B').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold onClick — this.editor: ' + this.editor + ' isMarkdown: ' + this.isMarkdown); if (this.editor) { this.editor.exec('Bold'); } })
+        .onClick(() => { hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold onClick — this.editor: ' + this.editor + ' isMarkdown: ' + this.isMarkdown); hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold — core:' + this.core + ' coreIsNull:' + (this.core === null)); if (this.editor) { this.editor.exec('Bold'); } })
         .margin({ left: 2, right: 2 })
 
       // ── I 斜体 ──

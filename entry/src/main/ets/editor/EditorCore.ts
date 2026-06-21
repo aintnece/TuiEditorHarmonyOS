@@ -18,6 +18,7 @@ import {
   EditorType, ViewMode, EditorConfig, EditorState,
 } from './EditorType';
 import { getBuiltinCommands } from './commands/commands/MarkdownCommands';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 export class EditorCore {
   // ── 子系统 ──
@@ -100,12 +101,14 @@ export class EditorCore {
 
   /** 执行命令 */
   exec(name: string, ...args: string[]): EditorState | null {
-    const newState: EditorState | null = this.commandManager.execute(name, this.state, ...args);
-    if (newState) {
-      this.state = newState;
+    const idx: number = this.commandManager.getCommandNames().indexOf(name);
+    const result: EditorState | null = this.commandManager.execute(name, this.state, ...args);
+    hilog.info(0x0000, 'TUIEditor', 'EditorCore.exec: ' + name + ' cmdIdx:' + idx + ' result:' + (result !== null));
+    if (result) {
+      this.state = result;
       this.eventEmitter.emit('change');
     }
-    return newState;
+    return result;
   }
 
   /** 撤销 */
