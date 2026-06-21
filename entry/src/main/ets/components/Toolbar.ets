@@ -85,7 +85,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Bold'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── I 斜体 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -97,7 +97,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Italic'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── S 删除线 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -109,7 +109,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Strike'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── <> 行内代码 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -121,7 +121,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Code'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -135,7 +135,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Heading'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ❝ 引用 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -147,7 +147,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Quote'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── • 无序列表 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -159,7 +159,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('BulletList'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── 1. 有序列表 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -171,7 +171,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('OrderedList'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ☑ 任务列表 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -183,7 +183,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('TaskList'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── { } 代码块 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -195,7 +195,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Codeblock'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -211,7 +211,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Link'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── 🖼 图片 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -225,7 +225,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Image'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ⊞ 表格 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -239,7 +239,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Table'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── — 分割线 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -251,7 +251,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('HorizontalRule'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -272,7 +272,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Markdown'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ⇔ 分屏模式 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -291,7 +291,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('ScrollSync'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ◎ 预览模式 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -310,7 +310,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Preview'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ≡ WYSIWYG ──
       Stack({ alignContent: Alignment.Top }) {
@@ -329,7 +329,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('WYSIWYG'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       Blank()
 
@@ -343,7 +343,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Undo'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── ↷ 重做 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -355,7 +355,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Redo'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 }).clip(false)
+      .width(32).height(32).margin({ left: 2, right: 2 })
 
       // ── 导出 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -372,7 +372,7 @@ export struct Toolbar {
           this.buildTooltip(this.i18n.get('Export'))
         }
       }
-      .height(28).margin({ left: 4 }).clip(false)
+      .height(28).margin({ left: 4 })
     }
     .width('100%')
     .height(44)
