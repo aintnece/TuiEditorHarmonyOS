@@ -26,10 +26,33 @@ export struct Toolbar {
 
   private i18n: I18n = I18n.getInstance();
   private core: EditorCore | null = null;
+  private hoverTimer: number = 0;
 
   aboutToAppear(): void {
     if (this.editor) {
       this.core = this.editor.getCore();
+    }
+  }
+
+  aboutToDisappear(): void {
+    if (this.hoverTimer !== 0) {
+      clearTimeout(this.hoverTimer);
+      this.hoverTimer = 0;
+    }
+  }
+
+  /** 防抖设置 hover 状态，避免 tooltip 闪烁 */
+  private setHovered(button: string): void {
+    if (this.hoverTimer !== 0) {
+      clearTimeout(this.hoverTimer);
+    }
+    if (button !== '') {
+      this.hoverTimer = setTimeout((): void => {
+        this.hoverTimer = 0;
+        this.hoveredButton = button;
+      }, 120);
+    } else {
+      this.hoveredButton = '';
     }
   }
 
@@ -80,48 +103,48 @@ export struct Toolbar {
         Button({ type: ButtonType.Normal }) { Text('B').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Bold'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'bold' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'bold' : ''); })
         if (this.hoveredButton === 'bold') {
           this.buildTooltip(this.i18n.get('Bold'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── I 斜体 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('I').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Italic'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'italic' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'italic' : ''); })
         if (this.hoveredButton === 'italic') {
           this.buildTooltip(this.i18n.get('Italic'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── S 删除线 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('S').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Strike'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'strike' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'strike' : ''); })
         if (this.hoveredButton === 'strike') {
           this.buildTooltip(this.i18n.get('Strike'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── <> 行内代码 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('<>').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Code'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'code' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'code' : ''); })
         if (this.hoveredButton === 'code') {
           this.buildTooltip(this.i18n.get('Code'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -130,72 +153,72 @@ export struct Toolbar {
         Button({ type: ButtonType.Normal }) { Text('H').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Heading', '2'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'heading' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'heading' : ''); })
         if (this.hoveredButton === 'heading') {
           this.buildTooltip(this.i18n.get('Heading'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ❝ 引用 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('❝').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Quote'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'quote' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'quote' : ''); })
         if (this.hoveredButton === 'quote') {
           this.buildTooltip(this.i18n.get('Quote'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── • 无序列表 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('•').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('BulletList'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'bullet' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'bullet' : ''); })
         if (this.hoveredButton === 'bullet') {
           this.buildTooltip(this.i18n.get('BulletList'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── 1. 有序列表 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('1.').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('OrderedList'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'ordered' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'ordered' : ''); })
         if (this.hoveredButton === 'ordered') {
           this.buildTooltip(this.i18n.get('OrderedList'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ☑ 任务列表 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('☑').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('TaskList'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'task' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'task' : ''); })
         if (this.hoveredButton === 'task') {
           this.buildTooltip(this.i18n.get('TaskList'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── { } 代码块 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('{ }').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('Codeblock'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'codeblock' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'codeblock' : ''); })
         if (this.hoveredButton === 'codeblock') {
           this.buildTooltip(this.i18n.get('Codeblock'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -206,12 +229,12 @@ export struct Toolbar {
           .onClick(() => {
             if (this.onLink) { this.onLink(); } else if (this.editor) { this.editor.exec('Link'); }
           })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'link' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'link' : ''); })
         if (this.hoveredButton === 'link') {
           this.buildTooltip(this.i18n.get('Link'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── 🖼 图片 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -220,12 +243,12 @@ export struct Toolbar {
           .onClick(() => {
             if (this.onImage) { this.onImage(); } else if (this.editor) { this.editor.exec('Image'); }
           })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'image' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'image' : ''); })
         if (this.hoveredButton === 'image') {
           this.buildTooltip(this.i18n.get('Image'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ⊞ 表格 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -234,24 +257,24 @@ export struct Toolbar {
           .onClick(() => {
             if (this.onTable) { this.onTable(); } else if (this.editor) { this.editor.exec('Table'); }
           })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'table' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'table' : ''); })
         if (this.hoveredButton === 'table') {
           this.buildTooltip(this.i18n.get('Table'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── — 分割线 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('—').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.exec('HorizontalRule'); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'hr' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'hr' : ''); })
         if (this.hoveredButton === 'hr') {
           this.buildTooltip(this.i18n.get('HorizontalRule'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -267,12 +290,12 @@ export struct Toolbar {
           .backgroundColor(this.isEditActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.changeMode(EditorType.Markdown); this.editor.changeViewMode(ViewMode.Editor); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'edit' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'edit' : ''); })
         if (this.hoveredButton === 'edit') {
           this.buildTooltip(this.i18n.get('Markdown'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ⇔ 分屏模式 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -286,12 +309,12 @@ export struct Toolbar {
           .backgroundColor(this.isSplitActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.changeViewMode(ViewMode.Split); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'split' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'split' : ''); })
         if (this.hoveredButton === 'split') {
           this.buildTooltip(this.i18n.get('ScrollSync'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ◎ 预览模式 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -305,12 +328,12 @@ export struct Toolbar {
           .backgroundColor(this.isPreviewActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.changeViewMode(ViewMode.Preview); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'preview' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'preview' : ''); })
         if (this.hoveredButton === 'preview') {
           this.buildTooltip(this.i18n.get('Preview'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ≡ WYSIWYG ──
       Stack({ alignContent: Alignment.Top }) {
@@ -324,12 +347,12 @@ export struct Toolbar {
           .backgroundColor(this.isWysiwygActive ? this.themeColors.toolbarActive : Color.Transparent)
           .borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.changeMode(EditorType.Wysiwyg); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'wysiwyg' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'wysiwyg' : ''); })
         if (this.hoveredButton === 'wysiwyg') {
           this.buildTooltip(this.i18n.get('WYSIWYG'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       Blank()
 
@@ -338,24 +361,24 @@ export struct Toolbar {
         Button({ type: ButtonType.Normal }) { Text('↶').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.undo(); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'undo' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'undo' : ''); })
         if (this.hoveredButton === 'undo') {
           this.buildTooltip(this.i18n.get('Undo'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── ↷ 重做 ──
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('↷').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
           .onClick(() => { if (this.editor) { this.editor.redo(); } })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'redo' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'redo' : ''); })
         if (this.hoveredButton === 'redo') {
           this.buildTooltip(this.i18n.get('Redo'))
         }
       }
-      .width(32).height(32).margin({ left: 2, right: 2 })
+      .width(32).height(32).clip(false).margin({ left: 2, right: 2 })
 
       // ── 导出 ──
       Stack({ alignContent: Alignment.Top }) {
@@ -367,12 +390,12 @@ export struct Toolbar {
           .borderRadius(4)
           .border({ width: 1, color: this.themeColors.borderColor })
           .onClick(() => { if (this.onExport) this.onExport(); })
-          .onHover((isHover: boolean) => { this.hoveredButton = isHover ? 'export' : ''; })
+          .onHover((isHover: boolean) => { this.setHovered(isHover ? 'export' : ''); })
         if (this.hoveredButton === 'export') {
           this.buildTooltip(this.i18n.get('Export'))
         }
       }
-      .height(28).margin({ left: 4 })
+      .height(28).clip(false).margin({ left: 4 })
     }
     .width('100%')
     .height(44)
