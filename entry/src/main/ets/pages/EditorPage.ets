@@ -7,6 +7,7 @@
  */
 
 import { router } from '@kit.ArkUI';
+import { pasteboard } from '@kit.BasicServicesKit';
 import { Editor } from '../editor/Editor';
 import { EditorCore } from '../editor/EditorCore';
 import { EditorType, ViewMode, EditorConfig, PartialConfig } from '../editor/EditorType';
@@ -17,6 +18,7 @@ import { Splitter } from '../components/Splitter';
 import { LinkEditor } from '../components/LinkEditor';
 import { ImageEditor } from '../components/ImageEditor';
 import { PopupMenu, MenuItem, createTableMenuItemsZh } from '../components/PopupMenu';
+import { ContextMenu, ContextMenuAction } from '../components/ContextMenu';
 import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
 
@@ -41,6 +43,9 @@ struct EditorPage {
   @State showLinkEditor: boolean = false;
   @State showImageEditor: boolean = false;
   @State showTableMenu: boolean = false;
+  @State showContextMenu: boolean = false;
+  @State contextMenuX: number = 0;
+  @State contextMenuY: number = 0;
 
   private editor: Editor | null = null;
   private core: EditorCore | null = null;
@@ -120,6 +125,114 @@ struct EditorPage {
     if (snippet !== '') {
       const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
       this.core.onContentChange(newMd);
+    }
+  };
+
+  /** 处理长按 — 显示上下文菜单 */
+  private handleLongPress = (localX: number, localY: number): void => {
+    // 坐标转换：TextArea 相对坐标 → Stack 相对坐标
+    // 偏移量 = 标题栏(44) + 工具栏(~40) + 编辑器行内padding
+    const titleBarH: number = 44;
+    const toolbarH: number = 40;
+    const contentPaddingTop: number = 0;
+    const offsetY: number = titleBarH + toolbarH + contentPaddingTop;
+
+    // 限制 X 不超出右边界（菜单宽 160 + 边距）
+    const menuW: number = 160;
+    const margin: number = 8;
+    let x: number = localX;
+    if (x + menuW + margin > this.containerWidth) {
+      x = this.containerWidth - menuW - margin;
+    }
+    if (x < margin) {
+      x = margin;
+    }
+
+    this.contextMenuX = x;
+    this.contextMenuY = localY + offsetY;
+    this.showContextMenu = true;
+  };
+
+  /** 获取当前选中的文本 */
+  private getSelectedText(): string {
+    if (!this.core) return '';
+    const md: string = this.core.getMarkdown();
+    const start: number = this.core.state.selectionStart;
+    const end: number = this.core.state.selectionEnd;
+    if (start >= end) return '';
+    return md.substring(start, end);
+  }
+
+  /** 处理上下文菜单操作 */
+  private handleContextMenuAction = (action: ContextMenuAction): void => {
+    this.showContextMenu = false;
+    if (!this.core) return;
+
+    const md: string = this.core.getMarkdown();
+    const selStart: number = this.core.state.selectionStart;
+    const selEnd: number = this.core.state.selectionEnd;
+    const self: EditorPage = this;
+
+    if (action === ContextMenuAction.Copy) {
+      // 复制选中文本到剪贴板
+      const selected: string = this.getSelectedText();
+      if (selected !== '') {
+        try {
+          const pb = pasteboard.getSystemPasteboard();
+          const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, selected);
+          pb.setData(data);
+        } catch (_e) {
+          // 剪贴板不可用时静默失败
+        }
+      }
+    } else if (action === ContextMenuAction.Cut) {
+      // 剪切：复制 + 删除选中文本
+      const selected: string = this.getSelectedText();
+      if (selected !== '') {
+        try {
+          const pb = pasteboard.getSystemPasteboard();
+          const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, selected);
+          pb.setData(data);
+        } catch (_e) {
+          // 剪贴板不可用时静默失败
+        }
+        const newMd: string = md.substring(0, selStart) + md.substring(selEnd);
+        this.core.onContentChange(newMd);
+      }
+    } else if (action === ContextMenuAction.Paste) {
+      // 从剪贴板粘贴
+      try {
+        const pb = pasteboard.getSystemPasteboard();
+        pb.getData((err: Error, pasteData: pasteboard.PasteData) => {
+          if (!err && pasteData) {
+            const text: string = pasteData.getPrimaryText();
+            if (text !== '') {
+              const currentMd: string = self.core ? self.core.getMarkdown() : '';
+              const cursor: number = self.core ? self.core.state.selectionStart : currentMd.length;
+              const newMd: string = currentMd.substring(0, cursor) + text + currentMd.substring(cursor);
+              if (self.core) {
+                self.core.onContentChange(newMd);
+              }
+            }
+          }
+        });
+      } catch (_e) {
+        // 剪贴板不可用时静默失败
+      }
+    } else if (action === ContextMenuAction.SelectAll) {
+      // 全选：设置选区覆盖全文
+      this.core.state.selectionStart = 0;
+      this.core.state.selectionEnd = md.length;
+      const sel = this.core.selection;
+      if (sel) {
+        sel.startOffset = 0;
+        sel.endOffset = md.length;
+      }
+      this.core.eventEmitter.emit('caretChange');
+    } else if (action === ContextMenuAction.Undo) {
+      this.core.undo();
+    } else if (action === ContextMenuAction.Redo) {
+      this.core.redo();
     }
   };
 
@@ -262,7 +375,8 @@ struct EditorPage {
               editorCore: this.core,
               themeColors: this.theme,
               fontSize: 16,
-              placeholder: this.i18n.get('Placeholder', '开始编辑…')
+              placeholder: this.i18n.get('Placeholder', '开始编辑…'),
+              onLongPress: this.handleLongPress
             })
               .width(this.containerWidth * this.splitRatio - 3)
               .height('100%')
@@ -303,7 +417,8 @@ struct EditorPage {
             editorCore: this.core,
             themeColors: this.theme,
             fontSize: 16,
-            placeholder: this.i18n.get('Placeholder', '开始编辑…')
+            placeholder: this.i18n.get('Placeholder', '开始编辑…'),
+            onLongPress: this.handleLongPress
           })
             .width('100%')
             .layoutWeight(1)
@@ -387,6 +502,25 @@ struct EditorPage {
         items: createTableMenuItemsZh(),
         onAction: this.handleTableAction,
         onClose: () => { this.showTableMenu = false; }
+      })
+
+      // 上下文菜单（右键/长按）
+      if (this.showContextMenu) {
+        // 透明遮罩 — 点击外部关闭
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor(Color.Transparent)
+          .onClick(() => { this.showContextMenu = false; })
+      }
+
+      ContextMenu({
+        visible: this.showContextMenu,
+        themeColors: this.theme,
+        posX: this.contextMenuX,
+        posY: this.contextMenuY,
+        onAction: this.handleContextMenuAction,
+        onClose: () => { this.showContextMenu = false; }
       })
     }
     .width('100%')

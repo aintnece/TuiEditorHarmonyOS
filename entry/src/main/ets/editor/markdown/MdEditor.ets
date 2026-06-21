@@ -17,6 +17,8 @@ export struct MdEditor {
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
   @Prop placeholder: string = '开始编辑…';
+  /** 长按回调 — 传递触摸点坐标（相对 TextArea） */
+  onLongPress?: (localX: number, localY: number) => void;
 
   @State private editorText: string = '';
   @State private cursorLine: number = 1;
@@ -89,6 +91,15 @@ export struct MdEditor {
             this.editorCore.blur();
           }
         })
+        .gesture(
+          LongPressGesture({ duration: 500, repeat: false })
+            .onAction((event: GestureEvent) => {
+              if (this.onLongPress) {
+                const finger = event.fingerList[0];
+                this.onLongPress(finger.localX, finger.localY);
+              }
+            })
+        )
         .layoutWeight(1)
     }
     .width('100%')
