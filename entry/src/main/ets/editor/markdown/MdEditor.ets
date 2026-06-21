@@ -9,6 +9,7 @@
 
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
+import { Handler } from '../../event/EventEmitter';
 
 @Component
 export struct MdEditor {
@@ -23,6 +24,8 @@ export struct MdEditor {
   @State private lineCount: number = 1;
 
   private controller: TextAreaController = new TextAreaController();
+  private changeHandler: Handler = (): void => {};
+  private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
     this.editorText = this.editorCore.getMarkdown();
@@ -31,16 +34,23 @@ export struct MdEditor {
     const self: MdEditor = this;
 
     // 监听 EditorCore 内容变更（命令执行、撤销/重做）
-    this.editorCore.on('change', (): void => {
+    this.changeHandler = (): void => {
       self.editorText = self.editorCore.getMarkdown();
       self.updateLineCount();
-    });
+    };
+    this.editorCore.on('change', this.changeHandler);
 
     // 监听光标位置同步
-    this.editorCore.on('caretChange', (): void => {
+    this.caretChangeHandler = (): void => {
       self.cursorLine = self.editorCore.state.cursorLine;
       self.cursorCol = self.editorCore.state.cursorCol;
-    });
+    };
+    this.editorCore.on('caretChange', this.caretChangeHandler);
+  }
+
+  aboutToDisappear(): void {
+    this.editorCore.off('change', this.changeHandler);
+    this.editorCore.off('caretChange', this.caretChangeHandler);
   }
 
   build() {

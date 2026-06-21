@@ -12,6 +12,7 @@ import { webview } from '@kit.ArkWeb';
 import { resourceManager } from '@kit.LocalizationKit';
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
+import { Handler } from '../../event/EventEmitter';
 
 const APP_URL: string = 'https://markdown.local/preview';
 const KATEX_PREFIX: string = 'https://unpkg.com/katex@0.16.22/';
@@ -30,12 +31,13 @@ export struct MdPreview {
   private lastRendered: string = '';
   private currentHtml: string = '';
   private bodyOnly: boolean = false;
+  private changeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
     const self: MdPreview = this;
 
     // 监听 EditorCore 内容变更，300ms 防抖后更新预览
-    this.editorCore.on('change', (): void => {
+    this.changeHandler = (): void => {
       if (!self.isReady) return;
       if (self.debounceTimer !== 0) {
         clearTimeout(self.debounceTimer);
@@ -44,10 +46,19 @@ export struct MdPreview {
         self.debounceTimer = 0;
         self.doRender();
       }, 300);
-    });
+    };
+    this.editorCore.on('change', this.changeHandler);
 
     if (this.onControllerReady) {
       this.onControllerReady(this.controller);
+    }
+  }
+
+  aboutToDisappear(): void {
+    this.editorCore.off('change', this.changeHandler);
+    if (this.debounceTimer !== 0) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = 0;
     }
   }
 

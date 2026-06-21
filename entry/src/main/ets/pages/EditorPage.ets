@@ -99,16 +99,22 @@ struct EditorPage {
     } else if (action === 'addColLeft' || action === 'addColRight') {
       snippet = '| 新列 ';
     } else if (action === 'deleteRow') {
-      // 简化：选中当前行等待用户手动删除
+      // 基本实现：找到光标所在行并删除该行
+      const lineStart: number = pos > 0 ? md.lastIndexOf('\n', pos - 1) + 1 : 0;
+      let lineEnd: number = md.indexOf('\n', pos);
+      if (lineEnd < 0) lineEnd = md.length;
+      const newMd: string = md.substring(0, lineStart) + md.substring(lineEnd + 1);
+      this.core.onContentChange(newMd);
       return;
     } else if (action === 'deleteCol') {
+      // TODO: Phase 5 (WYSIWYG mode) — column deletion requires full table parsing
       return;
     } else if (action === 'alignLeft') {
-      snippet = '';
+      // TODO: Phase 5 (WYSIWYG mode) — alignment requires separator-row modification
     } else if (action === 'alignCenter') {
-      snippet = '';
+      // TODO: Phase 5 (WYSIWYG mode) — alignment requires separator-row modification
     } else if (action === 'alignRight') {
-      snippet = '';
+      // TODO: Phase 5 (WYSIWYG mode) — alignment requires separator-row modification
     }
 
     if (snippet !== '') {
