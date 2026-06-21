@@ -1,0 +1,14 @@
+oh_modules/
+.ohpm/
+build/
+.hvigor/
+node_modules/
+.pnpm-store/
+.idea/
+*.iml
+local.properties
+*.hap
+*.app
+.DS_Store
+Thumbs.db
+.hermes/

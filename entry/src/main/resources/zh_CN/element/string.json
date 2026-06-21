@@ -1,0 +1,8 @@
+{
+  "string": [
+    { "name": "app_name", "value": "TUI 编辑器" },
+    { "name": "entry_desc", "value": "鸿蒙版 Toast UI 编辑器" },
+    { "name": "permission_read_media", "value": "用于读取 Markdown 和图片文件" },
+    { "name": "permission_write_media", "value": "用于保存和导出编辑器文件" }
+  ]
+}

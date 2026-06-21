@@ -1,0 +1,9 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "TUI Editor HarmonyOS — main entry module",
+  "main": "",
+  "author": "aintnece",
+  "license": "MIT",
+  "dependencies": {}
+}
