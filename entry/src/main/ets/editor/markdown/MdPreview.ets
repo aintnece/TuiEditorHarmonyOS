@@ -10,6 +10,7 @@
 
 import { webview } from '@kit.ArkWeb';
 import { resourceManager } from '@kit.LocalizationKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
 import { Handler } from '../../event/EventEmitter';
@@ -136,7 +137,7 @@ export struct MdPreview {
     if (!this.editorCore) return;
 
     const markdown: string = this.editorCore.getMarkdown();
-    console.log("MdPreview.doRender — editorCore:", this.editorCore, "markdown:", markdown.substring(0, 30));
+    hilog.info(0x0000, 'TUIEditor', 'MdPreview.doRender — editorCore: ' + this.editorCore + ' markdown: ' + markdown.substring(0, 30));
     if (markdown === this.lastRendered) return;
 
     try {

@@ -6,6 +6,7 @@
  */
 
 import { router } from '@kit.ArkUI';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 class NavData {
   filePath: string = '';
@@ -25,7 +26,7 @@ struct Index {
   ];
 
   aboutToAppear(): void {
-    console.log("INDEX_LOADED — app started successfully");
+    hilog.info(0x0000, 'TUIEditor', 'INDEX_LOADED — app started successfully');
     // 实际项目中应读取文件列表
   }
 

@@ -10,6 +10,7 @@
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
 import { Handler } from '../../event/EventEmitter';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 @Component
 export struct MdEditor {
@@ -30,7 +31,7 @@ export struct MdEditor {
   private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
-    console.log("MdEditor.aboutToAppear — editorCore:", this.editorCore);
+    hilog.info(0x0000, 'TUIEditor', 'MdEditor.aboutToAppear — editorCore: ' + this.editorCore);
     if (!this.editorCore) return;
 
     this.editorText = this.editorCore.getMarkdown();
@@ -81,7 +82,7 @@ export struct MdEditor {
         .borderRadius(0)
         .borderWidth(0)
         .onChange((value: string) => {
-          console.log("MdEditor.onChange — called with", value.length, "chars, editorCore:", this.editorCore);
+          hilog.info(0x0000, 'TUIEditor', 'MdEditor.onChange — called with ' + value.length + ' chars, editorCore: ' + this.editorCore);
           this.editorText = value;
           if (this.editorCore) {
             this.editorCore.onContentChange(value);
