@@ -33,7 +33,7 @@ Phase 1-4.5 完成。31 个文件就绪。
 - [x] **4.3**: MdPreview 预览组件（WebView + runJavaScript 无闪烁更新 + KaTeX 本地拦截）
 - [x] **4.4**: Splitter 可拖拽分栏（PanGesture delta 模式 + 像素宽度布局）
 - [x] **4.5**: PopupMenu / LinkEditor / ImageEditor（链接/图片弹窗 + 表格操作菜单）
-- [ ] **4.6**: ContextMenu 右键菜单
+- [x] **4.6**: ContextMenu 右键菜单（6 项：复制/剪切/粘贴/全选/撤销/重做，pasteboard 剪贴板集成）
 - [ ] **4.7**: SidePanel + StatusBar + ExportSheet
 - [ ] **4.8**: EditorPage 完整集成
 
