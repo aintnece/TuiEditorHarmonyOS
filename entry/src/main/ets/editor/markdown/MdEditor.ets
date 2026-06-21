@@ -35,21 +35,22 @@ export struct MdEditor {
     this.editorText = this.editorCore.getMarkdown();
     this.updateLineCount();
 
+    const core: EditorCore = this.editorCore;
     const self: MdEditor = this;
 
     // 监听 EditorCore 内容变更（命令执行、撤销/重做）
     this.changeHandler = (): void => {
-      self.editorText = self.editorCore.getMarkdown();
+      self.editorText = core.getMarkdown();
       self.updateLineCount();
     };
-    this.editorCore.on('change', this.changeHandler);
+    core.on('change', this.changeHandler);
 
     // 监听光标位置同步
     this.caretChangeHandler = (): void => {
-      self.cursorLine = self.editorCore.state.cursorLine;
-      self.cursorCol = self.editorCore.state.cursorCol;
+      self.cursorLine = core.state.cursorLine;
+      self.cursorCol = core.state.cursorCol;
     };
-    this.editorCore.on('caretChange', this.caretChangeHandler);
+    core.on('caretChange', this.caretChangeHandler);
   }
 
   aboutToDisappear(): void {
