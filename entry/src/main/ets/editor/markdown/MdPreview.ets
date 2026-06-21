@@ -136,6 +136,7 @@ export struct MdPreview {
     if (!this.editorCore) return;
 
     const markdown: string = this.editorCore.getMarkdown();
+    console.log("MdPreview.doRender — editorCore:", this.editorCore, "markdown:", markdown.substring(0, 30));
     if (markdown === this.lastRendered) return;
 
     try {

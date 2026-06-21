@@ -255,6 +255,7 @@ struct EditorPage {
 
     this.editor = Editor.factory(opts);
     this.core = this.editor.getCore();
+    console.log("EditorPage.aboutToAppear — editor:", this.editor, "core:", this.core);
 
     // 监听内容变更
     this.editor.on('change', (): void => {

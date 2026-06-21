@@ -29,6 +29,7 @@ export struct Toolbar {
   private hoverTimer: number = 0;
 
   aboutToAppear(): void {
+    console.log("Toolbar.aboutToAppear — this.editor:", this.editor, "type:", typeof this.editor);
     if (this.editor) {
       this.core = this.editor.getCore();
     }
@@ -102,7 +103,7 @@ export struct Toolbar {
       Stack({ alignContent: Alignment.Top }) {
         Button({ type: ButtonType.Normal }) { Text('B').fontSize(14).fontColor(this.themeColors.toolbarFg) }
           .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-          .onClick(() => { if (this.editor) { this.editor.exec('Bold'); } })
+          .onClick(() => { console.log("Toolbar Bold onClick — this.editor:", this.editor, "isMarkdown:", this.isMarkdown); if (this.editor) { this.editor.exec('Bold'); } })
           .onHover((isHover: boolean) => { this.setHovered(isHover ? 'bold' : ''); })
         if (this.hoveredButton === 'bold') {
           this.buildTooltip(this.i18n.get('Bold'))

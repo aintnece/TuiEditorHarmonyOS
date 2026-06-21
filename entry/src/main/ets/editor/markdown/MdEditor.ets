@@ -30,6 +30,7 @@ export struct MdEditor {
   private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
+    console.log("MdEditor.aboutToAppear — editorCore:", this.editorCore);
     if (!this.editorCore) return;
 
     this.editorText = this.editorCore.getMarkdown();
@@ -80,6 +81,7 @@ export struct MdEditor {
         .borderRadius(0)
         .borderWidth(0)
         .onChange((value: string) => {
+          console.log("MdEditor.onChange — called with", value.length, "chars, editorCore:", this.editorCore);
           this.editorText = value;
           if (this.editorCore) {
             this.editorCore.onContentChange(value);
