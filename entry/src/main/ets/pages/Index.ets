@@ -25,6 +25,7 @@ struct Index {
   ];
 
   aboutToAppear(): void {
+    console.log("INDEX_LOADED — app started successfully");
     // 实际项目中应读取文件列表
   }
 
