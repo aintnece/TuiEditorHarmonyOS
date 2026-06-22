@@ -11,10 +11,6 @@
  */
 
 import fs from '@ohos.file.fs';
-import hilog from '@ohos.hilog';
-
-const SAVE_DOMAIN: number = 0x0000;
-const SAVE_TAG: string = 'TuiSave';
 
 // ── 文件打开模式常量 ──
 // 使用 fs.OpenMode 枚举确保与 HarmonyOS @ohos.file.fs API 兼容
@@ -56,14 +52,11 @@ export class FileService {
 
   /** 确保目录存在，不存在则递归创建 */
   ensureDir(dir: string): boolean {
-    hilog.info(SAVE_DOMAIN, SAVE_TAG, 'ensureDir entry dir=%{public}s', dir);
     if (dir.length === 0) {
-      hilog.warn(SAVE_DOMAIN, SAVE_TAG, 'ensureDir exit: empty dir');
       return false;
     }
     try {
       if (fs.accessSync(dir)) {
-        hilog.info(SAVE_DOMAIN, SAVE_TAG, 'ensureDir exit: already exists');
         return true;
       }
     } catch (_e) {
@@ -71,10 +64,8 @@ export class FileService {
     }
     try {
       fs.mkdirSync(dir, true);
-      hilog.info(SAVE_DOMAIN, SAVE_TAG, 'ensureDir exit: created ok');
       return true;
     } catch (_e) {
-      hilog.error(SAVE_DOMAIN, SAVE_TAG, 'ensureDir exit: mkdirSync failed');
       return false;
     }
   }
@@ -138,28 +129,21 @@ export class FileService {
 
   /** 写入文本到文件，返回是否成功 */
   writeFile(path: string, content: string): boolean {
-    hilog.info(SAVE_DOMAIN, SAVE_TAG, 'writeFile entry path=%{public}s len=%{public}d', path, content.length);
     if (path.length === 0) {
-      hilog.warn(SAVE_DOMAIN, SAVE_TAG, 'writeFile exit: empty path');
       return false;
     }
     try {
-      hilog.info(SAVE_DOMAIN, SAVE_TAG, 'writeFile openSync before');
       const file = fs.openSync(path, OPEN_MODE_CREATE_WRITE_TRUNC);
-      hilog.info(SAVE_DOMAIN, SAVE_TAG, 'writeFile openSync ok fd=%{public}d', file.fd);
       fs.writeSync(file.fd, content);
       fs.closeSync(file);
-      hilog.info(SAVE_DOMAIN, SAVE_TAG, 'writeFile exit: ok');
       return true;
     } catch (_e) {
-      hilog.error(SAVE_DOMAIN, SAVE_TAG, 'writeFile exit: exception');
       return false;
     }
   }
 
   /** 创建新的 .md 文件，返回文件路径；失败返回 null */
   createFile(dir: string, name: string): string | null {
-    hilog.info(SAVE_DOMAIN, SAVE_TAG, 'createFile entry dir=%{public}s name=%{public}s', dir, name);
     let fileName: string = name;
     if (!fileName.endsWith('.md')) {
       fileName = fileName + '.md';
@@ -168,7 +152,6 @@ export class FileService {
 
     // 确保目录存在
     if (!this.ensureDir(dir)) {
-      hilog.error(SAVE_DOMAIN, SAVE_TAG, 'createFile exit: ensureDir failed');
       return null;
     }
 
@@ -178,9 +161,7 @@ export class FileService {
     let finalPath: string = fullPath;
     let counter: number = 1;
     while (this.fileExists(finalPath)) {
-      hilog.warn(SAVE_DOMAIN, SAVE_TAG, 'createFile dedup loop counter=%{public}d path=%{public}s', counter, finalPath);
       if (counter > MAX_DEDUP) {
-        hilog.error(SAVE_DOMAIN, SAVE_TAG, 'createFile exit: dedup counter exceeded %{public}d', MAX_DEDUP);
         return null;
       }
       const base: string = fileName.substring(0, fileName.length - 3);
@@ -192,10 +173,8 @@ export class FileService {
     const title: string = baseName(fileName);
     const template: string = '# ' + title + '\n\n开始编辑…\n';
     if (!this.writeFile(finalPath, template)) {
-      hilog.error(SAVE_DOMAIN, SAVE_TAG, 'createFile exit: writeFile failed');
       return null;
     }
-    hilog.info(SAVE_DOMAIN, SAVE_TAG, 'createFile exit: ok path=%{public}s', finalPath);
     return finalPath;
   }
 

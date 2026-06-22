@@ -27,11 +27,6 @@ import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
 import { editorContext } from '../editor/EditorContext';
 import { fileService } from '../services/FileService';
-import hilog from '@ohos.hilog';
-
-const SAVE_DOMAIN: number = 0x0000;
-const SAVE_TAG: string = 'TuiSave';
-
 /** 路由参数 */
 class NavData {
   filePath: string = '';
@@ -60,6 +55,7 @@ struct EditorPage {
   @State showExportSheet: boolean = false;
   @State sidePanelExpandHover: boolean = false;
   @State currentFilePath: string = '';
+  @State sidePanelRefresh: number = 0;
   @State isDirty: boolean = false;
 
   private i18n: I18n = I18n.getInstance();
@@ -280,10 +276,8 @@ struct EditorPage {
 
   /** 保存当前内容到文件 */
   private saveFile(): void {
-    hilog.info(SAVE_DOMAIN, SAVE_TAG, 'saveFile entry currentFilePath=%{public}s', this.currentFilePath);
     try {
       if (!editorContext.core) {
-        hilog.warn(SAVE_DOMAIN, SAVE_TAG, 'saveFile exit: editorContext.core is null');
         return;
       }
 
@@ -291,38 +285,31 @@ struct EditorPage {
       if (this.currentFilePath === '') {
         const baseDir: string = fileService.getBaseDir();
         if (baseDir === '') {
-          hilog.error(SAVE_DOMAIN, SAVE_TAG, 'saveFile exit: baseDir empty');
           this.showToast('保存失败：目录未初始化');
           return;
         }
-        hilog.info(SAVE_DOMAIN, SAVE_TAG, 'saveFile calling createFile baseDir=%{public}s', baseDir);
         const newPath: string | null = fileService.createFile(baseDir, '未命名');
         if (newPath !== null) {
           this.currentFilePath = newPath;
           this.fileName = extractFileName(newPath);
-          hilog.info(SAVE_DOMAIN, SAVE_TAG, 'saveFile created newPath=%{public}s', newPath);
+          this.sidePanelRefresh++;
         } else {
-          hilog.error(SAVE_DOMAIN, SAVE_TAG, 'saveFile exit: createFile returned null');
           this.showToast('保存失败：无法创建文件');
           return;
         }
       }
 
       const content: string = editorContext.core.getMarkdown();
-      hilog.info(SAVE_DOMAIN, SAVE_TAG, 'saveFile calling writeFile path=%{public}s len=%{public}d', this.currentFilePath, content.length);
       const ok: boolean = fileService.writeFile(this.currentFilePath, content);
       if (ok) {
         this.isDirty = false;
         this.showToast('已保存');
-        hilog.info(SAVE_DOMAIN, SAVE_TAG, 'saveFile exit: ok');
       } else {
-        hilog.error(SAVE_DOMAIN, SAVE_TAG, 'saveFile exit: writeFile returned false');
         this.showToast('保存失败：写入文件出错');
       }
     } catch (e) {
       // 捕获任何未预见的异常，防止卡死
       const msg: string = e instanceof Error ? e.message : '未知错误';
-      hilog.error(SAVE_DOMAIN, SAVE_TAG, 'saveFile exit: exception %{public}s', msg);
       this.showToast('保存失败：' + msg);
     }
   }
@@ -518,6 +505,7 @@ struct EditorPage {
         SidePanel({
           themeColors: this.theme,
           visible: this.showSidePanel,
+          refreshToken: this.sidePanelRefresh,
           onToggleCollapse: () => {
             this.showSidePanel = false;
           },

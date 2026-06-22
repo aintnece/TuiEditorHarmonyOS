@@ -18,6 +18,7 @@ import { FileItem, fileService } from '../services/FileService';
 export struct SidePanel {
   @Prop themeColors: ThemeColors = new ThemeColors();
   @Prop visible: boolean = true;
+  @Prop @Watch('onRefreshTokenChange') refreshToken: number = 0;
 
   @State private fileList: FileItem[] = [];
   @State private activeFilePath: string = '';
@@ -39,10 +40,28 @@ export struct SidePanel {
     this.loadFiles();
   }
 
-  /** 从 FileService 加载文件列表 */
+  /** Watch 回调：refreshToken 变化时刷新文件列表 */
+  private onRefreshTokenChange(): void {
+    this.loadFiles();
+  }
+
+  /** 从 FileService 加载文件列表，保留当前 activeFilePath 若仍存在 */
   private loadFiles(): void {
+    const previousActive: string = this.activeFilePath;
     this.fileList = fileService.listFiles();
-    if (this.fileList.length > 0) {
+    // 保留之前的高亮项如果它仍在新列表中
+    let found: boolean = false;
+    if (previousActive !== '') {
+      for (let i = 0; i < this.fileList.length; i++) {
+        if (this.fileList[i].path === previousActive) {
+          found = true;
+          break;
+        }
+      }
+    }
+    if (found) {
+      this.activeFilePath = previousActive;
+    } else if (this.fileList.length > 0) {
       this.activeFilePath = this.fileList[0].path;
     }
   }
