@@ -90,6 +90,7 @@ export struct MdEditor {
           this.updateLineCount();
         })
         .onTextSelectionChange((selectionStart: number, selectionEnd: number) => {
+          hilog.info(0x0000, 'TUIEditor', 'MdEditor.onTextSelectionChange — selectionStart:' + selectionStart + ' selectionEnd:' + selectionEnd + ' hasRange:' + (selectionStart < selectionEnd));
           if (editorContext.core) {
             editorContext.core.updateSelection(selectionStart, selectionEnd);
             this.cursorLine = editorContext.core.state.cursorLine;

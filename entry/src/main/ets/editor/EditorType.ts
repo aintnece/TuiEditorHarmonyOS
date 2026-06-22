@@ -167,6 +167,9 @@ export class EditorState {
   // 选区
   selectionStart: number = 0;
   selectionEnd: number = 0;
+  /** 上一次有效选区（有范围，非光标），用于工具栏按钮点击时选区丢失的回退 */
+  lastSelectionStart: number = -1;
+  lastSelectionEnd: number = -1;
 
   // 状态
   isDirty: boolean = false;
@@ -190,6 +193,8 @@ export class EditorState {
     s.viewMode = this.viewMode;
     s.selectionStart = this.selectionStart;
     s.selectionEnd = this.selectionEnd;
+    s.lastSelectionStart = this.lastSelectionStart;
+    s.lastSelectionEnd = this.lastSelectionEnd;
     s.isDirty = this.isDirty;
     s.isFocused = this.isFocused;
     s.isLoading = this.isLoading;

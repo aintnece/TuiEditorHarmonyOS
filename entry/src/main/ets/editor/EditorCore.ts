@@ -102,8 +102,9 @@ export class EditorCore {
   /** 执行命令 */
   exec(name: string, ...args: string[]): EditorState | null {
     const idx: number = this.commandManager.getCommandNames().indexOf(name);
+    hilog.info(0x0000, 'TUIEditor', 'EditorCore.exec BEFORE: ' + name + ' selStart:' + this.state.selectionStart + ' selEnd:' + this.state.selectionEnd + ' lastSelStart:' + this.state.lastSelectionStart + ' lastSelEnd:' + this.state.lastSelectionEnd + ' cmdIdx:' + idx);
     const result: EditorState | null = this.commandManager.execute(name, this.state, ...args);
-    hilog.info(0x0000, 'TUIEditor', 'EditorCore.exec: ' + name + ' cmdIdx:' + idx + ' result:' + (result !== null));
+    hilog.info(0x0000, 'TUIEditor', 'EditorCore.exec AFTER: ' + name + ' cmdIdx:' + idx + ' result:' + (result !== null));
     if (result) {
       this.state = result;
       this.eventEmitter.emit('change');
@@ -135,6 +136,14 @@ export class EditorCore {
 
   /** 更新选区（从 TextArea 光标回调） */
   updateSelection(selStart: number, selEnd: number): void {
+    hilog.info(0x0000, 'TUIEditor', 'EditorCore.updateSelection — selStart:' + selStart + ' selEnd:' + selEnd + ' hasRange:' + (selStart < selEnd) + ' isFocused:' + this.state.isFocused);
+    // Save last valid selection (with range) as fallback for toolbar button clicks
+    // that cause TextArea to lose focus and fire (0,0) before onClick executes
+    if (selStart < selEnd) {
+      this.state.lastSelectionStart = selStart;
+      this.state.lastSelectionEnd = selEnd;
+      hilog.info(0x0000, 'TUIEditor', 'EditorCore.updateSelection — saved lastValidSelection: ' + selStart + '..' + selEnd);
+    }
     this.state.selectionStart = selStart;
     this.state.selectionEnd = selEnd;
     this.selection = Selection.fromTextArea(this.state.markdown, selStart, selEnd);
