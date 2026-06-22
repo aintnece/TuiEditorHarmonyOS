@@ -48,8 +48,8 @@ struct EditorPage {
   @State contextMenuX: number = 0;
   @State contextMenuY: number = 0;
 
-  @State private editor: Editor | null = null;
-  @State private core: EditorCore | null = null;
+  @Provide private editor: Editor | null = null;
+  @Provide private core: EditorCore | null = null;
   private i18n: I18n = I18n.getInstance();
 
   // ── 弹出对话框回调 ──

@@ -20,7 +20,7 @@ const KATEX_PREFIX: string = 'https://unpkg.com/katex@0.16.22/';
 
 @Component
 export struct MdPreview {
-  @Prop editorCore: EditorCore | null = null;
+  @Consume editorCore: EditorCore | null = null;
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
 

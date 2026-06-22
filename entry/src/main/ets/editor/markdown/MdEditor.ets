@@ -14,7 +14,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 
 @Component
 export struct MdEditor {
-  @Prop editorCore: EditorCore | null = null;
+  @Consume editorCore: EditorCore | null = null;
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
   @Prop placeholder: string = '开始编辑…';

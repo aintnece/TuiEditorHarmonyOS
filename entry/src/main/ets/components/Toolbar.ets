@@ -14,7 +14,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 
 @Component
 export struct Toolbar {
-  @Prop editor: Editor | null = null;
+  @Consume editor: Editor | null = null;
   @Prop themeColors: ThemeColors = new ThemeColors();
   onExport?: () => void;
   onLink?: () => void;
