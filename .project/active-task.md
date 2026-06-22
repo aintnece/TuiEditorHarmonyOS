@@ -2,46 +2,45 @@
 
 ## Objective
 
-保存按钮 UI 重设计：从标题栏迁移到 Toolbar，采用 Feather SVG 图标风格
+修复保存按钮：1) 图标用错（书签→磁盘）；2) 点击卡死
 
-## Context
+## Bug 1: 图标错误
 
-现保存按钮在 EditorPage 标题栏，使用 `Button() { Text('保存') }`，风格不统一。
-CLAUDE.md 已新增「UI 按钮设计规范」，所有按钮必须遵循。
+`tui_save.svg` 当前是 Feather「书签 bookmark」图标（看起来像 banner）。
+应改为 Feather「save 磁盘」图标。正确 path：
+```
+<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+<polyline points="17 21 17 13 7 13 7 21"></polyline>
+<polyline points="7 3 7 8 15 8"></polyline>
+```
+
+## Bug 2: 点击卡死（freeze，非崩溃）
+
+卡死 = 死循环或 UI 线程同步 I/O 阻塞。已加 try-catch 仍卡死，说明是循环或阻塞。
+
+**重点排查 FileService.createFile() 的去重 while 循环**：
+```
+while (this.fileExists(finalPath)) { ... counter++; }
+```
+若 `fs.accessSync` 在某些情况下不抛异常 → `fileExists` 恒为 true → 死循环。
+
+### 修复要求
+
+1. **createFile 加循环上限保护**：counter 超过 1000 直接 break/return null
+2. **加 hilog 诊断日志**（域 0x0000，tag "TuiSave"）在以下位置打点：
+   - saveFile() 入口
+   - createFile() 入口/出口/每次循环
+   - writeFile() 入口/openSync 前后/出口
+   - ensureDir() 入口/出口
+   这样真机复现后可在 DevEco 日志面板定位卡死点
+3. 检查 `getContext(this).filesDir` 是否在 saveFile 调用链上有空指针风险
 
 ## Steps
 
-1. **创建 SVG 图标** `resources/base/media/tui_save.svg`
-   - Feather Icons 风格：16×16 viewBox，`stroke="currentColor"`，无 fill
-   - 参考现有 `tui_undo.svg` / `tui_redo.svg` 的风格
-   - 图标内容：磁盘保存图标
-
-2. **修改 `Toolbar.ets`** — 在撤销/重做后面加保存按钮：
-   ```
-   ...Redo button...
-   Divider
-   Button({ type: ButtonType.Normal }) {
-     Image($r('app.media.tui_save')).width(16).height(16)
-   }
-     .width(32).height(32).padding(0)
-     .backgroundColor(saveHover ? themeColors.toolbarHover : Color.Transparent)
-     .borderRadius(4)
-     .onClick(onSave)
-     .margin({ left: 2, right: 2 })
-   ```
-   - 添加 `@State saveHover: boolean` + `.onHover()`
-   - 已有 `onExport` 回调，同理加 `onSave` 回调
-   - 用 `Divider` 与撤销/重做分隔
-
-3. **修改 `EditorPage.ets`** — 从标题栏移除保存按钮：
-   - 删除标题栏的 `if (this.isDirty) { Button save... }`
-   - 删除 `saveFile()` / `showToast()` 方法（移动端保留在标题栏？不——统一放 Toolbar）
-   - 保留 `currentFilePath` / `isDirty` / `@State` 变量
-   - 保留 `aboutToAppear()` 中的 fileService 初始化
-
-4. **EditorPage 提供 onSave 回调给 Toolbar**：
-   - `Toolbar({ onSave: () => { this.saveFile(); } })`
-   - `saveFile()` 方法保留在 EditorPage
+- [ ] Step 1: 修正 tui_save.svg 为磁盘图标
+- [ ] Step 2: FileService.createFile 加循环上限 + 全链路 hilog
+- [ ] Step 3: saveFile() 加 hilog 打点
+- [ ] Step 4: 报告改了哪些文件
 
 ## Checkpoint
 
