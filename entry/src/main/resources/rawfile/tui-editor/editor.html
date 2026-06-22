@@ -14,7 +14,11 @@
       overflow: hidden;
     }
     #editor {
-      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
     }
     /* Hide tui.editor built-in toolbar — driven by native ArkTS Toolbar */
     .toastui-editor-toolbar {
@@ -23,9 +27,26 @@
   </style>
 </head>
 <body>
+  <div id="diag" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#222;color:#0f0;font:11px monospace;padding:2px 4px;white-space:pre-wrap;max-height:40%;overflow:auto">DIAG: </div>
   <div id="editor"></div>
 
   <script src="https://wweditor.local/toastui-editor.min.js"></script>
+  <script>
+    // ── Global error capture ──
+    window.onerror = function(m, src, ln, col, e) {
+      diag("ERR:" + m + "@" + ln + ":" + col);
+      return false;
+    };
+
+    // ── Diagnostic helper ──
+    function diag(s) {
+      var d = document.getElementById("diag");
+      if (d) d.textContent += s + " | ";
+    }
+
+    // ── Signal that HTML is being parsed/rendered ──
+    diag("page-js-start");
+  </script>
   <script>
     (function () {
       // Parse ?theme=dark|light from URL query string
@@ -35,15 +56,21 @@
       }
 
       // Initialize tui.editor — WYSIWYG only, no built-in toolbar
-      var ed = new toastui.Editor({
-        el: document.getElementById('editor'),
-        initialEditType: 'wysiwyg',
-        previewStyle: 'vertical',
-        hideModeSwitch: true,
-        height: '100%',
-        initialValue: '',
-        toolbarItems: []
-      });
+      try {
+        var ed = new toastui.Editor({
+          el: document.getElementById('editor'),
+          initialEditType: 'wysiwyg',
+          previewStyle: 'vertical',
+          hideModeSwitch: true,
+          height: '100%',
+          initialValue: '',
+          toolbarItems: []
+        });
+        diag("init-ok");
+      } catch(e) {
+        diag("init-ERR:" + e.message);
+        return; // don't set up bridge if init failed
+      }
 
       // ── Global bridge API (batch 3 extends this) ──
       window.__ww = {
@@ -78,6 +105,16 @@
 
       // Apply initial theme from URL query
       window.__ww.setTheme(queryTheme === 'dark');
+
+      // ── Diagnostics after layout settles ──
+      setTimeout(function () {
+        diag("sheets=" + document.styleSheets.length);
+        diag("bodyH=" + getComputedStyle(document.body).height);
+        var ui = document.querySelector(".toastui-editor-defaultUI");
+        diag("uiH=" + (ui ? getComputedStyle(ui).height : "NO-UI"));
+        var ww = document.querySelector(".toastui-editor-ww-container");
+        diag("wwH=" + (ww ? getComputedStyle(ww).height : "NO-WW"));
+      }, 200);
     })();
   </script>
 </body>
