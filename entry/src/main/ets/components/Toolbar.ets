@@ -64,7 +64,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_bold'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold onClick — editorContext.editor: ' + editorContext.editor + ' isMarkdown: ' + this.isMarkdown); hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold — core:' + editorContext.core + ' coreIsNull:' + (editorContext.core === null)); if (editorContext.editor) { editorContext.editor.exec('Bold'); } })
@@ -74,7 +73,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_italic'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Italic'); } })
@@ -84,7 +82,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_strike'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Strike'); } })
@@ -94,7 +91,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_code'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Code'); } })
@@ -106,7 +102,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_heading'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Heading', '2'); } })
@@ -116,7 +111,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_quote'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Quote'); } })
@@ -126,7 +120,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_bullet'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('BulletList'); } })
@@ -136,7 +129,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_ordered'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('OrderedList'); } })
@@ -146,7 +138,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_task'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('TaskList'); } })
@@ -156,7 +147,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_codeblock'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Codeblock'); } })
@@ -168,7 +158,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_link'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => {
@@ -180,7 +169,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_image'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => {
@@ -192,7 +180,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_table'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => {
@@ -204,7 +191,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_hr'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('HorizontalRule'); } })
@@ -270,7 +256,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_undo'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.undo(); } })
@@ -280,7 +265,6 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) {
         Image($r('app.media.tui_redo'))
           .width(16).height(16)
-          .fillColor(this.themeColors.toolbarFg)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.redo(); } })
