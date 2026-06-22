@@ -144,6 +144,54 @@ Button().onClick(() => this.handleClick())       // ✅
 **Phase 4.5 完成** — 31 文件就绪，编辑器具备完整 Markdown 能力。
 **下一步**: Phase 4.6 ContextMenu 右键菜单。
 
+## UI 按钮设计规范（强制！CC 和 Hermes 都必须遵守）
+
+### 按钮风格分类
+
+**SVG 图标按钮**（用于：格式类操作、撤销/重做、保存等）
+```typescript
+Button({ type: ButtonType.Normal }) {
+  Image($r('app.media.tui_xxx'))
+    .width(16).height(16)
+}
+  .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
+  .onClick(...)
+  .margin({ left: 2, right: 2 })
+```
+
+**文字标签按钮**（用于：模式切换、导出等中文标签）
+```typescript
+Button({ type: ButtonType.Normal }) {
+  Text('标签')
+    .fontSize(11)
+    .fontColor(isActive ? '#ffffff' : this.themeColors.toolbarFg)
+    .fontWeight(isActive ? 700 : 400)
+}
+  .height(32).padding({ left: 8, right: 8 })
+  .backgroundColor(isActive ? this.themeColors.toolbarActive : Color.Transparent)
+  .borderRadius(4)
+  .onClick(...)
+  .margin({ left: 2, right: 2 })
+```
+
+### 禁止事项
+
+| ❌ 禁止 | ✅ 替代 |
+|---------|---------|
+| `Button('emoji')` — emoji 不渲染 | SVG 图标或文字标签 |
+| `Button() { Text() }` 不带 hover 态 | 加 `.backgroundColor(hover ? ...Hover : Color.Transparent)` |
+| 按钮放在非 Toolbar 区域（除非确实不属于工具栏） | Toolbar 内按功能分组，用 Divider 分隔 |
+| 自创样式 | 严格套用上面两种模板 |
+
+### SVG 图标资产
+
+路径：`resources/base/media/tui_xxx.svg`
+规范：Feather Icons 风格，24×24 viewBox，`stroke="currentColor"`，不要 `fill`。渲染时 Image 设为 16×16。
+
+现有：`tui_bold, tui_italic, tui_strike, tui_code, tui_heading, tui_quote, tui_bullet, tui_ordered, tui_task, tui_codeblock, tui_link, tui_image, tui_table, tui_hr, tui_undo, tui_redo`
+
+新增按钮前检查是否缺少 SVG 资产，缺少则先创建。
+
 ## 组件设计模式
 
 - `@Component` 用于 UI 组件 (.ets)

@@ -15,10 +15,12 @@ import { editorContext } from '../editor/EditorContext';
 @Component
 export struct Toolbar {
   @Prop themeColors: ThemeColors = new ThemeColors();
+  onSave?: () => void;
   onExport?: () => void;
   onLink?: () => void;
   onImage?: () => void;
   onTable?: () => void;
+  @State saveHover: boolean = false;
 
   private i18n: I18n = I18n.getInstance();
 
@@ -266,6 +268,22 @@ export struct Toolbar {
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => { if (editorContext.editor) { editorContext.editor.redo(); } })
+        .margin({ left: 2, right: 2 })
+
+      Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
+
+      // ── 保存 ──
+      Button({ type: ButtonType.Normal }) {
+        Image($r('app.media.tui_save'))
+          .width(16).height(16)
+      }
+        .width(32).height(32).padding(0)
+        .backgroundColor(this.saveHover ? this.themeColors.toolbarHover : Color.Transparent)
+        .borderRadius(4)
+        .onClick(() => { if (this.onSave) this.onSave(); })
+        .onHover((isHover: boolean): void => {
+          this.saveHover = isHover;
+        })
         .margin({ left: 2, right: 2 })
 
       // ── 导出 ──

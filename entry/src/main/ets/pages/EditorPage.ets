@@ -406,20 +406,6 @@ struct EditorPage {
           .fontColor(this.theme.editorFg)
           .layoutWeight(1)
 
-        // 保存按钮（内容变更后显示）
-        if (this.isDirty) {
-          Button() {
-            Text('保存')
-              .fontSize(13)
-          }
-            .height(28)
-            .padding({ left: 8, right: 8 })
-            .backgroundColor(this.theme.toolbarHover)
-            .borderRadius(4)
-            .onClick(() => { this.saveFile(); })
-            .margin({ right: 6 })
-        }
-
         // Markdown 模式按钮
         Button(this.i18n.get('Markdown'))
           .fontSize(13)
@@ -542,6 +528,7 @@ struct EditorPage {
             Toolbar({
               // editor reads from editorContext global singleton
               themeColors: this.theme,
+              onSave: () => { this.saveFile(); },
               onExport: () => { this.handleExport(); },
               onLink: () => { this.showLinkEditor = true; },
               onImage: () => { this.showImageEditor = true; },
