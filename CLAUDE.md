@@ -188,7 +188,7 @@ Button({ type: ButtonType.Normal }) {
 路径：`resources/base/media/tui_xxx.svg`
 规范：Feather Icons 风格，24×24 viewBox，`stroke="currentColor"`，不要 `fill`。渲染时 Image 设为 16×16。
 
-现有：`tui_bold, tui_italic, tui_strike, tui_code, tui_heading, tui_quote, tui_bullet, tui_ordered, tui_task, tui_codeblock, tui_link, tui_image, tui_table, tui_hr, tui_undo, tui_redo`
+现有：`tui_bold, tui_italic, tui_strike, tui_code, tui_heading, tui_quote, tui_bullet, tui_ordered, tui_task, tui_codeblock, tui_link, tui_image, tui_table, tui_hr, tui_undo, tui_redo, tui_save`
 
 新增按钮前检查是否缺少 SVG 资产，缺少则先创建。
 
