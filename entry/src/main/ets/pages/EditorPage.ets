@@ -53,6 +53,7 @@ struct EditorPage {
   @State contextMenuY: number = 0;
   @State showSidePanel: boolean = true;
   @State showExportSheet: boolean = false;
+  @State sidePanelExpandHover: boolean = false;
 
   private i18n: I18n = I18n.getInstance();
 
@@ -376,17 +377,28 @@ struct EditorPage {
         // 侧栏切换标签（侧栏隐藏时显示）
         if (!this.showSidePanel) {
           Column() {
-            Button({ type: ButtonType.Normal }) {
-              Text('▶')
-                .fontSize(10)
+            Column() {
+              Text('文')
+                .fontSize(13)
+                .fontColor(this.theme.sidebarFg)
+              Text('件')
+                .fontSize(13)
                 .fontColor(this.theme.sidebarFg)
             }
-              .width(24).height(32).padding(0)
-              .backgroundColor(this.theme.sidebarBg)
-              .borderRadius(0)
-              .onClick(() => { this.showSidePanel = true; })
+            .width(28)
+            .height(52)
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+            .backgroundColor(this.sidePanelExpandHover ? this.theme.sidebarHover : Color.Transparent)
+            .borderRadius(4)
+            .onHover((isHover: boolean): void => {
+              this.sidePanelExpandHover = isHover;
+            })
+            .onClick(() => { this.showSidePanel = true; })
           }
           .height('100%')
+          .width(28)
+          .justifyContent(FlexAlign.Center)
           .backgroundColor(this.theme.sidebarBg)
           .border({ width: { right: 1 }, color: this.theme.borderColor })
         }
