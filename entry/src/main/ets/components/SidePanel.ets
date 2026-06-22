@@ -27,6 +27,8 @@ export struct SidePanel {
   @State private fileList: FileItem[] = [];
   @State private activeFilePath: string = '';
   @State private searchQuery: string = '';
+  @State private collapseHover: boolean = false;
+  @State private newFileHover: boolean = false;
 
   /** 面板折叠回调 — 由父组件控制 visible */
   onToggleCollapse?: () => void;
@@ -133,13 +135,16 @@ export struct SidePanel {
 
           // 收起按钮
           Button({ type: ButtonType.Normal }) {
-            Text('←')
-              .fontSize(14)
+            Text('✕')
+              .fontSize(13)
               .fontColor(this.themeColors.sidebarFg)
           }
-            .width(26).height(26).padding(0)
-            .backgroundColor(Color.Transparent)
+            .width(28).height(28).padding(0)
+            .backgroundColor(this.collapseHover ? this.themeColors.sidebarHover : Color.Transparent)
             .borderRadius(4)
+            .onHover((isHover: boolean): void => {
+              this.collapseHover = isHover;
+            })
             .onClick(() => {
               if (this.onToggleCollapse) {
                 this.onToggleCollapse();
@@ -152,10 +157,13 @@ export struct SidePanel {
               .fontSize(17)
               .fontColor(this.themeColors.sidebarFg)
           }
-            .width(26).height(26).padding(0)
-            .backgroundColor(Color.Transparent)
+            .width(28).height(28).padding(0)
+            .backgroundColor(this.newFileHover ? this.themeColors.sidebarHover : Color.Transparent)
             .borderRadius(4)
             .margin({ left: 2 })
+            .onHover((isHover: boolean): void => {
+              this.newFileHover = isHover;
+            })
             .onClick(() => {
               if (this.onNewFile) {
                 this.onNewFile();
