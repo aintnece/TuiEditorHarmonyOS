@@ -4,6 +4,9 @@
  * 对标 tui.editor 风格的文件管理侧栏。
  * 显示在编辑器左侧，支持折叠/展开、文件选择、新建/打开。
  * 通过 editorContext 全局单例访问编辑器核心。
+ *
+ * Redesigned: TUI Editor consistent style — clean layout,
+ * Feather-inspired icons, no placeholder clipping.
  */
 
 import { ThemeColors } from '../services/ThemeService';
@@ -11,8 +14,8 @@ import { editorContext } from '../editor/EditorContext';
 
 /** 文件条目 */
 class FileItem {
-  path: string = '';
   name: string = '';
+  path: string = '';
   icon: string = '📄';
 }
 
@@ -45,25 +48,21 @@ export struct SidePanel {
     const f1: FileItem = new FileItem();
     f1.path = '/documents/readme.md';
     f1.name = 'README.md';
-    f1.icon = '📄';
     items.push(f1);
 
     const f2: FileItem = new FileItem();
     f2.path = '/documents/notes.md';
     f2.name = '学习笔记.md';
-    f2.icon = '📄';
     items.push(f2);
 
     const f3: FileItem = new FileItem();
     f3.path = '/documents/guide.md';
     f3.name = '开发指南.md';
-    f3.icon = '📄';
     items.push(f3);
 
     const f4: FileItem = new FileItem();
     f4.path = '/documents/api.md';
     f4.name = 'API 文档.md';
-    f4.icon = '📄';
     items.push(f4);
 
     this.fileList = items;
@@ -74,7 +73,6 @@ export struct SidePanel {
 
   private handleFileClick(item: FileItem): void {
     this.activeFilePath = item.path;
-    // 切换到对应文件的模拟内容
     const mockContent: string = this.getMockContent(item.name);
     if (editorContext.core) {
       editorContext.core.setMarkdown(mockContent);
@@ -118,11 +116,11 @@ export struct SidePanel {
 
   build() {
     if (this.visible) {
-      // ── 展开状态：完整面板（父组件通过 visible 控制显隐，EditorPage 的 ▶ 按钮控制折叠）──
       Column() {
-        // ── 标题栏 ──
+        // ═══════════════════════════════════════════════════
+        //  标题栏 — 38px, border-bottom
+        // ═══════════════════════════════════════════════════
         Row() {
-          // 图标 + 标题
           Text('📁')
             .fontSize(14)
             .margin({ right: 6 })
@@ -133,16 +131,15 @@ export struct SidePanel {
             .fontColor(this.themeColors.sidebarFg)
             .layoutWeight(1)
 
-          // 收起按钮 — ← 箭头（通知父组件切换 visible）
+          // 收起按钮
           Button({ type: ButtonType.Normal }) {
             Text('←')
               .fontSize(14)
               .fontColor(this.themeColors.sidebarFg)
           }
-            .width(24).height(24).padding(0)
+            .width(26).height(26).padding(0)
             .backgroundColor(Color.Transparent)
             .borderRadius(4)
-            .margin({ right: 2 })
             .onClick(() => {
               if (this.onToggleCollapse) {
                 this.onToggleCollapse();
@@ -155,9 +152,10 @@ export struct SidePanel {
               .fontSize(17)
               .fontColor(this.themeColors.sidebarFg)
           }
-            .width(24).height(24).padding(0)
+            .width(26).height(26).padding(0)
             .backgroundColor(Color.Transparent)
             .borderRadius(4)
+            .margin({ left: 2 })
             .onClick(() => {
               if (this.onNewFile) {
                 this.onNewFile();
@@ -168,33 +166,34 @@ export struct SidePanel {
         .height(38)
         .padding({ left: 10, right: 8 })
         .border({ width: { bottom: 1 }, color: this.themeColors.borderColor })
-        .clip(false)
 
-        // ── 搜索框 ──
+        // ═══════════════════════════════════════════════════
+        //  搜索框 — 36px, bg=sidebarHover
+        // ═══════════════════════════════════════════════════
         Row() {
           Text('🔍')
-            .fontSize(12)
-            .margin({ left: 8, right: 4 })
-            .opacity(0.5)
+            .fontSize(13)
+            .margin({ left: 10, right: 6 })
+            .opacity(0.6)
 
           TextInput({ placeholder: '搜索文件…', text: $$this.searchQuery })
-            .fontSize(12)
-            .height(28)
+            .fontSize(13)
+            .height(36)
             .layoutWeight(1)
             .backgroundColor(Color.Transparent)
             .borderRadius(0)
-            .padding({ left: 0, right: 8 })
+            .padding({ top: 0, bottom: 0, left: 0, right: 8 })
             .placeholderColor(this.themeColors.editorPlaceholder)
         }
         .width('100%')
-        .height(42)
-        .padding({ left: 4, right: 8 })
+        .height(36)
         .backgroundColor(this.themeColors.sidebarHover)
         .borderRadius(6)
-        .margin({ left: 8, right: 8, top: 8, bottom: 8 })
-        .clip(false)
+        .margin({ left: 6, right: 6, top: 6, bottom: 6 })
 
-        // ── 文件列表 ──
+        // ═══════════════════════════════════════════════════
+        //  文件列表 — 32px items
+        // ═══════════════════════════════════════════════════
         Scroll() {
           Column() {
             ForEach(this.getFilteredFiles(), (item: FileItem) => {
@@ -211,7 +210,7 @@ export struct SidePanel {
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
               }
               .width('100%')
-              .height(34)
+              .height(32)
               .padding({ left: 12, right: 12 })
               .borderRadius(4)
               .backgroundColor(item.path === this.activeFilePath
@@ -231,7 +230,6 @@ export struct SidePanel {
       .height('100%')
       .backgroundColor(this.themeColors.sidebarBg)
       .border({ width: { right: 1 }, color: this.themeColors.borderColor })
-      .clip(false)
     }
   }
 }
