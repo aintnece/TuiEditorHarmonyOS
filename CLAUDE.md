@@ -129,12 +129,25 @@ Button().onClick(() => this.handleClick())       // ✅
 
 位置: `/data/docs/obsidian-vault/鸿蒙开发/`
 
+### 踩坑记录（开工前必查！）
+
+`/data/docs/obsidian-vault/鸿蒙开发/踩坑记录/` — 一坑一文件：
+- `文件IO踩坑.md` — fs.accessSync 返回 boolean、OpenMode、沙箱目录（做文件操作前必读）
+- `UI渲染踩坑.md` — emoji 按钮不渲染、按钮设计规范、SVG 资产（加 UI 前必读）
+- `WebView预览踩坑.md` — loadUrl/CDN/KaTeX/CORS
+- `bindPopup悬浮提示.md` — bindPopup 双击问题
+- `ArkTS严格模式规则.md` / `常见编译错误.md` / `API导入路径速查.md` / `项目配置速查.md`
+
+**规则**：
+1. 做相关模块前，先 grep/读对应踩坑文档，避免重蹈覆辙
+2. **遇到新坑解决后，补录到对应踩坑文档**（格式：问题→根因→修复代码→调试方法），不要只靠记忆
+
 查询策略：
 ```
 # 遇到 API 不确定时：
-1. grep -r "关键词" /data/docs/obsidian-vault/鸿蒙开发/
-2. 读匹配文档
-3. 参考 harmonyos-project-setup skill（已内化在本文中）
+1. 先查 踩坑记录/ 是否有现成答案
+2. grep -r "关键词" /data/docs/obsidian-vault/鸿蒙开发/
+3. 读匹配文档
 ```
 
 ## 当前进度
