@@ -20,6 +20,9 @@ import { LinkEditor } from '../components/LinkEditor';
 import { ImageEditor } from '../components/ImageEditor';
 import { PopupMenu, MenuItem, createTableMenuItemsZh } from '../components/PopupMenu';
 import { ContextMenu, ContextMenuAction } from '../components/ContextMenu';
+import { SidePanel } from '../components/SidePanel';
+import { StatusBar } from '../components/StatusBar';
+import { ExportSheet, ExportOptions } from '../components/ExportSheet';
 import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
 import { editorContext } from '../editor/EditorContext';
@@ -48,6 +51,8 @@ struct EditorPage {
   @State showContextMenu: boolean = false;
   @State contextMenuX: number = 0;
   @State contextMenuY: number = 0;
+  @State showSidePanel: boolean = true;
+  @State showExportSheet: boolean = false;
 
   private i18n: I18n = I18n.getInstance();
 
@@ -236,6 +241,20 @@ struct EditorPage {
     }
   };
 
+  /** 处理导出 */
+  private handleExport = (): void => {
+    this.showExportSheet = true;
+  };
+
+  /** 执行实际导出操作 */
+  private doExport = (_options: ExportOptions): void => {
+    if (!editorContext.core) return;
+    // 获取 HTML 内容
+    editorContext.core.getFullHTML();
+    // Phase 8 补充：实际文件写入
+    this.showExportSheet = false;
+  };
+
   aboutToAppear(): void {
     const data: NavData = router.getParams() as NavData;
     if (data && data.fileName) {
@@ -351,88 +370,138 @@ struct EditorPage {
       .border({ width: { bottom: 1 }, color: this.theme.borderColor })
 
       // ═══════════════════════════════════════════════════════
-      //  工具栏（完整 bindPopup 版）
+      //  内容区域：SidePanel + 编辑区
       // ═══════════════════════════════════════════════════════
-      if (editorContext.editor) {
-        Toolbar({
-          // editor reads from editorContext global singleton
-          themeColors: this.theme,
-          onExport: () => { /* Phase 4.7: ExportSheet */ },
-          onLink: () => { this.showLinkEditor = true; },
-          onImage: () => { this.showImageEditor = true; },
-          onTable: () => { this.showTableMenu = !this.showTableMenu; }
-        })
-      }
-
-      // ═══════════════════════════════════════════════════════
-      //  编辑区域
-      // ═══════════════════════════════════════════════════════
-      if (this.editorType === EditorType.Markdown && editorContext.core) {
-        if (this.viewMode === ViewMode.Split) {
-          // ── 分屏模式：编辑 | 可拖拽分栏 | 预览 ──
-          Row() {
-            MdEditor({
-              // editorCore reads from editorContext global singleton
-              themeColors: this.theme,
-              fontSize: 16,
-              placeholder: this.i18n.get('Placeholder', '开始编辑…'),
-              onLongPress: this.handleLongPress
-            })
-              .width(this.containerWidth * this.splitRatio - 3)
-              .height('100%')
-
-            Splitter({
-              splitRatio: $splitRatio,
-              containerWidth: this.containerWidth,
-              themeColors: this.theme
-            })
-
-            MdPreview({
-              // editorCore reads from editorContext global singleton
-              themeColors: this.theme,
-              fontSize: 16
-            })
-              .width(this.containerWidth * (1 - this.splitRatio) - 3)
-              .height('100%')
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .onAreaChange((_old: Area, newArea: Area) => {
-            if (newArea && newArea.width && newArea.width > 0) {
-              this.containerWidth = Number(newArea.width);
+      Row() {
+        // 侧栏切换标签（侧栏隐藏时显示）
+        if (!this.showSidePanel) {
+          Column() {
+            Button({ type: ButtonType.Normal }) {
+              Text('▶')
+                .fontSize(10)
+                .fontColor(this.theme.sidebarFg)
             }
-          })
-        } else if (this.viewMode === ViewMode.Preview) {
-          // ── 仅预览模式 ──
-          MdPreview({
-            // editorCore reads from editorContext global singleton
-            themeColors: this.theme,
-            fontSize: 16
-          })
-            .width('100%')
-            .layoutWeight(1)
-        } else {
-          // ── 仅编辑模式 ──
-          MdEditor({
-            // editorCore reads from editorContext global singleton
-            themeColors: this.theme,
-            fontSize: 16,
-            placeholder: this.i18n.get('Placeholder', '开始编辑…'),
-            onLongPress: this.handleLongPress
-          })
-            .width('100%')
-            .layoutWeight(1)
+              .width(24).height(32).padding(0)
+              .backgroundColor(this.theme.sidebarBg)
+              .borderRadius(0)
+              .onClick(() => { this.showSidePanel = true; })
+          }
+          .height('100%')
+          .backgroundColor(this.theme.sidebarBg)
+          .border({ width: { right: 1 }, color: this.theme.borderColor })
         }
-      } else {
-        // WYSIWYG 区域 — Phase 5 实现
-        Text('[ WYSIWYG 模式 — Phase 5 实现 ]')
-          .width('100%')
-          .layoutWeight(1)
-          .fontSize(16)
-          .fontColor(this.theme.editorPlaceholder)
-          .textAlign(TextAlign.Center)
-          .backgroundColor(this.theme.editorBg)
+
+        // 侧栏
+        SidePanel({
+          themeColors: this.theme,
+          visible: this.showSidePanel,
+          onFileSelect: (_path: string) => {
+            // 文件切换处理 — SidePanel 内部已通过 editorContext 更新内容
+          },
+          onNewFile: () => {
+            // Phase 8 补充：新建文件逻辑
+          },
+          onOpenFile: () => {
+            // Phase 8 补充：打开文件逻辑
+          }
+        })
+
+        // 编辑器主体列
+        Column() {
+          // ── 工具栏 ──
+          if (editorContext.editor) {
+            Toolbar({
+              // editor reads from editorContext global singleton
+              themeColors: this.theme,
+              onExport: () => { this.handleExport(); },
+              onLink: () => { this.showLinkEditor = true; },
+              onImage: () => { this.showImageEditor = true; },
+              onTable: () => { this.showTableMenu = !this.showTableMenu; }
+            })
+          }
+
+          // ═══════════════════════════════════════════════════════
+          //  编辑区域
+          // ═══════════════════════════════════════════════════════
+          if (this.editorType === EditorType.Markdown && editorContext.core) {
+            if (this.viewMode === ViewMode.Split) {
+              // ── 分屏模式：编辑 | 可拖拽分栏 | 预览 ──
+              Row() {
+                MdEditor({
+                  // editorCore reads from editorContext global singleton
+                  themeColors: this.theme,
+                  fontSize: 16,
+                  placeholder: this.i18n.get('Placeholder', '开始编辑…'),
+                  onLongPress: this.handleLongPress
+                })
+                  .width(this.containerWidth * this.splitRatio - 3)
+                  .height('100%')
+
+                Splitter({
+                  splitRatio: $splitRatio,
+                  containerWidth: this.containerWidth,
+                  themeColors: this.theme
+                })
+
+                MdPreview({
+                  // editorCore reads from editorContext global singleton
+                  themeColors: this.theme,
+                  fontSize: 16
+                })
+                  .width(this.containerWidth * (1 - this.splitRatio) - 3)
+                  .height('100%')
+              }
+              .width('100%')
+              .layoutWeight(1)
+              .onAreaChange((_old: Area, newArea: Area) => {
+                if (newArea && newArea.width && newArea.width > 0) {
+                  this.containerWidth = Number(newArea.width);
+                }
+              })
+            } else if (this.viewMode === ViewMode.Preview) {
+              // ── 仅预览模式 ──
+              MdPreview({
+                // editorCore reads from editorContext global singleton
+                themeColors: this.theme,
+                fontSize: 16
+              })
+                .width('100%')
+                .layoutWeight(1)
+            } else {
+              // ── 仅编辑模式 ──
+              MdEditor({
+                // editorCore reads from editorContext global singleton
+                themeColors: this.theme,
+                fontSize: 16,
+                placeholder: this.i18n.get('Placeholder', '开始编辑…'),
+                onLongPress: this.handleLongPress
+              })
+                .width('100%')
+                .layoutWeight(1)
+            }
+          } else {
+            // WYSIWYG 区域 — Phase 5 实现
+            Text('[ WYSIWYG 模式 — Phase 5 实现 ]')
+              .width('100%')
+              .layoutWeight(1)
+              .fontSize(16)
+              .fontColor(this.theme.editorPlaceholder)
+              .textAlign(TextAlign.Center)
+              .backgroundColor(this.theme.editorBg)
+          }
+        }
+        .layoutWeight(1)
+        .height('100%')
       }
+      .layoutWeight(1)
+      .width('100%')
+
+      // ═══════════════════════════════════════════════════════
+      //  底部状态栏
+      // ═══════════════════════════════════════════════════════
+      StatusBar({
+        themeColors: this.theme
+      })
     }
     .width('100%')
     .height('100%')
@@ -521,6 +590,16 @@ struct EditorPage {
         posY: this.contextMenuY,
         onAction: this.handleContextMenuAction,
         onClose: () => { this.showContextMenu = false; }
+      })
+
+      // ═══════════════════════════════════════════════════════
+      //  导出面板
+      // ═══════════════════════════════════════════════════════
+      ExportSheet({
+        themeColors: this.theme,
+        visible: this.showExportSheet,
+        onClose: () => { this.showExportSheet = false; },
+        onExport: this.doExport
       })
     }
     .width('100%')
