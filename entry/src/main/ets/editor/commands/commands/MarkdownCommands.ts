@@ -8,7 +8,6 @@
 import { Command, UndoableCommand } from '../CommandManager';
 import { EditorState } from '../../EditorType';
 import { Selection } from '../../selection/Selection';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 
 // ═══════════════════════════════════════════════════════════
 //  行内格式命令
@@ -18,7 +17,6 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 export const BoldCommand: UndoableCommand = {
   name: 'Bold',
   execute(state: EditorState): EditorState {
-    hilog.info(0x0000, 'TUIEditor', 'BoldCommand.execute — selStart:' + state.selectionStart + ' selEnd:' + state.selectionEnd + ' lastSelStart:' + state.lastSelectionStart + ' lastSelEnd:' + state.lastSelectionEnd + ' markdownLen:' + state.markdown.length);
     return wrapSelection(state, '**', '**', '粗体文本');
   },
   undo(state: EditorState): EditorState {
@@ -294,13 +292,11 @@ function wrapSelection(
 
   // Fallback to last valid selection if current selection has no range
   if (selStart === selEnd && state.lastSelectionStart >= 0 && state.lastSelectionStart < state.lastSelectionEnd) {
-    hilog.warn(0x0000, 'TUIEditor', 'wrapSelection — FALLBACK: using lastSelectionStart:' + state.lastSelectionStart + ' lastSelectionEnd:' + state.lastSelectionEnd + ' (current selStart/selEnd was ' + selStart + '/' + selEnd + ')');
     selStart = state.lastSelectionStart;
     selEnd = state.lastSelectionEnd;
   }
 
   let selectedText: string = placeholder;
-  hilog.info(0x0000, 'TUIEditor', 'wrapSelection — prefix:' + prefix + ' selStart:' + selStart + ' selEnd:' + selEnd + ' hasSelection:' + (selStart < selEnd) + ' usingPlaceholder:' + (selStart >= selEnd));
   if (selStart < selEnd) {
     selectedText = md.substring(selStart, selEnd);
   }

@@ -8,7 +8,7 @@
 
 import { router } from '@kit.ArkUI';
 import { pasteboard } from '@kit.BasicServicesKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+
 import { Editor } from '../editor/Editor';
 import { EditorCore } from '../editor/EditorCore';
 import { EditorType, ViewMode, EditorConfig, PartialConfig } from '../editor/EditorType';
@@ -255,7 +255,6 @@ struct EditorPage {
 
     editorContext.editor = Editor.factory(opts);
     editorContext.core = editorContext.editor.getCore();
-    hilog.info(0x0000, 'TUIEditor', 'EditorPage.aboutToAppear — editor: ' + editorContext.editor + ' core: ' + editorContext.core);
 
     // 监听内容变更
     editorContext.editor.on('change', (): void => {

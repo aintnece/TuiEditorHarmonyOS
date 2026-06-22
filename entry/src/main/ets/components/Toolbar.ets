@@ -10,7 +10,6 @@ import { EditorCore } from '../editor/EditorCore';
 import { EditorType, ViewMode } from '../editor/EditorType';
 import { ThemeColors } from '../services/ThemeService';
 import { I18n } from '../i18n/I18n';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { editorContext } from '../editor/EditorContext';
 
 @Component
@@ -24,7 +23,6 @@ export struct Toolbar {
   private i18n: I18n = I18n.getInstance();
 
   aboutToAppear(): void {
-    hilog.info(0x0000, 'TUIEditor', 'Toolbar.aboutToAppear — editorContext.editor: ' + editorContext.editor + ' type: ' + typeof editorContext.editor);
   }
 
   aboutToDisappear(): void {
@@ -66,7 +64,7 @@ export struct Toolbar {
           .width(16).height(16)
       }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold onClick — editorContext.editor: ' + editorContext.editor + ' isMarkdown: ' + this.isMarkdown); hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold — core:' + editorContext.core + ' coreIsNull:' + (editorContext.core === null)); if (editorContext.editor) { editorContext.editor.exec('Bold'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Bold'); } })
         .margin({ left: 2, right: 2 })
 
       // ── 斜体 ──

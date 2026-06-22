@@ -1,12 +1,11 @@
 # Project Status: TuiEditorHarmonyOS
 
-**Last updated**: 2026-06-21 (Session 3 — Phase 4.5 完成，编译修复)
+**Last updated**: 2026-06-22 (Phase 4.6 完成 — ContextMenu + Bug 修复 + 诊断日志清理)
 
 ## Summary
 
-Phase 1-4.5 完成。31 个文件就绪。
-编辑器已具备：解析器 + EditorCore + Toolbar(20+ 按钮) + MdEditor(行号标尺) + MdPreview(WebView预览+KaTeX) + Splitter(可拖拽分栏) + LinkEditor(链接弹窗) + ImageEditor(图片弹窗) + PopupMenu(表格操作菜单)。
-**准备进入 Phase 4.6：ContextMenu 右键菜单。**
+Phase 1-4.6 完成。编辑器已具备：解析器 + EditorCore + Toolbar(22 按钮 Feather Icons) + MdEditor(行号标尺+选区同步) + MdPreview(WebView预览+KaTeX) + Splitter(可拖拽分栏) + LinkEditor(链接弹窗) + ImageEditor(图片弹窗) + PopupMenu(表格操作菜单) + ContextMenu(右键菜单 6 项+剪贴板)。Bug 修复：undo snapshot、bindPopup 移除、EditorContext 全局单例、@Prop→global 传递、selection 回退、Feather Icons。
+**准备进入 Phase 4.7：SidePanel + StatusBar + ExportSheet。**
 
 ## Completed
 
@@ -28,7 +27,7 @@ Phase 1-4.5 完成。31 个文件就绪。
 - [x] EditorPage 接入 Editor + app.ets 偏好初始化
 
 ### Phase 4
-- [x] **4.1**: Toolbar 工具栏（22 按钮 + bindPopup 防抖 + 模式切换）
+- [x] **4.1**: Toolbar 工具栏（22 按钮 + Feather Icons + bindPopup→Stack tooltip + 模式切换）
 - [x] **4.2**: MdEditor 编辑器组件（TextArea + 行号标尺 + EditorCore 光标同步）
 - [x] **4.3**: MdPreview 预览组件（WebView + runJavaScript 无闪烁更新 + KaTeX 本地拦截）
 - [x] **4.4**: Splitter 可拖拽分栏（PanGesture delta 模式 + 像素宽度布局）
@@ -37,10 +36,22 @@ Phase 1-4.5 完成。31 个文件就绪。
 - [ ] **4.7**: SidePanel + StatusBar + ExportSheet
 - [ ] **4.8**: EditorPage 完整集成
 
+### Bug 修复
+- [x] undo snapshot — CommandManager.undo() 改用全快照
+- [x] bindPopup 移除 — 32px 按钮 bindPopup 需要双击；改为 Stack + position() 内联 tooltip
+- [x] EditorContext 单例 — 解决 @Prop 无法传递 class 实例；全局 editorContext 单例
+- [x] selection 回退 — lastSelectionStart/lastSelectionEnd 保存最后有效选区
+- [x] Feather Icons — 16 个 SVG 图标替换文本标签
+- [x] 诊断日志清理 — 移除所有临时 hilog 调试日志（7 文件清理完毕）
+
 ## In Progress
 
-**Phase 4.5** — 链接/图片弹窗 + 表格操作菜单已完成，待编译验证
-**Next**: Phase 4.6（ContextMenu 右键菜单）
+**Phase 4.7** — SidePanel + StatusBar + ExportSheet
+
+## Next
+
+- Phase 4.7: SidePanel（左侧文件浏览器）+ StatusBar（底部状态栏）+ ExportSheet（导出为 HTML）
+- Phase 4.8: EditorPage 完整集成
 
 ## Known Issues
 
@@ -68,16 +79,22 @@ Phase 1-4.5 完成。31 个文件就绪。
 | `parser/commonmark/Node.ts` | 修改 | alignments String→string |
 | `parser/commonmark/Gfm.ts` | 修改 | aligns String→string |
 | `parser/html/Renderer.ts` | 修改 | String→string 类型修复 |
-| `editor/EditorCore.ts` | 修改 | Handler 类型修复 |
+| `editor/EditorCore.ts` | 修改 | Handler 类型修复 + 诊断日志清理 |
 | `editor/Editor.ts` | 修改 | Handler + context 类型修复 |
-| `editor/markdown/MdEditor.ets` | **新建** | 行号标尺 + 光标同步 |
-| `editor/markdown/MdPreview.ets` | **新建** | WebView 预览 + KaTeX |
-| `components/Toolbar.ets` | 修改 | Editor 默认值修复 + onLink/onImage/onTable 回调 |
+| `editor/EditorContext.ts` | **新建** | 全局 editorContext 单例（@Prop 替代方案） |
+| `editor/EditorType.ts` | 修改 | 新增 lastSelectionStart/lastSelectionEnd 字段 |
+| `editor/markdown/MdEditor.ets` | **新建** | 行号标尺 + 光标同步 + 诊断日志清理 |
+| `editor/markdown/MdPreview.ets` | **新建** | WebView 预览 + KaTeX + 诊断日志清理 |
+| `editor/commands/commands/MarkdownCommands.ts` | 修改 | selection fallback + 诊断日志清理 |
+| `components/Toolbar.ets` | 修改 | Editor 默认值修复 + onLink/onImage/onTable 回调 + Feather Icons + 诊断日志清理 |
 | `components/Splitter.ets` | **新建** | PanGesture 可拖拽分栏（@Link splitRatio 绑定） |
 | `components/LinkEditor.ets` | **新建** | 链接编辑弹窗（URL + 文本） |
 | `components/ImageEditor.ets` | **新建** | 图片插入弹窗（URL + alt） |
 | `components/PopupMenu.ets` | **新建** | 表格操作弹出菜单（9 项操作 + 中/英） |
-| `pages/EditorPage.ets` | 修改 | 集成三模式布局 + Splitter + 对话框 Stack 遮罩层 + 回调处理 |
+| `components/ContextMenu.ets` | **新建** | 右键/长按上下文菜单（6 项 + pasteboard 集成） |
+| `pages/EditorPage.ets` | 修改 | 集成三模式布局 + Splitter + 对话框 Stack 遮罩层 + 回调处理 + ContextMenu + 诊断日志清理 |
+| `pages/Index.ets` | 修改 | 诊断日志清理 |
 | `entry/src/main/module.json5` | 修改 | deliveryWithInstall + skills + 权限 |
 | `resources/*/element/string.json` | 修改 | +2 权限说明 key |
 | `resources/rawfile/katex/` | **新建** | KaTeX 完整资源（CSS/JS/字体） |
+| `resources/base/media/tui_*.svg` | **新建** | 16 个 Feather Icons SVG（粗体/斜体/删除线/代码/标题/引用/列表/链接/图片/表格/分割线/代码块/任务/撤销/重做） |

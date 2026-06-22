@@ -10,7 +10,6 @@
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
 import { Handler } from '../../event/EventEmitter';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { editorContext } from '../EditorContext';
 
 @Component
@@ -31,7 +30,6 @@ export struct MdEditor {
   private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
-    hilog.info(0x0000, 'TUIEditor', 'MdEditor.aboutToAppear — editorCore: ' + editorContext.core);
     if (!editorContext.core) return;
 
     this.editorText = editorContext.core.getMarkdown();
@@ -82,7 +80,6 @@ export struct MdEditor {
         .borderRadius(0)
         .borderWidth(0)
         .onChange((value: string) => {
-          hilog.info(0x0000, 'TUIEditor', 'MdEditor.onChange — called with ' + value.length + ' chars, editorCore: ' + editorContext.core);
           this.editorText = value;
           if (editorContext.core) {
             editorContext.core.onContentChange(value);
@@ -90,7 +87,6 @@ export struct MdEditor {
           this.updateLineCount();
         })
         .onTextSelectionChange((selectionStart: number, selectionEnd: number) => {
-          hilog.info(0x0000, 'TUIEditor', 'MdEditor.onTextSelectionChange — selectionStart:' + selectionStart + ' selectionEnd:' + selectionEnd + ' hasRange:' + (selectionStart < selectionEnd));
           if (editorContext.core) {
             editorContext.core.updateSelection(selectionStart, selectionEnd);
             this.cursorLine = editorContext.core.state.cursorLine;

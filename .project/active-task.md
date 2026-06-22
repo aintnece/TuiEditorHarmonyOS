@@ -2,46 +2,138 @@
 
 ## Objective
 
-修复 Toolbar 无响应 + 预览不更新 + Stack tooltip 闪烁/黑框
+实现 Phase 4.7：SidePanel + StatusBar + ExportSheet
 
 ## Context
 
-之前 Bug 修复和 Phase 4.6 引入了 3 个问题：
-1. **Toolbar 按钮全部无效**：点击 Bold/Heading/撤销等无任何反应
-2. **编辑区改文字，预览不变化**：MdEditor 输入内容后 MdPreview 不刷新
-3. **Tooltip 从稳定气泡变成粗糙黑框**，部分按钮快速闪烁
+Phase 4.6 (ContextMenu 右键菜单) 已完成，Bug 修复全部完成，诊断日志已清理。
+编辑器核心功能就绪，现在需要补充三个外围 UI 组件：
 
-## 改动历史（可能引入问题的 commit）
-- `fb43968` — bindPopup→Stack tooltip 重构 Toolbar，加了 listener cleanup
-- `bf1e660` — @Prop 类型从 Editor 改为 Editor|null，加了 null 守卫
-- `7024820` — 上一轮编译修复：self.editorCore→局部 const
-- `1ce4314` — 移除 .clip(false)（导致 tooltip 被裁切成黑框）
+1. **SidePanel** — 左侧文件浏览器侧栏
+2. **StatusBar** — 底部状态栏
+3. **ExportSheet** — 导出为 HTML 对话框
 
-## 疑点分析
+## Components
 
-### 问题 1：Toolbar 按钮无效
-Toolbar.ets 声明了 `@Prop editor: Editor | null = null`，EditorPage 在 `aboutToAppear()` 中创建 `this.editor = Editor.factory(opts)`，然后在 `build()` 中传 `editor: this.editor`。但 ArkTS 的 `@Prop` 对 class 实例可能不按预期工作——`@Prop` 是一向同步，可能在组件创建时拿到的是初始值 `null`（因为 `private editor: Editor | null = null`）。
+### 1. SidePanel（左侧文件浏览器）
 
-**要排查**：Toolbar 的 `aboutToAppear()` 中打印 `this.editor` 是否为 null。
+对标 tui.editor 风格的文件管理侧栏。显示在编辑器左侧。
 
-### 问题 2：预览不更新
-MdEditor/MdPreview 的 `@Prop editorCore: EditorCore | null = null` 与 EditorPage 的 `private core: EditorCore | null = null` 类型匹配，但同样可能有 @Prop 传递问题。
+**功能需求**：
+- 显示"最近文件"列表（从 EditorPage 传入文件列表）
+- 支持点击文件名切换打开文件（回调 `onFileSelect`）
+- 新建文档按钮（回调 `onNewFile`）
+- 删除文件按钮（三态：打开 → 确认 → 执行）
+- 重命名文件（点击当前文件名 → TextInput 内联编辑 → 回车确认）
+- 折叠/展开切换（toggle 按钮 → 动画宽度变化）
+- 暗色/亮色主题适配（通过 `@Prop themeColors`）
+- 侧栏宽度约 220px
 
-### 问题 3：Tooltip 闪烁
-`.clip(false)` 移除后，Stack 32×32 的容器裁切了 tooltip Text，只剩裁切后的碎片（黑框）。之前 `.clip(false)` 能解决但有 API 12 警告。闪烁是因为 hover 导致 tooltip 出现→布局重排→hover 状态变化→tooltip 消失→ 循环。
+**组件接口**：
+```typescript
+@Component
+export struct SidePanel {
+  @Prop themeColors: ThemeColors;
+  @Prop visible: boolean = true;
+  files: string[] = [];        // 文件路径列表
+  activeFile: string = '';     // 当前活跃文件
+  onFileSelect?: (path: string) => void;
+  onNewFile?: () => void;
+  onDeleteFile?: (path: string) => void;
+  onRenameFile?: (oldPath: string, newPath: string) => void;
+}
+```
 
-需要改为可靠方案：Stack 不要 clip tooltip → 改 `buildTooltip` 用条件渲染但放在 Stack 外部，或加大 Stack 尺寸到能容纳 tooltip，或回到 `bindPopup`。
+**设计要点**：
+- 文件列表用 `List` + `ForEach` 渲染
+- 活跃文件高亮（左侧蓝色竖条 + 背景色）
+- 搜索/过滤输入框（顶部）
+- 空状态提示："暂无文件，点击 + 新建"
+- 文件图标：📄 普通文件，🖼 图片，📊 表格
 
-## Progress
+### 2. StatusBar（底部状态栏）
 
-- [x] Step 1: CC 分析根因（读文件、理解 @Prop 传递机制）
-- [x] Step 2: 修复 Toolbar 按钮无效 — 根因：EditorPage 的 `editor`/`core` 缺少 `@State` 装饰器，导致 ArkTS `@Prop` 无法正确传递 class 实例到子组件。修复：添加 `@State private editor` 和 `@State private core`
-- [x] Step 3: 修复预览不更新 — 同根因修复，MdEditor/MdPreview 的 `@Prop editorCore` 现在能正确接收实例
-- [x] Step 4: 修复 Tooltip 闪烁/黑框 — (a) 所有 Stack 恢复 `.clip(false)` 解决裁切黑框；(b) 新增 `setHovered()` 方法加 120ms 防抖消除闪烁；(c) 新增 `aboutToDisappear()` 清理 timer
+对标 tui.editor 的 statusbar，显示编辑器元信息。
+
+**功能需求**：
+- 字数统计（中/英分开：`中文 N 字 · 英文 M words`）
+- 光标位置：`行 12, 列 5`
+- Markdown 模式指示器：`Markdown` / `WYSIWYG` / `分屏预览` / `仅预览`
+- 语法高亮模式指示（可选，Phase 8）
+- 高度约 28px，固定在编辑器底部
+
+**组件接口**：
+```typescript
+@Component
+export struct StatusBar {
+  @Prop themeColors: ThemeColors;
+  @Prop wordCount: number = 0;
+  @Prop cursorLine: number = 0;
+  @Prop cursorCol: number = 0;
+  @Prop editorType: EditorType = EditorType.Markdown;
+  @Prop viewMode: ViewMode = ViewMode.Split;
+}
+```
+
+**设计要点**：
+- `Row` 布局：wordCount | cursor | mode（用 `Blank()` 间隔）
+- 小号字体（11px-12px），低对比度颜色
+- 顶部 1px 分割线
+- 数据从 EditorCore 通过事件同步（监听 change/caretChange/stateChange）
+
+### 3. ExportSheet（导出对话框）
+
+对标 tui.editor 的导出功能。将 Markdown 渲染为完整 HTML 文件。
+
+**功能需求**：
+- 触发：点击 Toolbar 导出按钮（`onExport` 回调）
+- 弹出居中对话框（半透明遮罩层）
+- 预览窗口：显示渲染后的 HTML 预览（用 WebView，80% 宽度）
+- 导出按钮：点击后生成 HTML 字符串并写入文件
+- 选项：
+  - ☑ 内联 KaTeX（数学公式渲染）
+  - ☑ 内联 Prism.js（代码语法高亮）
+  - ☐ 独立 CSS 文件
+- 导出路径：`/data/storage/el2/base/files/exports/文件名.html`
+- 导出成功后显示 Toast："导出成功: /path/to/file.html"
+
+**组件接口**：
+```typescript
+@Component
+export struct ExportSheet {
+  @Prop themeColors: ThemeColors;
+  @Prop visible: boolean = false;
+  onClose?: () => void;
+  onExport?: (options: ExportOptions) => void;
+}
+
+interface ExportOptions {
+  inlineKatex: boolean;
+  inlinePrism: boolean;
+  externalCss: boolean;
+}
+```
+
+**实现步骤**：
+1. 创建 ExportSheet.ets 组件
+2. 从 EditorCore 获取 HTML（`editorContext.core.getFullHTML()`）
+3. 注入 KaTeX CDN 资源（或内联 CSS/JS）
+4. 注入 Prism.js CDN 资源（或内联 CSS/JS）
+5. 使用 `fileIo.writeSync` 写入文件
+6. 使用 `promptAction.showToast` 显示结果
+
+**已知问题**：Prism.js rawfile 资源需提前准备（或先跳过，Phase 8 补充）
+
+## Steps
+
+- [ ] Step 1: 创建 `SidePanel.ets` 组件 — 左侧文件浏览器
+- [ ] Step 2: 创建 `StatusBar.ets` 组件 — 底部状态栏
+- [ ] Step 3: 创建 `ExportSheet.ets` 组件 — 导出对话框
+- [ ] Step 4: 集成到 EditorPage（SidePanel + StatusBar + ExportSheet 在 build() 中）
 - [ ] Step 5: Hermes 编译验证
 
 ## Checkpoint
 
-**Status**: `in_progress`
+**Status**: `pending`
 **Assigned to**: Claude Code
-**Next step**: CC 执行诊断和修复 → Hermes 审查 → commit
+**Next step**: CC 读取 CLAUDE.md → 读取鸿蒙开发文档 → 开始 Step 1 SidePanel
