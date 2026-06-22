@@ -11,10 +11,10 @@ import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
 import { Handler } from '../../event/EventEmitter';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { editorContext } from '../EditorContext';
 
 @Component
 export struct MdEditor {
-  @Consume editorCore: EditorCore | null = null;
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
   @Prop placeholder: string = '开始编辑…';
@@ -31,13 +31,13 @@ export struct MdEditor {
   private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
-    hilog.info(0x0000, 'TUIEditor', 'MdEditor.aboutToAppear — editorCore: ' + this.editorCore);
-    if (!this.editorCore) return;
+    hilog.info(0x0000, 'TUIEditor', 'MdEditor.aboutToAppear — editorCore: ' + editorContext.core);
+    if (!editorContext.core) return;
 
-    this.editorText = this.editorCore.getMarkdown();
+    this.editorText = editorContext.core.getMarkdown();
     this.updateLineCount();
 
-    const core: EditorCore = this.editorCore;
+    const core: EditorCore = editorContext.core;
     const self: MdEditor = this;
 
     // 监听 EditorCore 内容变更（命令执行、撤销/重做）
@@ -56,10 +56,10 @@ export struct MdEditor {
   }
 
   aboutToDisappear(): void {
-    if (!this.editorCore) return;
+    if (!editorContext.core) return;
 
-    this.editorCore.off('change', this.changeHandler);
-    this.editorCore.off('caretChange', this.caretChangeHandler);
+    editorContext.core.off('change', this.changeHandler);
+    editorContext.core.off('caretChange', this.caretChangeHandler);
   }
 
   build() {
@@ -82,26 +82,26 @@ export struct MdEditor {
         .borderRadius(0)
         .borderWidth(0)
         .onChange((value: string) => {
-          hilog.info(0x0000, 'TUIEditor', 'MdEditor.onChange — called with ' + value.length + ' chars, editorCore: ' + this.editorCore);
+          hilog.info(0x0000, 'TUIEditor', 'MdEditor.onChange — called with ' + value.length + ' chars, editorCore: ' + editorContext.core);
           this.editorText = value;
-          if (this.editorCore) {
-            this.editorCore.onContentChange(value);
+          if (editorContext.core) {
+            editorContext.core.onContentChange(value);
           }
           this.updateLineCount();
         })
         .onTextSelectionChange((selectionStart: number, selectionEnd: number) => {
-          if (this.editorCore) {
-            this.editorCore.updateSelection(selectionStart, selectionEnd);
-            this.cursorLine = this.editorCore.state.cursorLine;
-            this.cursorCol = this.editorCore.state.cursorCol;
+          if (editorContext.core) {
+            editorContext.core.updateSelection(selectionStart, selectionEnd);
+            this.cursorLine = editorContext.core.state.cursorLine;
+            this.cursorCol = editorContext.core.state.cursorCol;
           }
         })
         .onEditChange((status: boolean) => {
-          if (this.editorCore) {
+          if (editorContext.core) {
             if (status) {
-              this.editorCore.focus();
+              editorContext.core.focus();
             } else {
-              this.editorCore.blur();
+              editorContext.core.blur();
             }
           }
         })
@@ -162,8 +162,8 @@ export struct MdEditor {
 
   /** 聚焦编辑器 */
   focus(): void {
-    if (this.editorCore) {
-      this.controller.caretPosition(this.editorCore.state.selectionStart);
+    if (editorContext.core) {
+      this.controller.caretPosition(editorContext.core.state.selectionStart);
     }
   }
 

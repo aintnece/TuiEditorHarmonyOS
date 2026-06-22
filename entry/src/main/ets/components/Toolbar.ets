@@ -11,10 +11,10 @@ import { EditorType, ViewMode } from '../editor/EditorType';
 import { ThemeColors } from '../services/ThemeService';
 import { I18n } from '../i18n/I18n';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { editorContext } from '../editor/EditorContext';
 
 @Component
 export struct Toolbar {
-  @Consume editor: Editor | null = null;
   @Prop themeColors: ThemeColors = new ThemeColors();
   onExport?: () => void;
   onLink?: () => void;
@@ -22,26 +22,22 @@ export struct Toolbar {
   onTable?: () => void;
 
   private i18n: I18n = I18n.getInstance();
-  private core: EditorCore | null = null;
 
   aboutToAppear(): void {
-    hilog.info(0x0000, 'TUIEditor', 'Toolbar.aboutToAppear — this.editor: ' + this.editor + ' type: ' + typeof this.editor);
-    if (this.editor) {
-      this.core = this.editor.getCore();
-    }
+    hilog.info(0x0000, 'TUIEditor', 'Toolbar.aboutToAppear — editorContext.editor: ' + editorContext.editor + ' type: ' + typeof editorContext.editor);
   }
 
   aboutToDisappear(): void {
   }
 
   private get isMarkdown(): boolean {
-    if (!this.core) return true;
-    return this.core.state.editorType === EditorType.Markdown;
+    if (!editorContext.core) return true;
+    return editorContext.core.state.editorType === EditorType.Markdown;
   }
 
   private get viewMode(): ViewMode {
-    if (!this.core) return ViewMode.Split;
-    return this.core.state.viewMode;
+    if (!editorContext.core) return ViewMode.Split;
+    return editorContext.core.state.viewMode;
   }
 
   private get isEditActive(): boolean {
@@ -54,8 +50,8 @@ export struct Toolbar {
     return this.viewMode === ViewMode.Preview;
   }
   private get isWysiwygActive(): boolean {
-    if (!this.core) return false;
-    return this.core.state.editorType === EditorType.Wysiwyg;
+    if (!editorContext.core) return false;
+    return editorContext.core.state.editorType === EditorType.Wysiwyg;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -67,25 +63,25 @@ export struct Toolbar {
       // ── B 粗体 ──
       Button({ type: ButtonType.Normal }) { Text('B').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold onClick — this.editor: ' + this.editor + ' isMarkdown: ' + this.isMarkdown); hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold — core:' + this.core + ' coreIsNull:' + (this.core === null)); if (this.editor) { this.editor.exec('Bold'); } })
+        .onClick(() => { hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold onClick — editorContext.editor: ' + editorContext.editor + ' isMarkdown: ' + this.isMarkdown); hilog.info(0x0000, 'TUIEditor', 'Toolbar Bold — core:' + editorContext.core + ' coreIsNull:' + (editorContext.core === null)); if (editorContext.editor) { editorContext.editor.exec('Bold'); } })
         .margin({ left: 2, right: 2 })
 
       // ── I 斜体 ──
       Button({ type: ButtonType.Normal }) { Text('I').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('Italic'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Italic'); } })
         .margin({ left: 2, right: 2 })
 
       // ── S 删除线 ──
       Button({ type: ButtonType.Normal }) { Text('S').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('Strike'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Strike'); } })
         .margin({ left: 2, right: 2 })
 
       // ── <> 行内代码 ──
       Button({ type: ButtonType.Normal }) { Text('<>').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('Code'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Code'); } })
         .margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
@@ -93,37 +89,37 @@ export struct Toolbar {
       // ── H 标题 ──
       Button({ type: ButtonType.Normal }) { Text('H').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('Heading', '2'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Heading', '2'); } })
         .margin({ left: 2, right: 2 })
 
       // ── ❝ 引用 ──
       Button({ type: ButtonType.Normal }) { Text('❝').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('Quote'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Quote'); } })
         .margin({ left: 2, right: 2 })
 
       // ── • 无序列表 ──
       Button({ type: ButtonType.Normal }) { Text('•').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('BulletList'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('BulletList'); } })
         .margin({ left: 2, right: 2 })
 
       // ── 1. 有序列表 ──
       Button({ type: ButtonType.Normal }) { Text('1.').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('OrderedList'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('OrderedList'); } })
         .margin({ left: 2, right: 2 })
 
       // ── ☑ 任务列表 ──
       Button({ type: ButtonType.Normal }) { Text('☑').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('TaskList'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('TaskList'); } })
         .margin({ left: 2, right: 2 })
 
       // ── { } 代码块 ──
       Button({ type: ButtonType.Normal }) { Text('{ }').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('Codeblock'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Codeblock'); } })
         .margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
@@ -132,7 +128,7 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) { Text('🔗').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => {
-          if (this.onLink) { this.onLink(); } else if (this.editor) { this.editor.exec('Link'); }
+          if (this.onLink) { this.onLink(); } else if (editorContext.editor) { editorContext.editor.exec('Link'); }
         })
         .margin({ left: 2, right: 2 })
 
@@ -140,7 +136,7 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) { Text('🖼').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => {
-          if (this.onImage) { this.onImage(); } else if (this.editor) { this.editor.exec('Image'); }
+          if (this.onImage) { this.onImage(); } else if (editorContext.editor) { editorContext.editor.exec('Image'); }
         })
         .margin({ left: 2, right: 2 })
 
@@ -148,14 +144,14 @@ export struct Toolbar {
       Button({ type: ButtonType.Normal }) { Text('⊞').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
         .onClick(() => {
-          if (this.onTable) { this.onTable(); } else if (this.editor) { this.editor.exec('Table'); }
+          if (this.onTable) { this.onTable(); } else if (editorContext.editor) { editorContext.editor.exec('Table'); }
         })
         .margin({ left: 2, right: 2 })
 
       // ── — 分割线 ──
       Button({ type: ButtonType.Normal }) { Text('—').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.exec('HorizontalRule'); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('HorizontalRule'); } })
         .margin({ left: 2, right: 2 })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
@@ -170,7 +166,7 @@ export struct Toolbar {
         .width(32).height(32).padding(0)
         .backgroundColor(this.isEditActive ? this.themeColors.toolbarActive : Color.Transparent)
         .borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.changeMode(EditorType.Markdown); this.editor.changeViewMode(ViewMode.Editor); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.changeMode(EditorType.Markdown); editorContext.editor.changeViewMode(ViewMode.Editor); } })
         .margin({ left: 2, right: 2 })
 
       // ── ⇔ 分屏模式 ──
@@ -183,7 +179,7 @@ export struct Toolbar {
         .width(32).height(32).padding(0)
         .backgroundColor(this.isSplitActive ? this.themeColors.toolbarActive : Color.Transparent)
         .borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.changeViewMode(ViewMode.Split); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.changeViewMode(ViewMode.Split); } })
         .margin({ left: 2, right: 2 })
 
       // ── ◎ 预览模式 ──
@@ -196,7 +192,7 @@ export struct Toolbar {
         .width(32).height(32).padding(0)
         .backgroundColor(this.isPreviewActive ? this.themeColors.toolbarActive : Color.Transparent)
         .borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.changeViewMode(ViewMode.Preview); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.changeViewMode(ViewMode.Preview); } })
         .margin({ left: 2, right: 2 })
 
       // ── ≡ WYSIWYG ──
@@ -209,7 +205,7 @@ export struct Toolbar {
         .width(32).height(32).padding(0)
         .backgroundColor(this.isWysiwygActive ? this.themeColors.toolbarActive : Color.Transparent)
         .borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.changeMode(EditorType.Wysiwyg); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.changeMode(EditorType.Wysiwyg); } })
         .margin({ left: 2, right: 2 })
 
       Blank()
@@ -217,13 +213,13 @@ export struct Toolbar {
       // ── ↶ 撤销 ──
       Button({ type: ButtonType.Normal }) { Text('↶').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.undo(); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.undo(); } })
         .margin({ left: 2, right: 2 })
 
       // ── ↷ 重做 ──
       Button({ type: ButtonType.Normal }) { Text('↷').fontSize(14).fontColor(this.themeColors.toolbarFg) }
         .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (this.editor) { this.editor.redo(); } })
+        .onClick(() => { if (editorContext.editor) { editorContext.editor.redo(); } })
         .margin({ left: 2, right: 2 })
 
       // ── 导出 ──

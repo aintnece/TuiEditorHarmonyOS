@@ -22,6 +22,7 @@ import { PopupMenu, MenuItem, createTableMenuItemsZh } from '../components/Popup
 import { ContextMenu, ContextMenuAction } from '../components/ContextMenu';
 import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
+import { editorContext } from '../editor/EditorContext';
 
 /** 路由参数 */
 class NavData {
@@ -48,8 +49,6 @@ struct EditorPage {
   @State contextMenuX: number = 0;
   @State contextMenuY: number = 0;
 
-  @Provide private editor: Editor | null = null;
-  @Provide private core: EditorCore | null = null;
   private i18n: I18n = I18n.getInstance();
 
   // ── 弹出对话框回调 ──
@@ -57,34 +56,34 @@ struct EditorPage {
   /** 确认插入链接 */
   private confirmLink = (text: string, url: string): void => {
     this.showLinkEditor = false;
-    if (this.core) {
-      const md: string = this.core.getMarkdown();
-      const pos: number = this.core.state.selectionStart;
+    if (editorContext.core) {
+      const md: string = editorContext.core.getMarkdown();
+      const pos: number = editorContext.core.state.selectionStart;
       const snippet: string = '[' + text + '](' + url + ')';
       const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
-      this.core.onContentChange(newMd);
+      editorContext.core.onContentChange(newMd);
     }
   };
 
   /** 确认插入图片 */
   private confirmImage = (alt: string, url: string): void => {
     this.showImageEditor = false;
-    if (this.core) {
-      const md: string = this.core.getMarkdown();
-      const pos: number = this.core.state.selectionStart;
+    if (editorContext.core) {
+      const md: string = editorContext.core.getMarkdown();
+      const pos: number = editorContext.core.state.selectionStart;
       const snippet: string = '![' + alt + '](' + url + ')';
       const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
-      this.core.onContentChange(newMd);
+      editorContext.core.onContentChange(newMd);
     }
   };
 
   /** 处理表格操作 */
   private handleTableAction = (action: string): void => {
     this.showTableMenu = false;
-    if (!this.core) return;
+    if (!editorContext.core) return;
 
-    const md: string = this.core.getMarkdown();
-    const pos: number = this.core.state.selectionStart;
+    const md: string = editorContext.core.getMarkdown();
+    const pos: number = editorContext.core.state.selectionStart;
 
     // 查找当前光标所在的表格
     const tableStart: number = md.lastIndexOf('\n|', pos);
@@ -110,7 +109,7 @@ struct EditorPage {
       let lineEnd: number = md.indexOf('\n', pos);
       if (lineEnd < 0) lineEnd = md.length;
       const newMd: string = md.substring(0, lineStart) + md.substring(lineEnd + 1);
-      this.core.onContentChange(newMd);
+      editorContext.core.onContentChange(newMd);
       return;
     } else if (action === 'deleteCol') {
       // TODO: Phase 5 (WYSIWYG mode) — column deletion requires full table parsing
@@ -125,7 +124,7 @@ struct EditorPage {
 
     if (snippet !== '') {
       const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
-      this.core.onContentChange(newMd);
+      editorContext.core.onContentChange(newMd);
     }
   };
 
@@ -156,10 +155,10 @@ struct EditorPage {
 
   /** 获取当前选中的文本 */
   private getSelectedText(): string {
-    if (!this.core) return '';
-    const md: string = this.core.getMarkdown();
-    const start: number = this.core.state.selectionStart;
-    const end: number = this.core.state.selectionEnd;
+    if (!editorContext.core) return '';
+    const md: string = editorContext.core.getMarkdown();
+    const start: number = editorContext.core.state.selectionStart;
+    const end: number = editorContext.core.state.selectionEnd;
     if (start >= end) return '';
     return md.substring(start, end);
   }
@@ -167,11 +166,11 @@ struct EditorPage {
   /** 处理上下文菜单操作 */
   private handleContextMenuAction = (action: ContextMenuAction): void => {
     this.showContextMenu = false;
-    if (!this.core) return;
+    if (!editorContext.core) return;
 
-    const md: string = this.core.getMarkdown();
-    const selStart: number = this.core.state.selectionStart;
-    const selEnd: number = this.core.state.selectionEnd;
+    const md: string = editorContext.core.getMarkdown();
+    const selStart: number = editorContext.core.state.selectionStart;
+    const selEnd: number = editorContext.core.state.selectionEnd;
     const self: EditorPage = this;
 
     if (action === ContextMenuAction.Copy) {
@@ -198,7 +197,7 @@ struct EditorPage {
           // 剪贴板不可用时静默失败
         }
         const newMd: string = md.substring(0, selStart) + md.substring(selEnd);
-        this.core.onContentChange(newMd);
+        editorContext.core.onContentChange(newMd);
       }
     } else if (action === ContextMenuAction.Paste) {
       // 从剪贴板粘贴
@@ -208,11 +207,11 @@ struct EditorPage {
           if (!err && pasteData) {
             const text: string = pasteData.getPrimaryText();
             if (text !== '') {
-              const currentMd: string = self.core ? self.core.getMarkdown() : '';
-              const cursor: number = self.core ? self.core.state.selectionStart : currentMd.length;
+              const currentMd: string = editorContext.core ? editorContext.core.getMarkdown() : '';
+              const cursor: number = editorContext.core ? editorContext.core.state.selectionStart : currentMd.length;
               const newMd: string = currentMd.substring(0, cursor) + text + currentMd.substring(cursor);
-              if (self.core) {
-                self.core.onContentChange(newMd);
+              if (editorContext.core) {
+                editorContext.core.onContentChange(newMd);
               }
             }
           }
@@ -222,18 +221,18 @@ struct EditorPage {
       }
     } else if (action === ContextMenuAction.SelectAll) {
       // 全选：设置选区覆盖全文
-      this.core.state.selectionStart = 0;
-      this.core.state.selectionEnd = md.length;
-      const sel = this.core.selection;
+      editorContext.core.state.selectionStart = 0;
+      editorContext.core.state.selectionEnd = md.length;
+      const sel = editorContext.core.selection;
       if (sel) {
         sel.startOffset = 0;
         sel.endOffset = md.length;
       }
-      this.core.eventEmitter.emit('caretChange');
+      editorContext.core.eventEmitter.emit('caretChange');
     } else if (action === ContextMenuAction.Undo) {
-      this.core.undo();
+      editorContext.core.undo();
     } else if (action === ContextMenuAction.Redo) {
-      this.core.redo();
+      editorContext.core.redo();
     }
   };
 
@@ -254,24 +253,24 @@ struct EditorPage {
     opts.autofocus = true;
     opts.hideModeSwitch = false;
 
-    this.editor = Editor.factory(opts);
-    this.core = this.editor.getCore();
-    hilog.info(0x0000, 'TUIEditor', 'EditorPage.aboutToAppear — editor: ' + this.editor + ' core: ' + this.core);
+    editorContext.editor = Editor.factory(opts);
+    editorContext.core = editorContext.editor.getCore();
+    hilog.info(0x0000, 'TUIEditor', 'EditorPage.aboutToAppear — editor: ' + editorContext.editor + ' core: ' + editorContext.core);
 
     // 监听内容变更
-    this.editor.on('change', (): void => {
-      if (this.core) {
-        this.content = this.core.getMarkdown();
-        this.canUndo = this.core.commandManager.canUndo();
-        this.canRedo = this.core.commandManager.canRedo();
+    editorContext.editor.on('change', (): void => {
+      if (editorContext.core) {
+        this.content = editorContext.core.getMarkdown();
+        this.canUndo = editorContext.core.commandManager.canUndo();
+        this.canRedo = editorContext.core.commandManager.canRedo();
       }
     });
 
     // 监听状态变更
-    this.editor.on('stateChange', (): void => {
-      if (this.core) {
-        this.editorType = this.core.state.editorType;
-        this.viewMode = this.core.state.viewMode;
+    editorContext.editor.on('stateChange', (): void => {
+      if (editorContext.core) {
+        this.editorType = editorContext.core.state.editorType;
+        this.viewMode = editorContext.core.state.viewMode;
       }
     });
 
@@ -311,8 +310,8 @@ struct EditorPage {
           .borderRadius(4)
           .margin({ right: 4 })
           .onClick(() => {
-            if (this.editor) {
-              this.editor.changeMode(EditorType.Markdown);
+            if (editorContext.editor) {
+              editorContext.editor.changeMode(EditorType.Markdown);
             }
           })
 
@@ -328,8 +327,8 @@ struct EditorPage {
           .borderRadius(4)
           .margin({ right: 8 })
           .onClick(() => {
-            if (this.editor) {
-              this.editor.changeMode(EditorType.Wysiwyg);
+            if (editorContext.editor) {
+              editorContext.editor.changeMode(EditorType.Wysiwyg);
             }
           })
 
@@ -341,8 +340,8 @@ struct EditorPage {
           .onClick(() => {
             ThemeService.getInstance().toggleTheme();
             this.theme = ThemeService.getInstance().getTheme();
-            if (this.editor) {
-              this.editor.toggleTheme();
+            if (editorContext.editor) {
+              editorContext.editor.toggleTheme();
             }
           })
       }
@@ -355,9 +354,9 @@ struct EditorPage {
       // ═══════════════════════════════════════════════════════
       //  工具栏（完整 bindPopup 版）
       // ═══════════════════════════════════════════════════════
-      if (this.editor) {
+      if (editorContext.editor) {
         Toolbar({
-          // editor auto-@Consume from @Provide
+          // editor reads from editorContext global singleton
           themeColors: this.theme,
           onExport: () => { /* Phase 4.7: ExportSheet */ },
           onLink: () => { this.showLinkEditor = true; },
@@ -369,12 +368,12 @@ struct EditorPage {
       // ═══════════════════════════════════════════════════════
       //  编辑区域
       // ═══════════════════════════════════════════════════════
-      if (this.editorType === EditorType.Markdown && this.core) {
+      if (this.editorType === EditorType.Markdown && editorContext.core) {
         if (this.viewMode === ViewMode.Split) {
           // ── 分屏模式：编辑 | 可拖拽分栏 | 预览 ──
           Row() {
             MdEditor({
-              // editorCore auto-@Consume from @Provide
+              // editorCore reads from editorContext global singleton
               themeColors: this.theme,
               fontSize: 16,
               placeholder: this.i18n.get('Placeholder', '开始编辑…'),
@@ -390,7 +389,7 @@ struct EditorPage {
             })
 
             MdPreview({
-              // editorCore auto-@Consume from @Provide
+              // editorCore reads from editorContext global singleton
               themeColors: this.theme,
               fontSize: 16
             })
@@ -407,7 +406,7 @@ struct EditorPage {
         } else if (this.viewMode === ViewMode.Preview) {
           // ── 仅预览模式 ──
           MdPreview({
-            // editorCore auto-@Consume from @Provide
+            // editorCore reads from editorContext global singleton
             themeColors: this.theme,
             fontSize: 16
           })
@@ -416,7 +415,7 @@ struct EditorPage {
         } else {
           // ── 仅编辑模式 ──
           MdEditor({
-            // editorCore auto-@Consume from @Provide
+            // editorCore reads from editorContext global singleton
             themeColors: this.theme,
             fontSize: 16,
             placeholder: this.i18n.get('Placeholder', '开始编辑…'),

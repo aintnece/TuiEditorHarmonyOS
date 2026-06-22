@@ -14,13 +14,13 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
 import { Handler } from '../../event/EventEmitter';
+import { editorContext } from '../EditorContext';
 
 const APP_URL: string = 'https://markdown.local/preview';
 const KATEX_PREFIX: string = 'https://unpkg.com/katex@0.16.22/';
 
 @Component
 export struct MdPreview {
-  @Consume editorCore: EditorCore | null = null;
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
 
@@ -35,7 +35,7 @@ export struct MdPreview {
   private changeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
-    if (!this.editorCore) return;
+    if (!editorContext.core) return;
 
     const self: MdPreview = this;
 
@@ -50,7 +50,7 @@ export struct MdPreview {
         self.doRender();
       }, 300);
     };
-    this.editorCore.on('change', this.changeHandler);
+    editorContext.core.on('change', this.changeHandler);
 
     if (this.onControllerReady) {
       this.onControllerReady(this.controller);
@@ -58,9 +58,9 @@ export struct MdPreview {
   }
 
   aboutToDisappear(): void {
-    if (!this.editorCore) return;
+    if (!editorContext.core) return;
 
-    this.editorCore.off('change', this.changeHandler);
+    editorContext.core.off('change', this.changeHandler);
     if (this.debounceTimer !== 0) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = 0;
@@ -134,19 +134,19 @@ export struct MdPreview {
   // ── 渲染逻辑 ──
 
   private doRender(): void {
-    if (!this.editorCore) return;
+    if (!editorContext.core) return;
 
-    const markdown: string = this.editorCore.getMarkdown();
-    hilog.info(0x0000, 'TUIEditor', 'MdPreview.doRender — editorCore: ' + this.editorCore + ' markdown: ' + markdown.substring(0, 30));
+    const markdown: string = editorContext.core.getMarkdown();
+    hilog.info(0x0000, 'TUIEditor', 'MdPreview.doRender — editorCore: ' + editorContext.core + ' markdown: ' + markdown.substring(0, 30));
     if (markdown === this.lastRendered) return;
 
     try {
-      const bodyHtml: string = this.editorCore.getHTML();
+      const bodyHtml: string = editorContext.core.getHTML();
       this.lastRendered = markdown;
 
       if (!this.bodyOnly) {
         // 首次加载：构造完整 HTML 页面（含 KaTeX），通过 loadUrl 触发拦截器加载
-        let fullHtml: string = this.editorCore.getFullHTML();
+        let fullHtml: string = editorContext.core.getFullHTML();
         fullHtml = this.injectKatex(fullHtml);
         this.currentHtml = fullHtml;
         this.controller.loadUrl(APP_URL + '?t=' + Date.now());
