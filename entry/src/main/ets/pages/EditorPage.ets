@@ -268,37 +268,57 @@ struct EditorPage {
     this.showExportSheet = false;
 
     if (ok) {
-      try {
-        promptAction.showToast({
-          message: '导出成功: ' + exportPath,
-          duration: 2000
-        });
-      } catch (_e) {
-        // Toast 不可用时静默忽略
-      }
+      this.showToast('导出成功: ' + exportPath);
+    } else {
+      this.showToast('导出失败');
     }
   };
 
   /** 保存当前内容到文件 */
   private saveFile(): void {
-    if (!editorContext.core) return;
+    try {
+      if (!editorContext.core) return;
 
-    // 如果没有当前文件路径，先创建
-    if (this.currentFilePath === '') {
-      const baseDir: string = fileService.getBaseDir();
-      const newPath: string | null = fileService.createFile(baseDir, '未命名');
-      if (newPath !== null) {
-        this.currentFilePath = newPath;
-        this.fileName = extractFileName(newPath);
-      } else {
-        return;
+      // 如果没有当前文件路径，先创建
+      if (this.currentFilePath === '') {
+        const baseDir: string = fileService.getBaseDir();
+        if (baseDir === '') {
+          this.showToast('保存失败：目录未初始化');
+          return;
+        }
+        const newPath: string | null = fileService.createFile(baseDir, '未命名');
+        if (newPath !== null) {
+          this.currentFilePath = newPath;
+          this.fileName = extractFileName(newPath);
+        } else {
+          this.showToast('保存失败：无法创建文件');
+          return;
+        }
       }
-    }
 
-    const content: string = editorContext.core.getMarkdown();
-    const ok: boolean = fileService.writeFile(this.currentFilePath, content);
-    if (ok) {
-      this.isDirty = false;
+      const content: string = editorContext.core.getMarkdown();
+      const ok: boolean = fileService.writeFile(this.currentFilePath, content);
+      if (ok) {
+        this.isDirty = false;
+        this.showToast('已保存');
+      } else {
+        this.showToast('保存失败：写入文件出错');
+      }
+    } catch (e) {
+      // 捕获任何未预见的异常，防止卡死
+      this.showToast('保存失败：' + (e instanceof Error ? e.message : '未知错误'));
+    }
+  }
+
+  /** 显示 Toast 提示（安全封装） */
+  private showToast(msg: string): void {
+    try {
+      promptAction.showToast({
+        message: msg,
+        duration: 2000
+      });
+    } catch (_e) {
+      // Toast 不可用时静默忽略
     }
   }
 
@@ -388,10 +408,14 @@ struct EditorPage {
 
         // 保存按钮（内容变更后显示）
         if (this.isDirty) {
-          Button('💾')
-            .fontSize(16)
-            .width(28).height(28)
-            .backgroundColor(Color.Transparent)
+          Button() {
+            Text('保存')
+              .fontSize(13)
+          }
+            .height(28)
+            .padding({ left: 8, right: 8 })
+            .backgroundColor(this.theme.toolbarHover)
+            .borderRadius(4)
             .onClick(() => { this.saveFile(); })
             .margin({ right: 6 })
         }
@@ -431,10 +455,15 @@ struct EditorPage {
           })
 
         // 主题切换
-        Button(this.theme.isDark ? '☀' : '🌙')
-          .fontSize(16)
-          .width(28).height(28)
-          .backgroundColor(Color.Transparent)
+        Button() {
+          Text(this.theme.isDark ? '浅色' : '深色')
+            .fontSize(12)
+        }
+          .height(28)
+          .padding({ left: 8, right: 8 })
+          .backgroundColor(this.theme.toolbarHover)
+          .borderRadius(4)
+          .fontColor(this.theme.toolbarFg)
           .onClick(() => {
             ThemeService.getInstance().toggleTheme();
             this.theme = ThemeService.getInstance().getTheme();

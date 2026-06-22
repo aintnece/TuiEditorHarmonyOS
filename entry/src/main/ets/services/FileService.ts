@@ -13,14 +13,10 @@
 import fs from '@ohos.file.fs';
 
 // ── 文件打开模式常量 ──
-// HarmonyOS 文件打开标志位（bitwise OR 组合）
-// 使用十进制以避免 ArkTS 八进制字面量兼容性问题
-const OPEN_MODE_READ_ONLY: number = 0;      // 0o0
-const OPEN_MODE_WRITE_ONLY: number = 1;     // 0o1
-const OPEN_MODE_CREATE: number = 64;         // 0o100
-const OPEN_MODE_TRUNC: number = 128;         // 0o200
+// 使用 fs.OpenMode 枚举确保与 HarmonyOS @ohos.file.fs API 兼容
+// 避免硬编码十进制值（不同系统的 O_TRUNC 等标志值可能不同）
 const OPEN_MODE_CREATE_WRITE_TRUNC: number =
-  OPEN_MODE_CREATE | OPEN_MODE_WRITE_ONLY | OPEN_MODE_TRUNC;
+  fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC;
 
 // ── 数据类 ──
 

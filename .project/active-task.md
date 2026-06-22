@@ -2,70 +2,54 @@
 
 ## Objective
 
-实现 Phase 4.8：EditorPage 完整集成 — 文件系统 I/O
+修复 Phase 4.8 在真机上的两个 Bug
 
-## Context
+## Bug 1: 保存按钮不可见
 
-Phase 4.7 编译通过。SidePanel / StatusBar / ExportSheet 组件代码就绪，但文件操作为 stub：
-- SidePanel 显示 mock 数据，不读真实文件
-- 新建/打开文件回调为空
-- ExportSheet 不写文件
-- EditorPage 从硬编码内容启动
+`Button('💾')` — emoji 在 ArkTS Button 构造函数中不渲染。
+按钮本身存在（可见 hover 阴影），但无可见文字。
 
-Phase 4.8 补齐这些，让编辑器具备真实文件能力。
+**修复**: 用 `Button() { Text('保存') }` 或 TUI Feather 图标 SVG 替代 emoji。
 
-## Components
+## Bug 2: 点击保存按钮卡死
 
-### 1. FileService（文件服务）🆕
+`saveFile()` 调用 `fileService` 的文件 API 导致程序卡死。
 
-封装 HarmonyOS 文件 API（@ohos.file.fs），提供统一接口：
-- `listFiles(dir: string)` → 获取目录下的 .md 文件列表
-- `readFile(path: string)` → 读取文本内容
-- `writeFile(path: string, content: string)` → 写入文本
-- `createFile(dir: string, name: string)` → 新建空文件
-- `deleteFile(path: string)` → 删除文件
+**可能原因**:
+- `@ohos.file.fs` 的 `openSync` 文件打开模式标志位（十进制定义）可能与鸿蒙 API 不兼容
+- 缺少文件权限声明
+- `getContext(this).filesDir` 路径问题
 
-### 2. SidePanel 接入真实文件
-
-- 从 FileService 读取沙箱目录下的 .md 文件
-- 点击文件名 → 通过 editorContext 更新内容
-- 新建按钮 → 创建新文件
-- 打开按钮 → 文件选择器（Phase 8 补充完整实现）
-- 文件名显示真实路径
-
-### 3. EditorPage 文件管理
-
-- `currentFilePath: string` — 当前文件路径状态
-- `saveFile()` — 保存当前内容到文件
-- `openFile(path: string)` — 加载指定文件内容
-- 标题栏显示当前文件名（取自路径）
-- 工具栏增加保存按钮（或复用导出逻辑）
-- 内容变更时标题栏显示 `•` 未保存标记
-
-### 4. ExportSheet 文件写入
-
-- `doExport()` 实际写入 HTML 文件到沙箱目录
-- 导出成功后 toast 提示文件路径
-- 文件名 = 当前文件名 + `_export.html`
+**修复**:
+1. 检查并修正 FileService.ts 中的文件打开模式常量
+2. 在 module.json5 中确认文件读写权限
+3. 添加 try-catch 防止未捕获异常导致卡死
 
 ## Steps
 
-- [x] Step 1: 创建 `services/FileService.ts` — 文件系统服务封装
-- [x] Step 2: 修改 `SidePanel.ets` — 接入 FileService，读取真实文件列表
-- [x] Step 3: 修改 `EditorPage.ets` — 添加文件管理状态（currentFilePath/save/open/未保存标记）
-- [x] Step 4: 修改 `ExportSheet` doExport — 实际写入 HTML 文件
-- [x] Step 5: CC 自测
-- [ ] Step 6: Hermes 审查 + commit
+- [x] Step 1: 修改 EditorPage.ets — 保存按钮替换为 `Button() { Text('保存') }`，主题切换按钮同样修复
+- [x] Step 2: 检查并修复 FileService.ts — `OPEN_MODE_TRUNC` 值从 128(0o200) 修正为使用 `fs.OpenMode` 枚举（实际值 512=0o1000）
+- [x] Step 3: 检查 module.json5 — 应用沙箱目录读写无需额外权限，现有 READ_MEDIA/WRITE_MEDIA 保留
+- [x] Step 4: 添加错误处理防止卡死 — saveFile() 添加 try-catch + Toast 提示，新增 showToast() 辅助方法
 
-## Files Changed (Planned)
+## Root Cause
 
-1. **新建**: `entry/src/main/ets/services/FileService.ts` — 文件系统服务
-2. **修改**: `entry/src/main/ets/components/SidePanel.ets` — 接入 FileService
-3. **修改**: `entry/src/main/ets/pages/EditorPage.ets` — 文件管理状态 + 保存/打开方法
-4. **修改**: `entry/src/main/ets/components/ExportSheet.ets` — 实际写文件
+**Bug 1**: `Button('💾')` / `Button('☀')` / `Button('🌙')` — ArkTS 的 `Button(label)` 构造函数不渲染 emoji 字符。
+
+**Bug 2**: `FileService.ts` 中 `OPEN_MODE_TRUNC = 128` (0o200) 错误。
+HarmonyOS 内核基于 Linux，O_TRUNC = 0o1000 = **512**，不是 128。
+传入错误的标志位导致 `fs.openSync()` 行为不可预测，引发真机卡死。
+
+## Changes
+
+| 文件 | 变更 |
+|------|------|
+| `pages/EditorPage.ets` | 保存按钮: `Button() { Text('保存') }`；主题按钮: `Button() { Text('浅色'/'深色') }`；saveFile() 加 try-catch + Toast；新增 showToast()；doExport() 复用 showToast |
+| `services/FileService.ts` | 移除硬编码十进制常量，改用 `fs.OpenMode.CREATE \| fs.OpenMode.WRITE_ONLY \| fs.OpenMode.TRUNC` |
+| `module.json5` | ✗ 无需修改（沙箱 I/O 不需额外权限） |
 
 ## Checkpoint
 
-**Status**: `complete` — Phase 4.8 实现完成，待 Hermes 审查
-**Assigned to**: Hermes (审查)
-**Next step**: Hermes 审查代码 + commit
+**Status**: `done`
+**Assigned to**: Claude Code
+**Completed**: 2026-06-22
