@@ -98,6 +98,7 @@ export struct StatusBar {
         .fontColor(this.themeColors.editorPlaceholder)
         .margin({ right: 8 })
     }
+    .clip(false)
     .width('100%')
     .height(28)
     .backgroundColor(this.themeColors.toolbarBg)

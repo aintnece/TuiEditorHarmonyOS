@@ -395,6 +395,9 @@ struct EditorPage {
         SidePanel({
           themeColors: this.theme,
           visible: this.showSidePanel,
+          onToggleCollapse: () => {
+            this.showSidePanel = false;
+          },
           onFileSelect: (_path: string) => {
             // 文件切换处理 — SidePanel 内部已通过 editorContext 更新内容
           },
@@ -490,9 +493,11 @@ struct EditorPage {
               .backgroundColor(this.theme.editorBg)
           }
         }
+        .clip(false)
         .layoutWeight(1)
         .height('100%')
       }
+      .clip(false)
       .layoutWeight(1)
       .width('100%')
 
@@ -503,6 +508,7 @@ struct EditorPage {
         themeColors: this.theme
       })
     }
+    .clip(false)
     .width('100%')
     .height('100%')
     .backgroundColor(this.theme.editorBg)
