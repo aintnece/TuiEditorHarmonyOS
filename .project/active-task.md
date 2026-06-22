@@ -2,48 +2,67 @@
 
 ## Objective
 
-1. 修复：工具栏保存创建新文件后 SidePanel 不刷新
-2. 清理：TuiSave 诊断日志（保存功能已真机验证通过）
+**Phase 5: WYSIWYG 模式** — 架构方案 B（WebView + ProseMirror 引擎）
 
-## Bug: SidePanel 保存后不刷新
+> 本任务为大工程，分多批次交给 CC。本文件是新会话恢复入口。
 
-**现象**：点工具栏保存按钮 → 弹「已保存」、文件确实写入磁盘，但 SidePanel 列表不显示新建的 `未命名.md`。再点 SidePanel 新建按钮后，`未命名.md` 和 `新建文档.md` 才一起出现。
+## 架构决策（已拍板：方案 B）
 
-**根因**：SidePanel 文件列表是组件内 `@State fileList`，只在 `aboutToAppear()` 和 SidePanel 自己的新建按钮里调 `loadFiles()`。EditorPage 通过 `saveFile()` → `fileService.createFile()` 创建文件时，SidePanel 不知情，列表不刷新。
+WYSIWYG 走 **WebView + 真实 ProseMirror/tui.editor 引擎** 路线，不走原生 RichEditor。
 
-**修复（refresh token 模式）**：
+理由：WYSIWYG 招牌价值在表格/嵌套列表/所见即所得的完整保真，原生 RichEditor 的 span 模型做不到块级结构编辑。方案 B 复用已验证的 WebView 栈（MdPreview 已跑通 onInterceptRequest + runJavaScript），能拿到完整能力。WYSIWYG 这块为混合架构——与 MdPreview 的 WebView 分界自洽。
 
-1. **SidePanel.ets** 加刷新触发：
-   ```typescript
-   @Prop @Watch('onRefreshTokenChange') refreshToken: number = 0;
+现状：
+- WYSIWYG 当前仅占位符（EditorPage.ets `Text('[ WYSIWYG 模式 — Phase 5 实现 ]')`）
+- rawfile **只有 katex**，引擎 JS 未打包（context.md 已订正）
+- MdPreview 已验证：onInterceptRequest + 自定义域名 `https://markdown.local` + rawfile 本地加载、runJavaScript 原地更新、registerJavaScriptProxy 可用（详见 obsidian 踩坑记录/WebView预览踩坑.md）
 
-   private onRefreshTokenChange(): void {
-     this.loadFiles();
-   }
-   ```
-   注意：`loadFiles()` 当前会把 activeFilePath 重置为列表第一项，刷新后应保持 EditorPage 的当前文件高亮。可让 loadFiles 不覆盖已有 activeFilePath（若 activeFilePath 仍在新列表中则保留）。
+## 分批拆解（建议顺序）
 
-2. **EditorPage.ets**：
-   - 加 `@State sidePanelRefresh: number = 0;`
-   - 传给 SidePanel：`SidePanel({ refreshToken: this.sidePanelRefresh, ... })`
-   - `saveFile()` 中**当创建了新文件时**（currentFilePath 原本为空），`this.sidePanelRefresh++;` 触发刷新
+### 批次 1：引擎选型 + 打包
+- **待定决策**：打包完整 `@toast-ui/editor` dist（含 ww 模式，最省事、最保真）vs 自建最小 ProseMirror 构建（体积小但工作量大）。**建议：先用完整 @toast-ui/editor dist**，跑通后再考虑瘦身。
+- 下载 @toast-ui/editor UMD bundle（toastui-editor-all.min.js + CSS）放 `rawfile/tui-editor/`
+- 验证：能在 WebView 里加载并初始化一个空 WYSIWYG 编辑器
 
-## Cleanup: 移除 TuiSave 诊断日志
+### 批次 2：WwEditor.ets WebView 容器组件
+- 仿 MdPreview 结构：`new webview.WebviewController()`，加载本地 HTML（onInterceptRequest + `https://markdown.local`，**不用 data URI**——8KB 限制 + null origin）
+- 本地 HTML 页面初始化 tui.editor ww 模式
+- 与 MdPreview 不同：WYSIWYG **需要焦点**（MdPreview 用 `focusable(false)` 防抢焦点，WwEditor 反过来要能输入）
+- 主题适配（暗/亮）
 
-保存功能已真机验证（显示「已保存」、文件正常写入）。移除诊断日志：
-- **FileService.ts**：移除所有 `hilog` 调用 + `import hilog` + `SAVE_DOMAIN`/`SAVE_TAG` 常量（共 18 处）。保留 `MAX_DEDUP` 循环保护和 try-catch。
-- **EditorPage.ets**：移除所有 TuiSave 相关 `hilog` 调用 + import + 常量（共 11 处）。保留 saveFile 的 try-catch + showToast。
-- **不要动 app.ets 的 hilog**（那是正常的应用级日志）。
+### 批次 3：ArkTS ↔ JS 桥
+- **ArkTS → JS**（runJavaScript）：setMarkdown(content)、exec 工具栏命令（bold/italic/heading/list/quote/code/table/link/image...）、toggleTheme
+- **JS → ArkTS**（registerJavaScriptProxy）：onChange（内容变更回传 markdown）、onSelectionChange（工具栏 active 态 + StatusBar 光标/字数）
+- 桥对象在 aboutToAppear 注册，aboutToDisappear 注销
+
+### 批次 4：Markdown 双向转换 + 模式切换同步
+- tui.editor 自带 getMarkdown()/setMarkdown()，桥接到 EditorCore
+- 切换 Markdown ↔ WYSIWYG 时内容互传：MdEditor 当前内容 → WwEditor，反之亦然
+- EditorCore.state 内容保持单一真相源
+
+### 批次 5：集成 EditorPage + Toolbar 联动
+- EditorPage：`editorType === Wysiwyg` 时渲染 WwEditor 替换占位符
+- Toolbar 命令在 WYSIWYG 模式下走 WebView 桥（而非 MdEditor 的 markdown 操作）
+- StatusBar 接入 WYSIWYG 的 selection 事件
+
+## 关键坑预案（开工前必读）
+
+- **不用 data URI 加载** → 用 onInterceptRequest + 自定义域名 + rawfile（见 WebView预览踩坑.md：8KB 限制 + null origin 阻 font/CORS）
+- **WwEditor 要焦点**：不要套 MdPreview 的 `focusable(false)`
+- **WebView 输入法/光标**：HarmonyOS WebView 内 contenteditable 的 IME/光标行为需真机验证，可能有坑——批次 2 先验证基础输入
+- **registerJavaScriptProxy 时机**：必须在 loadUrl 前注册，且 refresh() 后重注册
+- ArkTS 严格模式 + UI 按钮规范见 CLAUDE.md
 
 ## Steps
 
-- [ ] Step 1: SidePanel.ets 加 refreshToken @Prop + @Watch
-- [ ] Step 2: EditorPage.ets 加 sidePanelRefresh，saveFile 创建文件后自增
-- [ ] Step 3: 清理 FileService.ts 的 TuiSave hilog
-- [ ] Step 4: 清理 EditorPage.ets 的 TuiSave hilog
-- [ ] Step 5: 报告改了哪些文件
+- [ ] 批次 1: 引擎选型 + 打包到 rawfile/tui-editor/
+- [ ] 批次 2: WwEditor.ets WebView 容器
+- [ ] 批次 3: ArkTS↔JS 桥
+- [ ] 批次 4: Markdown 双向转换 + 模式切换
+- [ ] 批次 5: 集成 EditorPage + Toolbar 联动
 
 ## Checkpoint
 
-**Status**: `pending`
-**Assigned to**: Claude Code
+**Status**: `planned` — 架构已定（方案 B），等新会话开工
+**Assigned to**: 新会话（Hermes 拆批次 → CC 实现）
+**Resume**: 新会话读本文件 + status.md。CC 读 CLAUDE.md + WebView预览踩坑.md。从批次 1 开始。

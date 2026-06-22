@@ -1,7 +1,7 @@
 # TuiEditorHarmonyOS — Toast UI Editor 鸿蒙原生移植
 
 **项目目标**: 1:1 复刻 TOAST UI Editor v3.2.2 到 HarmonyOS NEXT (ArkTS)
-**当前阶段**: Phase 4.8 完成 ✓ — 文件系统 I/O 集成完毕，进入 Phase 5 (WYSIWYG)
+**当前阶段**: Phase 4.8 完成 ✓（真机验证）— Phase 5 WYSIWYG 已定方案 B（WebView+ProseMirror 引擎），见 .project/active-task.md
 **技术栈**: ArkTS (strict mode) + ArkUI + API 12
 **IDE**: DevEco Studio 5.0+ (Windows)
 
@@ -154,8 +154,8 @@ Button().onClick(() => this.handleClick())       // ✅
 
 详见 `.project/status.md` 和 `.project/active-task.md`。
 
-**Phase 4.5 完成** — 31 文件就绪，编辑器具备完整 Markdown 能力。
-**下一步**: Phase 4.6 ContextMenu 右键菜单。
+**Phase 1-4.8 完成** — 编辑器具备完整 Markdown 能力 + 真实文件 I/O（真机验证）。
+**下一步**: Phase 5 WYSIWYG（方案 B：WebView + ProseMirror 引擎）。批次拆解见 `.project/active-task.md`。
 
 ## UI 按钮设计规范（强制！CC 和 Hermes 都必须遵守）
 

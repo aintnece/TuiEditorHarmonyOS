@@ -22,9 +22,8 @@
   Editor 类对标 tui.editor 的 `Editor.factory()` 入口。插件通过 PluginManager 注入 EditorCore 能力。
 
 **External dependencies**:
-  - tui.editor JS bundle (578KB) — stored in `resources/rawfile/tui-editor/`
-  - KaTeX — local bundled fonts + CSS in rawfile
-  - Prism.js — local bundled JS in rawfile
+  - KaTeX — local bundled fonts + CSS in `rawfile/katex/`（已就位）
+  - ⚠️ tui.editor JS bundle **未打包**（之前文档误标已存在，实际 rawfile 只有 katex）— Phase 5 WYSIWYG 若走 WebView 路线需自行打包
   - ECharts / PlantUML — for chart/UML plugins (future)
 
 **Known footguns**:
