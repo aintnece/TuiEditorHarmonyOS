@@ -1,11 +1,11 @@
 # Project Status: TuiEditorHarmonyOS
 
-**Last updated**: 2026-06-22 (Phase 4.8 — 保存图标修正 + 卡死诊断构建，待真机日志定位)
+**Last updated**: 2026-06-22 (Phase 4.8 — 保存功能修复完成：fs.accessSync 返回值 Bug，待真机验证)
 
 ## Summary
 
-Phase 1-4.6 完成。编辑器已具备：解析器 + EditorCore + Toolbar(22 按钮 Feather Icons) + MdEditor(行号标尺+选区同步) + MdPreview(WebView预览+KaTeX) + Splitter(可拖拽分栏) + LinkEditor(链接弹窗) + ImageEditor(图片弹窗) + PopupMenu(表格操作菜单) + ContextMenu(右键菜单 6 项+剪贴板)。Bug 修复：undo snapshot、bindPopup 移除、EditorContext 全局单例、@Prop→global 传递、selection 回退、Feather Icons。
-**准备进入 Phase 4.7：SidePanel + StatusBar + ExportSheet。**
+Phase 1-4.8 完成。编辑器已具备：解析器 + EditorCore + Toolbar(含保存按钮 Feather SVG) + MdEditor + MdPreview + Splitter + LinkEditor + ImageEditor + PopupMenu + ContextMenu + SidePanel + StatusBar + ExportSheet + FileService(真实文件 I/O)。
+**保存功能根因修复**：`fs.accessSync` 返回 boolean 不抛异常，旧代码恒判定文件存在导致 createFile 去重死循环。
 
 ## Completed
 

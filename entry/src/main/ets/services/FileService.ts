@@ -62,11 +62,12 @@ export class FileService {
       return false;
     }
     try {
-      fs.accessSync(dir);
-      hilog.info(SAVE_DOMAIN, SAVE_TAG, 'ensureDir exit: already exists');
-      return true;
+      if (fs.accessSync(dir)) {
+        hilog.info(SAVE_DOMAIN, SAVE_TAG, 'ensureDir exit: already exists');
+        return true;
+      }
     } catch (_e) {
-      // 目录不存在，尝试创建
+      // 出错继续尝试创建
     }
     try {
       fs.mkdirSync(dir, true);
@@ -217,8 +218,7 @@ export class FileService {
       return false;
     }
     try {
-      fs.accessSync(path);
-      return true;
+      return fs.accessSync(path);
     } catch (_e) {
       return false;
     }

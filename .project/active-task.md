@@ -2,47 +2,68 @@
 
 ## Objective
 
-修复保存按钮：1) 图标用错（书签→磁盘）；2) 点击卡死
+修复 FileService 文件存在判断 Bug（根因已定位）
 
-## Bug 1: 图标错误
+## Root Cause（已通过 hilog 确认）
 
-`tui_save.svg` 当前是 Feather「书签 bookmark」图标（看起来像 banner）。
-应改为 Feather「save 磁盘」图标。正确 path：
+`fs.accessSync(path)` 在 HarmonyOS 返回 **boolean**（文件存在 true，不存在 false），**不抛异常**。
+
+现有代码错误假设「不存在会抛异常」：
+```typescript
+fileExists(path): boolean {
+  try {
+    fs.accessSync(path);   // 返回值被忽略！不存在时返回 false 但不抛异常
+    return true;            // → 恒返回 true
+  } catch (_e) { return false; }
+}
 ```
-<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-<polyline points="17 21 17 13 7 13 7 21"></polyline>
-<polyline points="7 3 7 8 15 8"></polyline>
+
+后果：`createFile` 去重循环 `while (fileExists(finalPath))` 恒为 true → 死循环到 1000 上限 → 返回 null → "无法创建文件"。
+
+日志证据：
+```
+createFile dedup loop counter=1 path=.../未命名.md
+createFile dedup loop counter=2 path=.../未命名_1.md
+...（无限循环直到 1000）
 ```
 
-## Bug 2: 点击卡死（freeze，非崩溃）
+## Fix
 
-卡死 = 死循环或 UI 线程同步 I/O 阻塞。已加 try-catch 仍卡死，说明是循环或阻塞。
+1. **`fileExists()`**：使用 accessSync 的返回值
+   ```typescript
+   fileExists(path: string): boolean {
+     if (path.length === 0) return false;
+     try {
+       return fs.accessSync(path);   // 直接返回 boolean
+     } catch (_e) {
+       return false;
+     }
+   }
+   ```
 
-**重点排查 FileService.createFile() 的去重 while 循环**：
-```
-while (this.fileExists(finalPath)) { ... counter++; }
-```
-若 `fs.accessSync` 在某些情况下不抛异常 → `fileExists` 恒为 true → 死循环。
+2. **`ensureDir()`**：同样的反模式，改用返回值判断
+   ```typescript
+   ensureDir(dir: string): boolean {
+     if (dir.length === 0) return false;
+     try {
+       if (fs.accessSync(dir)) return true;   // 存在才返回 true
+     } catch (_e) { /* 出错继续尝试创建 */ }
+     try {
+       fs.mkdirSync(dir, true);
+       return true;
+     } catch (_e) { return false; }
+   }
+   ```
 
-### 修复要求
-
-1. **createFile 加循环上限保护**：counter 超过 1000 直接 break/return null
-2. **加 hilog 诊断日志**（域 0x0000，tag "TuiSave"）在以下位置打点：
-   - saveFile() 入口
-   - createFile() 入口/出口/每次循环
-   - writeFile() 入口/openSync 前后/出口
-   - ensureDir() 入口/出口
-   这样真机复现后可在 DevEco 日志面板定位卡死点
-3. 检查 `getContext(this).filesDir` 是否在 saveFile 调用链上有空指针风险
+3. **验证 accessSync 返回类型**：如果 ArkTS 编译器报 accessSync 返回 void，则改用 `fs.access` 的同步等价或 try-catch + statSync 判断。先按返回 boolean 实现。
 
 ## Steps
 
-- [ ] Step 1: 修正 tui_save.svg 为磁盘图标
-- [ ] Step 2: FileService.createFile 加循环上限 + 全链路 hilog
-- [ ] Step 3: saveFile() 加 hilog 打点
-- [ ] Step 4: 报告改了哪些文件
+- [x] Step 1: 修复 FileService.fileExists() 使用返回值 ✓
+- [x] Step 2: 修复 FileService.ensureDir() 使用返回值 ✓
+- [x] Step 3: 保留 hilog（待真机确认修复后再清理） ✓
 
 ## Checkpoint
 
-**Status**: `pending`
+**Status**: `done`
 **Assigned to**: Claude Code
