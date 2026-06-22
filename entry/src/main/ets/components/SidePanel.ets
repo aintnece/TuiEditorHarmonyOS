@@ -117,38 +117,42 @@ export struct SidePanel {
   build() {
     if (this.visible) {
       if (this.isCollapsed) {
-        // ── 收起状态：仅显示窄条切换标签 ──
+        // ── 收起状态：窄竖条 文 / 件 标签 ──
         Column() {
-          Button({ type: ButtonType.Normal }) {
-            Text('▶')
-              .fontSize(10)
-              .fontColor(this.themeColors.sidebarFg)
-          }
-            .width(24).height(36).padding(0)
-            .backgroundColor(this.themeColors.sidebarActive)
-            .borderRadius(0)
-            .onClick(() => { this.isCollapsed = false; })
+          Text('文')
+            .fontSize(12)
+            .fontColor(this.themeColors.sidebarFg)
+            .fontWeight(400)
+            .opacity(0.7)
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .margin({ top: 12 })
+
+          Text('件')
+            .fontSize(12)
+            .fontColor(this.themeColors.sidebarFg)
+            .fontWeight(400)
+            .opacity(0.7)
+            .width('100%')
+            .textAlign(TextAlign.Center)
         }
-        .width(24)
+        .width(28)
         .height('100%')
+        .justifyContent(FlexAlign.Center)
         .backgroundColor(this.themeColors.sidebarBg)
         .border({ width: { right: 1 }, color: this.themeColors.borderColor })
+        .onClick(() => {
+          this.isCollapsed = false;
+        })
       } else {
         // ── 展开状态：完整面板 ──
         Column() {
-          // ── 顶部标题栏（含折叠按钮） ──
+          // ── 标题栏 ──
           Row() {
-            // 折叠按钮 — 视觉突出的左侧切换
-            Button({ type: ButtonType.Normal }) {
-              Text('◀')
-                .fontSize(10)
-                .fontColor(this.themeColors.sidebarFg)
-            }
-              .width(24).height(24).padding(0)
-              .backgroundColor(this.themeColors.sidebarActive)
-              .borderRadius(4)
-              .margin({ right: 4 })
-              .onClick(() => { this.isCollapsed = true; })
+            // 图标 + 标题
+            Text('📁')
+              .fontSize(14)
+              .margin({ right: 6 })
 
             Text('文件浏览')
               .fontSize(13)
@@ -156,11 +160,27 @@ export struct SidePanel {
               .fontColor(this.themeColors.sidebarFg)
               .layoutWeight(1)
 
+            // 收起按钮 — ← 箭头
+            Button({ type: ButtonType.Normal }) {
+              Text('←')
+                .fontSize(14)
+                .fontColor(this.themeColors.sidebarFg)
+            }
+              .width(24).height(24).padding(0)
+              .backgroundColor(Color.Transparent)
+              .borderRadius(4)
+              .margin({ right: 2 })
+              .onClick(() => {
+                this.isCollapsed = true;
+              })
+
             // 新建按钮
             Button({ type: ButtonType.Normal }) {
-              Text('+').fontSize(16).fontColor(this.themeColors.sidebarFg)
+              Text('+')
+                .fontSize(17)
+                .fontColor(this.themeColors.sidebarFg)
             }
-              .width(28).height(28).padding(0)
+              .width(24).height(24).padding(0)
               .backgroundColor(Color.Transparent)
               .borderRadius(4)
               .onClick(() => {
@@ -170,26 +190,34 @@ export struct SidePanel {
               })
           }
           .width('100%')
-          .height(36)
-          .padding({ left: 8, right: 8 })
+          .height(38)
+          .padding({ left: 10, right: 8 })
           .border({ width: { bottom: 1 }, color: this.themeColors.borderColor })
+          .clip(false)
 
-          // ── 搜索框 ──（显式高度防裁剪）
+          // ── 搜索框 ──
           Row() {
-            TextInput({ placeholder: '搜索文件…', text: this.searchQuery })
+            Text('🔍')
+              .fontSize(12)
+              .margin({ left: 8, right: 4 })
+              .opacity(0.5)
+
+            TextInput({ placeholder: '搜索文件…', text: $$this.searchQuery })
               .fontSize(12)
               .height(28)
               .layoutWeight(1)
-              .backgroundColor(this.themeColors.sidebarHover)
-              .borderRadius(4)
-              .padding({ left: 8, right: 8 })
-              .onChange((value: string) => {
-                this.searchQuery = value;
-              })
+              .backgroundColor(Color.Transparent)
+              .borderRadius(0)
+              .padding({ left: 0, right: 8 })
+              .placeholderColor(this.themeColors.editorPlaceholder)
           }
           .width('100%')
-          .height(40)
-          .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+          .height(42)
+          .padding({ left: 4, right: 8 })
+          .backgroundColor(this.themeColors.sidebarHover)
+          .borderRadius(6)
+          .margin({ left: 8, right: 8, top: 8, bottom: 8 })
+          .clip(false)
 
           // ── 文件列表 ──
           Scroll() {
@@ -208,7 +236,7 @@ export struct SidePanel {
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                 }
                 .width('100%')
-                .height(36)
+                .height(34)
                 .padding({ left: 12, right: 12 })
                 .borderRadius(4)
                 .backgroundColor(item.path === this.activeFilePath
