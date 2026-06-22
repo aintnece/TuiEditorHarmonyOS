@@ -357,7 +357,7 @@ struct EditorPage {
       // ═══════════════════════════════════════════════════════
       if (this.editor) {
         Toolbar({
-          editor: this.editor,
+          // editor auto-@Consume from @Provide
           themeColors: this.theme,
           onExport: () => { /* Phase 4.7: ExportSheet */ },
           onLink: () => { this.showLinkEditor = true; },
@@ -374,7 +374,7 @@ struct EditorPage {
           // ── 分屏模式：编辑 | 可拖拽分栏 | 预览 ──
           Row() {
             MdEditor({
-              editorCore: this.core,
+              // editorCore auto-@Consume from @Provide
               themeColors: this.theme,
               fontSize: 16,
               placeholder: this.i18n.get('Placeholder', '开始编辑…'),
@@ -390,7 +390,7 @@ struct EditorPage {
             })
 
             MdPreview({
-              editorCore: this.core,
+              // editorCore auto-@Consume from @Provide
               themeColors: this.theme,
               fontSize: 16
             })
@@ -407,7 +407,7 @@ struct EditorPage {
         } else if (this.viewMode === ViewMode.Preview) {
           // ── 仅预览模式 ──
           MdPreview({
-            editorCore: this.core,
+            // editorCore auto-@Consume from @Provide
             themeColors: this.theme,
             fontSize: 16
           })
@@ -416,7 +416,7 @@ struct EditorPage {
         } else {
           // ── 仅编辑模式 ──
           MdEditor({
-            editorCore: this.core,
+            // editorCore auto-@Consume from @Provide
             themeColors: this.theme,
             fontSize: 16,
             placeholder: this.i18n.get('Placeholder', '开始编辑…'),
