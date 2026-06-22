@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WYSIWYG Editor</title>
+  <link rel="stylesheet" href="https://wweditor.local/toastui-editor.min.css">
+  <link rel="stylesheet" href="https://wweditor.local/toastui-editor-dark.css" id="tui-dark-css" disabled>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    #editor {
+      height: 100%;
+    }
+    /* Hide tui.editor built-in toolbar — driven by native ArkTS Toolbar */
+    .toastui-editor-toolbar {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+
+  <script src="https://wweditor.local/toastui-editor.min.js"></script>
+  <script>
+    (function () {
+      // Parse ?theme=dark|light from URL query string
+      var queryTheme = 'light';
+      if (location.search.indexOf('theme=dark') !== -1) {
+        queryTheme = 'dark';
+      }
+
+      // Initialize tui.editor — WYSIWYG only, no built-in toolbar
+      var ed = new toastui.Editor({
+        el: document.getElementById('editor'),
+        initialEditType: 'wysiwyg',
+        previewStyle: 'vertical',
+        hideModeSwitch: true,
+        height: '100%',
+        initialValue: '',
+        toolbarItems: []
+      });
+
+      // ── Global bridge API (batch 3 extends this) ──
+      window.__ww = {
+        /** Inject markdown content into wysiwyg (convert=false to keep raw markdown) */
+        setMarkdown: function (md) {
+          ed.setMarkdown(md || '', false);
+        },
+
+        /** Get current content as markdown string */
+        getMarkdown: function () {
+          return ed.getMarkdown();
+        },
+
+        /** Toggle dark theme: enable/disable dark CSS + toggle body class */
+        setTheme: function (dark) {
+          var darkLink = document.getElementById('tui-dark-css');
+          if (darkLink) {
+            darkLink.disabled = !dark;
+          }
+          if (dark) {
+            document.body.classList.add('toastui-editor-dark');
+          } else {
+            document.body.classList.remove('toastui-editor-dark');
+          }
+        },
+
+        /** Focus the editor */
+        focus: function () {
+          ed.focus();
+        }
+      };
+
+      // Apply initial theme from URL query
+      window.__ww.setTheme(queryTheme === 'dark');
+    })();
+  </script>
+</body>
+</html>
