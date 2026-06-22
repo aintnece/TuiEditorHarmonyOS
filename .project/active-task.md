@@ -50,11 +50,11 @@ Phase 4.8 补齐这些，让编辑器具备真实文件能力。
 
 ## Steps
 
-- [ ] Step 1: 创建 `services/FileService.ts` — 文件系统服务封装
-- [ ] Step 2: 修改 `SidePanel.ets` — 接入 FileService，读取真实文件列表
-- [ ] Step 3: 修改 `EditorPage.ets` — 添加文件管理状态（currentFilePath/save/open/未保存标记）
-- [ ] Step 4: 修改 `ExportSheet` doExport — 实际写入 HTML 文件
-- [ ] Step 5: CC 自测
+- [x] Step 1: 创建 `services/FileService.ts` — 文件系统服务封装
+- [x] Step 2: 修改 `SidePanel.ets` — 接入 FileService，读取真实文件列表
+- [x] Step 3: 修改 `EditorPage.ets` — 添加文件管理状态（currentFilePath/save/open/未保存标记）
+- [x] Step 4: 修改 `ExportSheet` doExport — 实际写入 HTML 文件
+- [x] Step 5: CC 自测
 - [ ] Step 6: Hermes 审查 + commit
 
 ## Files Changed (Planned)
@@ -66,6 +66,6 @@ Phase 4.8 补齐这些，让编辑器具备真实文件能力。
 
 ## Checkpoint
 
-**Status**: `pending`
-**Assigned to**: Claude Code
-**Next step**: CC 创建 FileService + 修改 SidePanel/EditorPage/ExportSheet
+**Status**: `complete` — Phase 4.8 实现完成，待 Hermes 审查
+**Assigned to**: Hermes (审查)
+**Next step**: Hermes 审查代码 + commit

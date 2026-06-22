@@ -4,6 +4,7 @@
  * 对标 tui.editor 风格的文件管理侧栏。
  * 显示在编辑器左侧，支持折叠/展开、文件选择、新建/打开。
  * 通过 editorContext 全局单例访问编辑器核心。
+ * Phase 4.8: 接入 FileService，替换 mock 数据为真实文件系统读写。
  *
  * Redesigned: TUI Editor consistent style — clean layout,
  * Feather-inspired icons, no placeholder clipping.
@@ -11,13 +12,7 @@
 
 import { ThemeColors } from '../services/ThemeService';
 import { editorContext } from '../editor/EditorContext';
-
-/** 文件条目 */
-class FileItem {
-  name: string = '';
-  path: string = '';
-  icon: string = '📄';
-}
+import { FileItem, fileService } from '../services/FileService';
 
 @Component
 export struct SidePanel {
@@ -36,68 +31,32 @@ export struct SidePanel {
   /** 选择文件回调 */
   onFileSelect?: (path: string) => void;
   /** 新建文件回调 */
-  onNewFile?: () => void;
+  onNewFile?: (path: string) => void;
   /** 打开文件回调 */
   onOpenFile?: () => void;
 
   aboutToAppear(): void {
-    this.loadMockFiles();
+    this.loadFiles();
   }
 
-  private loadMockFiles(): void {
-    const items: FileItem[] = [];
-
-    const f1: FileItem = new FileItem();
-    f1.path = '/documents/readme.md';
-    f1.name = 'README.md';
-    items.push(f1);
-
-    const f2: FileItem = new FileItem();
-    f2.path = '/documents/notes.md';
-    f2.name = '学习笔记.md';
-    items.push(f2);
-
-    const f3: FileItem = new FileItem();
-    f3.path = '/documents/guide.md';
-    f3.name = '开发指南.md';
-    items.push(f3);
-
-    const f4: FileItem = new FileItem();
-    f4.path = '/documents/api.md';
-    f4.name = 'API 文档.md';
-    items.push(f4);
-
-    this.fileList = items;
-    if (items.length > 0) {
-      this.activeFilePath = items[0].path;
+  /** 从 FileService 加载文件列表 */
+  private loadFiles(): void {
+    this.fileList = fileService.listFiles();
+    if (this.fileList.length > 0) {
+      this.activeFilePath = this.fileList[0].path;
     }
   }
 
+  /** 点击文件条目：读取内容并加载到编辑器 */
   private handleFileClick(item: FileItem): void {
     this.activeFilePath = item.path;
-    const mockContent: string = this.getMockContent(item.name);
+    const content: string = fileService.readFile(item.path);
     if (editorContext.core) {
-      editorContext.core.setMarkdown(mockContent);
+      editorContext.core.setMarkdown(content);
     }
     if (this.onFileSelect) {
       this.onFileSelect(item.path);
     }
-  }
-
-  private getMockContent(fileName: string): string {
-    if (fileName === 'README.md') {
-      return '# README\n\n欢迎使用 TUI Editor！\n\n这是一个基于 TOAST UI Editor v3.2.2 的鸿蒙原生编辑器。\n\n## 功能\n\n- Markdown 编辑\n- 实时预览\n- 工具栏支持\n- 主题切换';
-    }
-    if (fileName === '学习笔记.md') {
-      return '# 学习笔记\n\n## ArkTS 开发\n\nArkTS 是 HarmonyOS 的主力开发语言。\n\n### 严格模式\n\n- 禁止 `any` 类型\n- 禁止对象字面量\n- 禁止展开运算符\n\n### 组件通信\n\n- `@Prop` 父传子\n- `@Link` 双向绑定\n- `@State` 组件内状态';
-    }
-    if (fileName === '开发指南.md') {
-      return '# 开发指南\n\n## 快速开始\n\n```bash\nhdc shell\n./start.sh\n```\n\n## 项目结构\n\n- entry/ — 主模块\n- components/ — UI 组件\n- editor/ — 编辑器核心';
-    }
-    if (fileName === 'API 文档.md') {
-      return '# API 文档\n\n## Editor.factory()\n\n创建编辑器实例。\n\n### 参数\n\n| 参数 | 类型 | 说明 |\n|------|------|------|\n| opts | PartialConfig | 配置选项 |\n\n### 返回值\n\n返回 `Editor` 实例。';
-    }
-    return '# 新建文档\n\n开始编辑…';
   }
 
   /** 获取过滤后的文件列表 */
@@ -165,8 +124,21 @@ export struct SidePanel {
               this.newFileHover = isHover;
             })
             .onClick(() => {
-              if (this.onNewFile) {
-                this.onNewFile();
+              // 通过 fileService 创建新文件
+              const baseDir: string = fileService.getBaseDir();
+              const defaultName: string = '新建文档.md';
+              const newPath: string | null = fileService.createFile(baseDir, defaultName);
+              if (newPath !== null) {
+                // 刷新文件列表并选中新文件
+                this.loadFiles();
+                this.activeFilePath = newPath;
+                const content: string = fileService.readFile(newPath);
+                if (editorContext.core) {
+                  editorContext.core.setMarkdown(content);
+                }
+                if (this.onNewFile) {
+                  this.onNewFile(newPath);
+                }
               }
             })
         }
@@ -206,7 +178,7 @@ export struct SidePanel {
           Column() {
             ForEach(this.getFilteredFiles(), (item: FileItem) => {
               Row() {
-                Text(item.icon)
+                Text('📄')
                   .fontSize(14)
                   .margin({ right: 8 })
 

@@ -6,7 +6,7 @@
  * 使用 Editor 入口类管理所有子系统。
  */
 
-import { router } from '@kit.ArkUI';
+import { router, promptAction } from '@kit.ArkUI';
 import { pasteboard } from '@kit.BasicServicesKit';
 
 import { Editor } from '../editor/Editor';
@@ -26,6 +26,7 @@ import { ExportSheet, ExportOptions } from '../components/ExportSheet';
 import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
 import { editorContext } from '../editor/EditorContext';
+import { fileService } from '../services/FileService';
 
 /** 路由参数 */
 class NavData {
@@ -54,6 +55,8 @@ struct EditorPage {
   @State showSidePanel: boolean = true;
   @State showExportSheet: boolean = false;
   @State sidePanelExpandHover: boolean = false;
+  @State currentFilePath: string = '';
+  @State isDirty: boolean = false;
 
   private i18n: I18n = I18n.getInstance();
 
@@ -250,21 +253,86 @@ struct EditorPage {
   /** 执行实际导出操作 */
   private doExport = (_options: ExportOptions): void => {
     if (!editorContext.core) return;
-    // 获取 HTML 内容
-    editorContext.core.getFullHTML();
-    // Phase 8 补充：实际文件写入
+
+    // 构建 HTML 并写入文件
+    const html: string = editorContext.core.getFullHTML();
+    // 去掉 .md 扩展名生成导出文件名
+    let exportBase: string = this.fileName;
+    if (exportBase.endsWith('.md')) {
+      exportBase = exportBase.substring(0, exportBase.length - 3);
+    }
+    const exportDir: string = fileService.getBaseDir();
+    const exportPath: string = exportDir + '/' + exportBase + '_export.html';
+
+    const ok: boolean = fileService.writeFile(exportPath, html);
     this.showExportSheet = false;
+
+    if (ok) {
+      try {
+        promptAction.showToast({
+          message: '导出成功: ' + exportPath,
+          duration: 2000
+        });
+      } catch (_e) {
+        // Toast 不可用时静默忽略
+      }
+    }
   };
 
-  aboutToAppear(): void {
-    const data: NavData = router.getParams() as NavData;
-    if (data && data.fileName) {
-      this.fileName = data.fileName;
+  /** 保存当前内容到文件 */
+  private saveFile(): void {
+    if (!editorContext.core) return;
+
+    // 如果没有当前文件路径，先创建
+    if (this.currentFilePath === '') {
+      const baseDir: string = fileService.getBaseDir();
+      const newPath: string | null = fileService.createFile(baseDir, '未命名');
+      if (newPath !== null) {
+        this.currentFilePath = newPath;
+        this.fileName = extractFileName(newPath);
+      } else {
+        return;
+      }
     }
 
-    // 创建 Editor 实例
+    const content: string = editorContext.core.getMarkdown();
+    const ok: boolean = fileService.writeFile(this.currentFilePath, content);
+    if (ok) {
+      this.isDirty = false;
+    }
+  }
+
+  aboutToAppear(): void {
+    // 1. 初始化文件服务：设置沙箱目录
+    const context = getContext(this);
+    const docsDir: string = context.filesDir + '/docs';
+    fileService.setBaseDir(docsDir);
+    fileService.ensureDir(docsDir);
+
+    // 2. 获取路由参数
+    const data: NavData = router.getParams() as NavData;
+
+    // 3. 确定初始内容
+    let initialContent: string = '# Hello TUI Editor\n\n开始编辑…';
+    let initialFileName: string = '未命名.md';
+
+    if (data && data.filePath) {
+      const fileContent: string = fileService.readFile(data.filePath);
+      if (fileContent !== '') {
+        initialContent = fileContent;
+        initialFileName = extractFileName(data.filePath);
+        this.currentFilePath = data.filePath;
+      }
+    } else if (data && data.fileName) {
+      initialFileName = data.fileName;
+    }
+
+    this.fileName = initialFileName;
+    this.content = initialContent;
+
+    // 4. 创建 Editor 实例
     const opts: PartialConfig = new PartialConfig();
-    opts.initialValue = this.content;
+    opts.initialValue = initialContent;
     opts.initialEditType = EditorType.Markdown;
     opts.viewMode = ViewMode.Split;
     opts.useDarkTheme = false;
@@ -276,16 +344,17 @@ struct EditorPage {
     editorContext.editor = Editor.factory(opts);
     editorContext.core = editorContext.editor.getCore();
 
-    // 监听内容变更
+    // 5. 监听内容变更
     editorContext.editor.on('change', (): void => {
       if (editorContext.core) {
         this.content = editorContext.core.getMarkdown();
+        this.isDirty = true;
         this.canUndo = editorContext.core.commandManager.canUndo();
         this.canRedo = editorContext.core.commandManager.canRedo();
       }
     });
 
-    // 监听状态变更
+    // 6. 监听状态变更
     editorContext.editor.on('stateChange', (): void => {
       if (editorContext.core) {
         this.editorType = editorContext.core.state.editorType;
@@ -293,12 +362,12 @@ struct EditorPage {
       }
     });
 
-    // 主题变化监听
+    // 7. 主题变化监听
     ThemeService.getInstance().onThemeChange((t: ThemeColors): void => {
       this.theme = t;
     });
 
-    // 语言变化监听
+    // 8. 语言变化监听
     this.i18n.onLanguageChange((code: string): void => {
       // 重新渲染会触发 build() 更新
     });
@@ -311,11 +380,21 @@ struct EditorPage {
       //  标题栏
       // ═══════════════════════════════════════════════════════
       Row() {
-        Text(this.fileName)
+        Text((this.isDirty ? '• ' : '') + this.fileName)
           .fontSize(16)
           .fontWeight(600)
           .fontColor(this.theme.editorFg)
           .layoutWeight(1)
+
+        // 保存按钮（内容变更后显示）
+        if (this.isDirty) {
+          Button('💾')
+            .fontSize(16)
+            .width(28).height(28)
+            .backgroundColor(Color.Transparent)
+            .onClick(() => { this.saveFile(); })
+            .margin({ right: 6 })
+        }
 
         // Markdown 模式按钮
         Button(this.i18n.get('Markdown'))
@@ -410,14 +489,20 @@ struct EditorPage {
           onToggleCollapse: () => {
             this.showSidePanel = false;
           },
-          onFileSelect: (_path: string) => {
-            // 文件切换处理 — SidePanel 内部已通过 editorContext 更新内容
+          onFileSelect: (path: string) => {
+            // 文件切换：SidePanel 已通过 editorContext 设置内容
+            this.currentFilePath = path;
+            this.fileName = extractFileName(path);
+            this.isDirty = false;
           },
-          onNewFile: () => {
-            // Phase 8 补充：新建文件逻辑
+          onNewFile: (path: string) => {
+            // 新文件已创建，更新路径和文件名
+            this.currentFilePath = path;
+            this.fileName = extractFileName(path);
+            this.isDirty = false;
           },
           onOpenFile: () => {
-            // Phase 8 补充：打开文件逻辑
+            // Phase 8 补充：系统文件选择器
           }
         })
 
@@ -623,4 +708,13 @@ struct EditorPage {
     .width('100%')
     .height('100%')
   }
+}
+
+/** 从路径提取文件名 */
+function extractFileName(filePath: string): string {
+  const lastSlash: number = filePath.lastIndexOf('/');
+  if (lastSlash >= 0) {
+    return filePath.substring(lastSlash + 1);
+  }
+  return filePath;
 }
