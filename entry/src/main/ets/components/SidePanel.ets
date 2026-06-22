@@ -24,6 +24,7 @@ export struct SidePanel {
   @State private fileList: FileItem[] = [];
   @State private activeFilePath: string = '';
   @State private searchQuery: string = '';
+  @State private isCollapsed: boolean = false;
 
   /** 选择文件回调 */
   onFileSelect?: (path: string) => void;
@@ -115,86 +116,120 @@ export struct SidePanel {
 
   build() {
     if (this.visible) {
-      Column() {
-        // ── 顶部标题栏 ──
-        Row() {
-          Text('文件浏览')
-            .fontSize(13)
-            .fontWeight(600)
-            .fontColor(this.themeColors.sidebarFg)
-            .layoutWeight(1)
-
-          // 新建按钮
+      if (this.isCollapsed) {
+        // ── 收起状态：仅显示窄条切换标签 ──
+        Column() {
           Button({ type: ButtonType.Normal }) {
-            Text('+').fontSize(16).fontColor(this.themeColors.sidebarFg)
+            Text('▶')
+              .fontSize(10)
+              .fontColor(this.themeColors.sidebarFg)
           }
-            .width(28).height(28).padding(0)
-            .backgroundColor(Color.Transparent)
-            .borderRadius(4)
-            .onClick(() => {
-              if (this.onNewFile) {
-                this.onNewFile();
-              }
-            })
+            .width(24).height(36).padding(0)
+            .backgroundColor(this.themeColors.sidebarActive)
+            .borderRadius(0)
+            .onClick(() => { this.isCollapsed = false; })
         }
-        .width('100%')
-        .height(36)
-        .padding({ left: 12, right: 8 })
-        .border({ width: { bottom: 1 }, color: this.themeColors.borderColor })
-
-        // ── 搜索框 ──
-        Row() {
-          TextInput({ placeholder: '搜索文件…', text: this.searchQuery })
-            .fontSize(12)
-            .height(28)
-            .layoutWeight(1)
-            .backgroundColor(this.themeColors.sidebarHover)
-            .borderRadius(4)
-            .padding({ left: 8, right: 8 })
-            .onChange((value: string) => {
-              this.searchQuery = value;
-            })
-        }
-        .width('100%')
-        .padding({ left: 8, right: 8, top: 6, bottom: 6 })
-
-        // ── 文件列表 ──
-        Scroll() {
-          Column() {
-            ForEach(this.getFilteredFiles(), (item: FileItem) => {
-              Row() {
-                Text(item.icon)
-                  .fontSize(14)
-                  .margin({ right: 8 })
-
-                Text(item.name)
-                  .fontSize(13)
-                  .fontColor(this.themeColors.sidebarFg)
-                  .layoutWeight(1)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.Ellipsis })
-              }
-              .width('100%')
-              .height(36)
-              .padding({ left: 12, right: 12 })
+        .width(24)
+        .height('100%')
+        .backgroundColor(this.themeColors.sidebarBg)
+        .border({ width: { right: 1 }, color: this.themeColors.borderColor })
+      } else {
+        // ── 展开状态：完整面板 ──
+        Column() {
+          // ── 顶部标题栏（含折叠按钮） ──
+          Row() {
+            // 折叠按钮 — 视觉突出的左侧切换
+            Button({ type: ButtonType.Normal }) {
+              Text('◀')
+                .fontSize(10)
+                .fontColor(this.themeColors.sidebarFg)
+            }
+              .width(24).height(24).padding(0)
+              .backgroundColor(this.themeColors.sidebarActive)
               .borderRadius(4)
-              .backgroundColor(item.path === this.activeFilePath
-                ? this.themeColors.sidebarActive : Color.Transparent)
+              .margin({ right: 4 })
+              .onClick(() => { this.isCollapsed = true; })
+
+            Text('文件浏览')
+              .fontSize(13)
+              .fontWeight(600)
+              .fontColor(this.themeColors.sidebarFg)
+              .layoutWeight(1)
+
+            // 新建按钮
+            Button({ type: ButtonType.Normal }) {
+              Text('+').fontSize(16).fontColor(this.themeColors.sidebarFg)
+            }
+              .width(28).height(28).padding(0)
+              .backgroundColor(Color.Transparent)
+              .borderRadius(4)
               .onClick(() => {
-                this.handleFileClick(item);
+                if (this.onNewFile) {
+                  this.onNewFile();
+                }
               })
-            }, (item: FileItem) => item.path)
           }
           .width('100%')
+          .height(36)
+          .padding({ left: 8, right: 8 })
+          .border({ width: { bottom: 1 }, color: this.themeColors.borderColor })
+
+          // ── 搜索框 ──（显式高度防裁剪）
+          Row() {
+            TextInput({ placeholder: '搜索文件…', text: this.searchQuery })
+              .fontSize(12)
+              .height(28)
+              .layoutWeight(1)
+              .backgroundColor(this.themeColors.sidebarHover)
+              .borderRadius(4)
+              .padding({ left: 8, right: 8 })
+              .onChange((value: string) => {
+                this.searchQuery = value;
+              })
+          }
+          .width('100%')
+          .height(40)
+          .padding({ left: 8, right: 8, top: 6, bottom: 6 })
+
+          // ── 文件列表 ──
+          Scroll() {
+            Column() {
+              ForEach(this.getFilteredFiles(), (item: FileItem) => {
+                Row() {
+                  Text(item.icon)
+                    .fontSize(14)
+                    .margin({ right: 8 })
+
+                  Text(item.name)
+                    .fontSize(13)
+                    .fontColor(this.themeColors.sidebarFg)
+                    .layoutWeight(1)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                }
+                .width('100%')
+                .height(36)
+                .padding({ left: 12, right: 12 })
+                .borderRadius(4)
+                .backgroundColor(item.path === this.activeFilePath
+                  ? this.themeColors.sidebarActive : Color.Transparent)
+                .onClick(() => {
+                  this.handleFileClick(item);
+                })
+              }, (item: FileItem) => item.path)
+            }
+            .width('100%')
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Auto)
         }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Auto)
+        .width(200)
+        .height('100%')
+        .backgroundColor(this.themeColors.sidebarBg)
+        .border({ width: { right: 1 }, color: this.themeColors.borderColor })
+        .clip(false)
       }
-      .width(200)
-      .height('100%')
-      .backgroundColor(this.themeColors.sidebarBg)
-      .border({ width: { right: 1 }, color: this.themeColors.borderColor })
     }
   }
 }
