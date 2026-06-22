@@ -25,6 +25,7 @@ import { StatusBar } from '../components/StatusBar';
 import { ExportSheet, ExportOptions } from '../components/ExportSheet';
 import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
+import { WwEditor } from '../editor/markdown/WwEditor';
 import { editorContext } from '../editor/EditorContext';
 import { fileService } from '../services/FileService';
 /** 路由参数 */
@@ -601,14 +602,13 @@ struct EditorPage {
                 .layoutWeight(1)
             }
           } else {
-            // WYSIWYG 区域 — Phase 5 实现
-            Text('[ WYSIWYG 模式 — Phase 5 实现 ]')
+            // WYSIWYG 区域 — WwEditor(批次2)，渲染区
+            WwEditor({
+              themeColors: this.theme,
+              fontSize: 16
+            })
               .width('100%')
               .layoutWeight(1)
-              .fontSize(16)
-              .fontColor(this.theme.editorPlaceholder)
-              .textAlign(TextAlign.Center)
-              .backgroundColor(this.theme.editorBg)
           }
         }
         .clip(false)
