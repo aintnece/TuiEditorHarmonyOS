@@ -13,8 +13,23 @@ import { I18n } from '../i18n/I18n';
 import { Handler } from '../event/EventEmitter';
 import { common } from '@kit.AbilityKit';
 
+/** WYSIWYG exec 回调：由 WwEditor 注册，把命令转发到 WebView 的 window.__ww.exec */
+type WwExecFn = (name: string, payloadJson: string) => void;
+
+/** tui.editor 命令映射结果 */
+class TuiCmd {
+  cmd: string = '';
+  payloadJson: string = '';
+}
+
 export class Editor {
   private core: EditorCore;
+  private wwExec: WwExecFn | null = null;
+
+  /** WwEditor 注册/注销 WYSIWYG 命令转发回调 */
+  setWwExec(fn: WwExecFn | null): void {
+    this.wwExec = fn;
+  }
 
   private constructor(config: EditorConfig) {
     this.core = new EditorCore(config);
@@ -63,17 +78,34 @@ export class Editor {
 
   /** 执行命令 */
   exec(name: string, ...args: string[]): boolean {
+    // WYSIWYG 模式：路由到 WebView 引擎
+    if (this.core.state.editorType === EditorType.Wysiwyg && this.wwExec) {
+      const tui: TuiCmd | null = this.mapToTui(name, args);
+      if (tui) {
+        this.wwExec(tui.cmd, tui.payloadJson);
+        return true;
+      }
+      return false; // WYSIWYG 下不支持的命令，忽略（不要落到 core 改文本）
+    }
     const result = this.core.exec(name, ...args);
     return result !== null;
   }
 
   /** 撤销 */
   undo(): boolean {
+    if (this.core.state.editorType === EditorType.Wysiwyg && this.wwExec) {
+      this.wwExec('undo', '');
+      return true;
+    }
     return this.core.undo();
   }
 
   /** 重做 */
   redo(): boolean {
+    if (this.core.state.editorType === EditorType.Wysiwyg && this.wwExec) {
+      this.wwExec('redo', '');
+      return true;
+    }
     return this.core.redo();
   }
 
@@ -111,6 +143,28 @@ export class Editor {
   /** 销毁 */
   destroy(): void {
     this.core.destroy();
+  }
+
+  /** ArkTS 命令名 → tui.editor 命令名 + payload(JSON 字符串)。不支持的返回 null */
+  private mapToTui(name: string, args: string[]): TuiCmd | null {
+    const c: TuiCmd = new TuiCmd();
+    if (name === 'Bold') { c.cmd = 'bold'; return c; }
+    if (name === 'Italic') { c.cmd = 'italic'; return c; }
+    if (name === 'Strike') { c.cmd = 'strike'; return c; }
+    if (name === 'Code') { c.cmd = 'code'; return c; }
+    if (name === 'Heading') {
+      const level: string = args.length > 0 ? args[0] : '2';
+      c.cmd = 'heading';
+      c.payloadJson = '{"level":' + level + '}';
+      return c;
+    }
+    if (name === 'Quote') { c.cmd = 'blockQuote'; return c; }
+    if (name === 'BulletList') { c.cmd = 'bulletList'; return c; }
+    if (name === 'OrderedList') { c.cmd = 'orderedList'; return c; }
+    if (name === 'TaskList') { c.cmd = 'taskList'; return c; }
+    if (name === 'Codeblock') { c.cmd = 'codeBlock'; return c; }
+    if (name === 'HorizontalRule') { c.cmd = 'hr'; return c; }
+    return null;
   }
 
   /** 监听事件 */

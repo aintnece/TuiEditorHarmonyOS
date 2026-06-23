@@ -122,6 +122,7 @@ export struct WwEditor {
         if (!this.isReady) {
           this.isReady = true;
           this.applyInitial();
+          this.registerWwExec();
         }
       })
   }
@@ -155,6 +156,25 @@ export struct WwEditor {
     this.controller.runJavaScript(
       'window.__ww && window.__ww.setTheme(' + isDarkStr + ')'
     );
+  }
+
+  // ── WYSIWYG exec bridge ──
+
+  private registerWwExec(): void {
+    if (!editorContext.editor) return;
+    editorContext.editor.setWwExec((name: string, payloadJson: string): void => {
+      const n: string = encodeURIComponent(name);
+      const p: string = encodeURIComponent(payloadJson);
+      this.controller.runJavaScript(
+        'window.__ww && window.__ww.exec(decodeURIComponent("' + n + '"), decodeURIComponent("' + p + '"))'
+      );
+    });
+  }
+
+  aboutToDisappear(): void {
+    if (editorContext.editor) {
+      editorContext.editor.setWwExec(null);
+    }
   }
 
   // ── MIME type mapping ──
