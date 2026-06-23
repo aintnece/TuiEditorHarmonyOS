@@ -1,0 +1,6 @@
+{
+  "_comment": "已知会导致解析器死循环(infinite loop)的 spec example 编号。run-spec.ts 读此表，跳过并标为 HANG 类别。修复对应 bug 后从 examples 移除该条。",
+  "examples": [
+    { "example": 12, "section": "Backslash escapes", "reason": "整串全标点反斜杠转义(含 \\\\) 导致 Inlines 反斜杠处理指针不前进，无限循环。8.2 待修。" }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "specVersion": "0.31.2",
+  "date": "2026-06-23T16:54:27.561Z",
+  "total": 652,
+  "exact": 234,
+  "cosmetic": 0,
+  "struct": 417,
+  "error": 0,
+  "hang": 1,
+  "exactPct": 35.89,
+  "nearPct": 35.89,
+  "bySection": [
+    {
+      "section": "ATX headings",
+      "total": 18,
+      "exact": 11,
+      "cosmetic": 0,
+      "struct": 7,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Autolinks",
+      "total": 19,
+      "exact": 10,
+      "cosmetic": 0,
+      "struct": 9,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Backslash escapes",
+      "total": 13,
+      "exact": 5,
+      "cosmetic": 0,
+      "struct": 7,
+      "error": 0,
+      "hang": 1
+    },
+    {
+      "section": "Blank lines",
+      "total": 1,
+      "exact": 0,
+      "cosmetic": 0,
+      "struct": 1,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Block quotes",
+      "total": 25,
+      "exact": 16,
+      "cosmetic": 0,
+      "struct": 9,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Code spans",
+      "total": 22,
+      "exact": 8,
+      "cosmetic": 0,
+      "struct": 14,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Emphasis and strong emphasis",
+      "total": 132,
+      "exact": 46,
+      "cosmetic": 0,
+      "struct": 86,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Entity and numeric character references",
+      "total": 17,
+      "exact": 4,
+      "cosmetic": 0,
+      "struct": 13,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Fenced code blocks",
+      "total": 29,
+      "exact": 13,
+      "cosmetic": 0,
+      "struct": 16,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Hard line breaks",
+      "total": 15,
+      "exact": 5,
+      "cosmetic": 0,
+      "struct": 10,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "HTML blocks",
+      "total": 44,
+      "exact": 20,
+      "cosmetic": 0,
+      "struct": 24,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Images",
+      "total": 22,
+      "exact": 1,
+      "cosmetic": 0,
+      "struct": 21,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Indented code blocks",
+      "total": 12,
+      "exact": 7,
+      "cosmetic": 0,
+      "struct": 5,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Inlines",
+      "total": 1,
+      "exact": 1,
+      "cosmetic": 0,
+      "struct": 0,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Link reference definitions",
+      "total": 27,
+      "exact": 5,
+      "cosmetic": 0,
+      "struct": 22,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Links",
+      "total": 90,
+      "exact": 21,
+      "cosmetic": 0,
+      "struct": 69,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "List items",
+      "total": 48,
+      "exact": 6,
+      "cosmetic": 0,
+      "struct": 42,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Lists",
+      "total": 26,
+      "exact": 4,
+      "cosmetic": 0,
+      "struct": 22,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Paragraphs",
+      "total": 8,
+      "exact": 4,
+      "cosmetic": 0,
+      "struct": 4,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Precedence",
+      "total": 1,
+      "exact": 1,
+      "cosmetic": 0,
+      "struct": 0,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Raw HTML",
+      "total": 20,
+      "exact": 6,
+      "cosmetic": 0,
+      "struct": 14,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Setext headings",
+      "total": 27,
+      "exact": 19,
+      "cosmetic": 0,
+      "struct": 8,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Soft line breaks",
+      "total": 2,
+      "exact": 1,
+      "cosmetic": 0,
+      "struct": 1,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Tabs",
+      "total": 11,
+      "exact": 4,
+      "cosmetic": 0,
+      "struct": 7,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Textual content",
+      "total": 3,
+      "exact": 3,
+      "cosmetic": 0,
+      "struct": 0,
+      "error": 0,
+      "hang": 0
+    },
+    {
+      "section": "Thematic breaks",
+      "total": 19,
+      "exact": 13,
+      "cosmetic": 0,
+      "struct": 6,
+      "error": 0,
+      "hang": 0
+    }
+  ]
+}

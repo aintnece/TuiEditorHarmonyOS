@@ -1,0 +1,1 @@
+{ "name": "commonmark-spec", "private": true, "scripts": { "test": "tsx run-spec.ts" } }
