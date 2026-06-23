@@ -8,6 +8,18 @@
 
 import { AstNode, AstNodeType } from './Node';
 
+/** 解析 destination 的返回值（parseAngleDest / parseBareDest） */
+class DestResult {
+  url: string = '';
+  nextIdx: number = 0;
+}
+
+/** 解析 title 的返回值（parseTitle） */
+class TitleResult {
+  title: string = '';
+  nextIdx: number = 0;
+}
+
 /**
  * 解析行内 Markdown 文本，将生成的节点添加到 parent。
  * 这是行内解析的主入口。
@@ -221,36 +233,280 @@ class InlineMatchResult {
   nextIndex: number = 0;
 }
 
-/** 尝试解析链接 [text](url) 或图片 ![alt](url) */
+/** 尝试解析链接 [text](url "title") 或图片 ![alt](url "title") */
 function tryParseLinkOrImage(text: string, start: number, isImage: boolean): InlineMatchResult | null {
   const bracketStart: number = isImage ? start + 1 : start;
   const bracketEnd: number = findClosingBracket(text, bracketStart);
   if (bracketEnd < 0) return null;
   if (bracketEnd + 1 >= text.length || text[bracketEnd + 1] !== '(') return null;
 
-  const parenEnd: number = findClosingParen(text, bracketEnd + 2);
-  if (parenEnd < 0) return null;
+  const destResult: DestAndTitleResult | null = parseDestAndTitle(text, bracketEnd + 2);
+  if (!destResult) return null;
 
   const result: InlineMatchResult = new InlineMatchResult();
   result.text = text.substring(bracketStart + 1, bracketEnd);
-  const urlPart: string = text.substring(bracketEnd + 2, parenEnd);
+  result.url = destResult.url;
+  result.title = destResult.title;
+  result.nextIndex = destResult.nextIdx;
+  return result;
+}
 
-  // 解析 URL 和可选的 title
-  const spaceIdx: number = findFirstSpace(urlPart);
-  if (spaceIdx >= 0) {
-    result.url = urlPart.substring(0, spaceIdx).trim();
-    let titlePart: string = urlPart.substring(spaceIdx + 1).trim();
-    // 去除引号
-    if ((titlePart.startsWith('"') && titlePart.endsWith('"')) ||
-        (titlePart.startsWith("'") && titlePart.endsWith("'")) ||
-        (titlePart.startsWith('(') && titlePart.endsWith(')'))) {
-      titlePart = titlePart.substring(1, titlePart.length - 1);
-    }
-    result.title = titlePart;
-  } else {
-    result.url = urlPart.trim();
+class DestAndTitleResult {
+  url: string = '';
+  title: string = '';
+  nextIdx: number = 0;
+}
+
+/** 解析 destination + optional title，严格按 CommonMark 规则 */
+function parseDestAndTitle(text: string, start: number): DestAndTitleResult | null {
+  let pos: number = start;
+  const len: number = text.length;
+
+  // 跳过可选空白
+  pos = skipSpace(text, pos);
+  if (pos >= len) return null;
+
+  // 空 destination: ]()
+  if (text[pos] === ')') {
+    const r: DestAndTitleResult = new DestAndTitleResult();
+    r.url = '';
+    r.title = '';
+    r.nextIdx = pos + 1;
+    return r;
   }
-  result.nextIndex = parenEnd + 1;
+
+  // 解析 destination
+  let urlRaw: string = '';
+  if (text[pos] === '<') {
+    // 尖括号式 <...>
+    const angleRes = parseAngleDest(text, pos);
+    if (!angleRes) return null;
+    urlRaw = angleRes.url;
+    pos = angleRes.nextIdx;
+  } else {
+    // 裸式
+    const bareRes = parseBareDest(text, pos);
+    if (!bareRes) return null;
+    urlRaw = bareRes.url;
+    pos = bareRes.nextIdx;
+  }
+
+  // 反斜杠转义解析 + 空格归一化
+  let url: string = resolveBackslashEscapes(urlRaw);
+  url = encodeSpacesInUrl(url);
+
+  // destination 后空白 → 可选 title → 空白 → )
+  pos = skipSpace(text, pos);
+  if (pos >= len) return null;
+
+  let title: string = '';
+  if (text[pos] === ')') {
+    // 无 title
+    const r: DestAndTitleResult = new DestAndTitleResult();
+    r.url = url;
+    r.title = '';
+    r.nextIdx = pos + 1;
+    return r;
+  }
+
+  // 此处必须有合法 title，否则不是链接
+  const titleRes = parseTitle(text, pos);
+  if (!titleRes) return null;
+  title = titleRes.title;
+  pos = titleRes.nextIdx;
+
+  // title 后空白 → )
+  pos = skipSpace(text, pos);
+  if (pos >= len || text[pos] !== ')') return null;
+
+  const r: DestAndTitleResult = new DestAndTitleResult();
+  r.url = url;
+  r.title = title;
+  r.nextIdx = pos + 1;
+  return r;
+}
+
+/** 解析尖括号式 destination `<...>` */
+function parseAngleDest(text: string, start: number): DestResult | null {
+  let pos: number = start + 1; // 跳过 '<'
+  const len: number = text.length;
+  let content: string = '';
+
+  while (pos < len) {
+    const ch: string = text[pos];
+    if (ch === '\n') return null; // 不许换行
+    if (ch === '\\' && pos + 1 < len) {
+      // 反斜杠转义——保留原始供后续解析
+      content += ch + text[pos + 1];
+      pos += 2;
+      continue;
+    }
+    if (ch === '<') return null; // 未转义的 < 非法
+    if (ch === '>') {
+      // 找到闭合 >
+      const url: string = resolveBackslashEscapes(content);
+      const r: DestResult = new DestResult();
+      r.url = url;
+      r.nextIdx = pos + 1;
+      return r;
+    }
+    content += ch;
+    pos++;
+  }
+  return null; // 没有闭合 >
+}
+
+/** 解析裸式 destination（不以 < 开头） */
+function parseBareDest(text: string, start: number): DestResult | null {
+  let pos: number = start;
+  const len: number = text.length;
+  let content: string = '';
+  let depth: number = 0;
+
+  while (pos < len) {
+    const ch: string = text[pos];
+    if (ch === '\\' && pos + 1 < len) {
+      // 反斜杠转义——保留原始
+      content += ch + text[pos + 1];
+      pos += 2;
+      continue;
+    }
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f' || ch === '\v') {
+      // 遇空白停止
+      const url: string = resolveBackslashEscapes(content);
+      const r: DestResult = new DestResult();
+      r.url = url;
+      r.nextIdx = pos;
+      return r;
+    }
+    if (ch === '(') {
+      depth++;
+      content += ch;
+      pos++;
+      continue;
+    }
+    if (ch === ')') {
+      depth--;
+      if (depth < 0) {
+        // 未配对的 )，结束 destination（是链接的闭合 )）
+        const url: string = resolveBackslashEscapes(content);
+        const r: DestResult = new DestResult();
+        r.url = url;
+        r.nextIdx = pos;
+        return r; // 不消费 )
+      }
+      content += ch;
+      pos++;
+      continue;
+    }
+    content += ch;
+    pos++;
+  }
+
+  // 文本末尾
+  const url: string = resolveBackslashEscapes(content);
+  const r: DestResult = new DestResult();
+  r.url = url;
+  r.nextIdx = pos;
+  return r;
+}
+
+/** 解析 title："..."、'...' 或 (...) */
+function parseTitle(text: string, start: number): TitleResult | null {
+  if (start >= text.length) return null;
+  const delimiter: string = text[start];
+  if (delimiter !== '"' && delimiter !== "'" && delimiter !== '(') return null;
+
+  let pos: number = start + 1;
+  const len: number = text.length;
+  let raw: string = '';
+
+  if (delimiter === '(') {
+    // 括号式 title，不允许嵌套 (
+    while (pos < len) {
+      const ch: string = text[pos];
+      if (ch === '\\' && pos + 1 < len) {
+        raw += ch + text[pos + 1];
+        pos += 2;
+        continue;
+      }
+      if (ch === '(') return null; // 不许嵌套
+      if (ch === ')') {
+        const title: string = resolveBackslashEscapes(raw);
+        const r: TitleResult = new TitleResult();
+        r.title = title;
+        r.nextIdx = pos + 1;
+        return r;
+      }
+      if (ch === '\n') return null;
+      raw += ch;
+      pos++;
+    }
+    return null;
+  }
+
+  // "..." 或 '...' 定界
+  while (pos < len) {
+    const ch: string = text[pos];
+    if (ch === '\\' && pos + 1 < len) {
+      raw += ch + text[pos + 1];
+      pos += 2;
+      continue;
+    }
+    if (ch === '\n') return null;
+    if (ch === delimiter) {
+      const title: string = resolveBackslashEscapes(raw);
+      const r: TitleResult = new TitleResult();
+      r.title = title;
+      r.nextIdx = pos + 1;
+      return r;
+    }
+    raw += ch;
+    pos++;
+  }
+  return null;
+}
+
+/** 跳过空白字符（空格、制表符、换行等） */
+function skipSpace(text: string, start: number): number {
+  let pos: number = start;
+  while (pos < text.length) {
+    const ch: string = text[pos];
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f' || ch === '\v') {
+      pos++;
+    } else {
+      break;
+    }
+  }
+  return pos;
+}
+
+/** 解析反斜杠转义：\X → X（X 为 ASCII 标点符号） */
+function resolveBackslashEscapes(s: string): string {
+  let result: string = '';
+  let i: number = 0;
+  while (i < s.length) {
+    if (s[i] === '\\' && i + 1 < s.length && isEscapable(s[i + 1])) {
+      result += s[i + 1];
+      i += 2;
+    } else {
+      result += s[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+/** URL 里字面空格编码为 %20 */
+function encodeSpacesInUrl(url: string): string {
+  let result: string = '';
+  for (let i: number = 0; i < url.length; i++) {
+    if (url[i] === ' ') {
+      result += '%20';
+    } else {
+      result += url[i];
+    }
+  }
   return result;
 }
 
@@ -265,37 +521,6 @@ function findClosingBracket(text: string, start: number): number {
       if (depth === 0) return i;
     } else if (text[i] === '\n') {
       return -1; // 不允许跨行
-    }
-  }
-  return -1;
-}
-
-/** 查找闭合的 ) 括号 */
-function findClosingParen(text: string, start: number): number {
-  let depth: number = 1;
-  for (let i: number = start; i < text.length; i++) {
-    if (text[i] === '(') {
-      depth++;
-    } else if (text[i] === ')') {
-      depth--;
-      if (depth === 0) return i;
-    } else if (text[i] === '\n') {
-      return -1;
-    }
-  }
-  return -1;
-}
-
-/** 在字符串中找第一个空格（不在引号内） */
-function findFirstSpace(text: string): number {
-  let inQuote: string = '';
-  for (let i = 0; i < text.length; i++) {
-    if (inQuote) {
-      if (text[i] === inQuote) inQuote = '';
-    } else if (text[i] === '"' || text[i] === "'") {
-      inQuote = text[i];
-    } else if (text[i] === ' ') {
-      return i;
     }
   }
   return -1;
