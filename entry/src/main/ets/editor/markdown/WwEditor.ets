@@ -19,6 +19,7 @@ import fs from '@ohos.file.fs';
 import { ThemeColors } from '../../services/ThemeService';
 import { editorContext } from '../EditorContext';
 import { EditorCore } from '../EditorCore';
+import { Handler } from '../../event/EventEmitter';
 
 const WW_HOST: string = 'https://wweditor.local';
 
@@ -48,6 +49,8 @@ export struct WwEditor {
   private bridge: WwBridge = new WwBridge();
   private isReady: boolean = false;
   private pageUrl: string = '';
+  private lastIsDark: boolean = false;
+  private themeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
     // Build page URL with theme query parameter
@@ -56,6 +59,19 @@ export struct WwEditor {
 
     if (this.onControllerReady) {
       this.onControllerReady(this.controller);
+    }
+
+    const self: WwEditor = this;
+    self.lastIsDark = editorContext.core ? editorContext.core.getTheme().isDark : this.themeColors.isDark;
+    this.themeHandler = (): void => {
+      if (!editorContext.core || !self.isReady) return;
+      const dark: boolean = editorContext.core.getTheme().isDark;
+      if (dark === self.lastIsDark) return;
+      self.lastIsDark = dark;
+      self.controller.runJavaScript('window.__ww && window.__ww.setTheme(' + (dark ? 'true' : 'false') + ')');
+    };
+    if (editorContext.core) {
+      editorContext.core.on('stateChange', this.themeHandler);
     }
   }
 
@@ -191,6 +207,9 @@ export struct WwEditor {
   }
 
   aboutToDisappear(): void {
+    if (editorContext.core) {
+      editorContext.core.off('stateChange', this.themeHandler);
+    }
     if (editorContext.editor) {
       editorContext.editor.setWwExec(null);
     }

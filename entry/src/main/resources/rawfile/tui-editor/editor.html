@@ -31,16 +31,11 @@
 </head>
 <body>
   <div id="editor"></div>
-  <div id="diag" style="position:fixed;top:0;left:0;right:0;z-index:99999;font:11px monospace;background:rgba(0,0,0,.85);color:#0f0;padding:3px;white-space:pre-wrap;max-height:45%;overflow:auto;pointer-events:none"></div>
 
   <script src="https://wweditor.local/toastui-editor-all.min.js"></script>
   <script src="https://wweditor.local/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
   <script>
     (function () {
-      function diag(s){ var d=document.getElementById('diag'); if(d){ d.textContent += s + "\n"; } }
-      window.onerror = function(m, src, l){ diag("JS-ERR: " + m + " @" + (src||"") + ":" + (l||"")); };
-      diag("page-js-start");
-
       // ── Window-flag + content-compare change suppression ──
       // programmaticSet stays true across all synchronous + microtask change
       // events triggered during setMarkdown; the setTimeout(0) macro-task
@@ -71,23 +66,8 @@
           toolbarItems: [],
           plugins: plugins
         });
-        diag("plugin-ns: " + (typeof toastui.Editor.plugin));
-        diag("csh: " + (typeof (toastui.Editor.plugin && toastui.Editor.plugin.codeSyntaxHighlight)));
-        diag("plugins.len: " + plugins.length);
-        diag("Prism: " + (typeof window.Prism) + " py=" + ((window.Prism && window.Prism.languages && window.Prism.languages.python) ? "Y" : "N"));
-        diag("init-ok");
-        try {
-          programmaticSet = true;
-          ed.setMarkdown('```python\nx = 1\n```', false);
-          var rt = ed.getMarkdown();
-          diag("rt: " + rt.split("\n").join("\\n").slice(0, 60));
-          ed.setMarkdown("", false);
-          lastSetMd = ed.getMarkdown();
-          programmaticSet = false;
-        } catch (e) { diag("rt-ERR: " + (e && e.message ? e.message : e)); programmaticSet = false; }
       } catch (e) {
         console.error('ww init failed', e);
-        diag("init-ERR: " + (e && e.message ? e.message : e));
         return; // don't set up bridge if init failed
       }
 
