@@ -8,14 +8,32 @@
  * 对标 MdPreview 的 WebView/onInterceptRequest/rawfile/getMimeType 结构。
  *
  * 注意：focusable(true) — WYSIWYG 需要接收键盘输入，与 MdPreview 的 focusable(false) 不同。
+ *
+ * 批次 3：WwBridge 类 + onControllerAttached 注册 registerJavaScriptProxy，
+ * 建立 JS→ArkTS 双向桥（change 事件实时写回 core）。
  */
 
 import { webview } from '@kit.ArkWeb';
 import { resourceManager } from '@kit.LocalizationKit';
 import { ThemeColors } from '../../services/ThemeService';
 import { editorContext } from '../EditorContext';
+import { EditorCore } from '../EditorCore';
 
 const WW_HOST: string = 'https://wweditor.local';
+
+/**
+ * JS→ArkTS 桥接代理。
+ * 通过 registerJavaScriptProxy 注入到 WebView 的 window.nativeBridge，
+ * JS 侧调用 nativeBridge.onChange(md) 时触发此类方法。
+ */
+class WwBridge {
+  onChange(md: string): void {
+    const core: EditorCore | null = editorContext.core;
+    if (core) {
+      core.onContentChange(md);
+    }
+  }
+}
 
 @Component
 export struct WwEditor {
@@ -25,6 +43,7 @@ export struct WwEditor {
   onControllerReady?: (ctrl: webview.WebviewController) => void;
 
   private controller: webview.WebviewController = new webview.WebviewController();
+  private bridge: WwBridge = new WwBridge();
   private isReady: boolean = false;
   private pageUrl: string = '';
 
@@ -46,6 +65,11 @@ export struct WwEditor {
       .javaScriptAccess(true)
       .domStorageAccess(true)
       .focusable(true)
+      .onControllerAttached((): void => {
+        // registerJavaScriptProxy MUST be called here (not in aboutToAppear) —
+        // the controller is only bound to the Web component by this point.
+        this.controller.registerJavaScriptProxy(this.bridge, 'nativeBridge', ['onChange']);
+      })
       .onInterceptRequest((event) => {
         if (!event) return null;
 
@@ -106,6 +130,10 @@ export struct WwEditor {
   /**
    * After first page load, inject initial markdown content and theme
    * into the tui.editor instance via the __ww bridge.
+   *
+   * suppressChange in editor.html prevents setMarkdown from triggering
+   * a change → nativeBridge.onChange → onContentChange echo loop,
+   * so the editor does NOT become dirty on initial load.
    */
   private applyInitial(): void {
     const core = editorContext.core;

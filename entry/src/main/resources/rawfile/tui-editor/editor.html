@@ -27,28 +27,17 @@
   </style>
 </head>
 <body>
-  <div id="diag" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#222;color:#0f0;font:11px monospace;padding:2px 4px;white-space:pre-wrap;max-height:40%;overflow:auto">DIAG: </div>
   <div id="editor"></div>
 
   <script src="https://wweditor.local/toastui-editor-all.min.js"></script>
   <script>
-    // ── Global error capture ──
-    window.onerror = function(m, src, ln, col, e) {
-      diag("ERR:" + m + "@" + ln + ":" + col);
-      return false;
-    };
-
-    // ── Diagnostic helper ──
-    function diag(s) {
-      var d = document.getElementById("diag");
-      if (d) d.textContent += s + " | ";
-    }
-
-    // ── Signal that HTML is being parsed/rendered ──
-    diag("page-js-start");
-  </script>
-  <script>
     (function () {
+      // ── Suppress change events during programmatic setMarkdown ──
+      // Prevents echo loop: setMarkdown → ed 'change' → nativeBridge.onChange →
+      // core.onContentChange → emit('change') → setMarkdown → …
+      // Also prevents the editor from becoming dirty on initial load.
+      var suppressChange = false;
+
       // Parse ?theme=dark|light from URL query string
       var queryTheme = 'light';
       if (location.search.indexOf('theme=dark') !== -1) {
@@ -67,17 +56,19 @@
           initialValue: '',
           toolbarItems: []
         });
-        diag("init-ok");
-      } catch(e) {
-        diag("init-ERR:" + e.message);
+      } catch (e) {
+        console.error('ww init failed', e);
         return; // don't set up bridge if init failed
       }
 
-      // ── Global bridge API (batch 3 extends this) ──
+      // ── Global bridge API ──
       window.__ww = {
-        /** Inject markdown content into wysiwyg (convert=false to keep raw markdown) */
+        /** Inject markdown content into wysiwyg (convert=false to keep raw markdown).
+         *  Wrapped with suppressChange to avoid triggering change → nativeBridge echo. */
         setMarkdown: function (md) {
+          suppressChange = true;
           ed.setMarkdown(md || '', false);
+          suppressChange = false;
         },
 
         /** Get current content as markdown string */
@@ -101,21 +92,27 @@
         /** Focus the editor */
         focus: function () {
           ed.focus();
+        },
+
+        /** Execute a tui.editor command (for batch 5 toolbar integration).
+         *  payloadJson is an optional JSON string of the command payload. */
+        exec: function (name, payloadJson) {
+          var p;
+          try { p = payloadJson ? JSON.parse(payloadJson) : undefined; } catch (e) { p = undefined; }
+          ed.exec(name, p);
         }
       };
 
+      // ── JS→ArkTS bridge: relay tui.editor changes to native side ──
+      ed.on('change', function () {
+        if (suppressChange) return;
+        if (window.nativeBridge && window.nativeBridge.onChange) {
+          try { window.nativeBridge.onChange(ed.getMarkdown()); } catch (e) {}
+        }
+      });
+
       // Apply initial theme from URL query
       window.__ww.setTheme(queryTheme === 'dark');
-
-      // ── Diagnostics after layout settles ──
-      setTimeout(function () {
-        diag("sheets=" + document.styleSheets.length);
-        diag("bodyH=" + getComputedStyle(document.body).height);
-        var ui = document.querySelector(".toastui-editor-defaultUI");
-        diag("uiH=" + (ui ? getComputedStyle(ui).height : "NO-UI"));
-        var ww = document.querySelector(".toastui-editor-ww-container");
-        diag("wwH=" + (ww ? getComputedStyle(ww).height : "NO-WW"));
-      }, 200);
     })();
   </script>
 </body>
