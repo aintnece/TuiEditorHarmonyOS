@@ -10,6 +10,7 @@
 
 import { webview } from '@kit.ArkWeb';
 import { resourceManager } from '@kit.LocalizationKit';
+import fs from '@ohos.file.fs';
 import { EditorCore } from '../EditorCore';
 import { ThemeColors } from '../../services/ThemeService';
 import { Handler } from '../../event/EventEmitter';
@@ -17,6 +18,7 @@ import { editorContext } from '../EditorContext';
 
 const APP_URL: string = 'https://markdown.local/preview';
 const KATEX_PREFIX: string = 'https://unpkg.com/katex@0.16.22/';
+const USERIMG_PREFIX: string = 'https://markdown.local/userimg/';
 
 @Component
 export struct MdPreview {
@@ -115,6 +117,30 @@ export struct MdPreview {
             return resp;
           } catch (e) {
             // rawfile 不存在时静默忽略，让 WebView 走默认处理
+            return null;
+          }
+        }
+
+        // 拦截用户图片请求 → 从沙箱 filesDir/userimg 读
+        if (url.startsWith(USERIMG_PREFIX)) {
+          const rel: string = 'userimg/' + url.substring(USERIMG_PREFIX.length);
+          const resp = new WebResourceResponse();
+          resp.setResponseEncoding('utf-8');
+          resp.setResponseMimeType(this.getMimeType(rel));
+          resp.setResponseCode(200);
+          resp.setReasonMessage('OK');
+          try {
+            const filePath: string = getContext(this).filesDir + '/' + rel;
+            const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
+            const stat = fs.statSync(filePath);
+            const buf: ArrayBuffer = new ArrayBuffer(stat.size);
+            fs.readSync(file.fd, buf);
+            fs.closeSync(file);
+            resp.setResponseData(buf);
+            resp.setResponseHeader([{ headerKey: 'Access-Control-Allow-Origin', headerValue: 'https://markdown.local' }]);
+            resp.setResponseIsReady(true);
+            return resp;
+          } catch (e) {
             return null;
           }
         }
@@ -223,6 +249,11 @@ export struct MdPreview {
     if (path.endsWith('.woff2')) return 'font/woff2';
     if (path.endsWith('.woff')) return 'font/woff';
     if (path.endsWith('.ttf')) return 'font/ttf';
+    if (path.endsWith('.png')) return 'image/png';
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+    if (path.endsWith('.gif')) return 'image/gif';
+    if (path.endsWith('.webp')) return 'image/webp';
+    if (path.endsWith('.bmp')) return 'image/bmp';
     return 'text/html';
   }
 }

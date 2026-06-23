@@ -15,6 +15,7 @@
 
 import { webview } from '@kit.ArkWeb';
 import { resourceManager } from '@kit.LocalizationKit';
+import fs from '@ohos.file.fs';
 import { ThemeColors } from '../../services/ThemeService';
 import { editorContext } from '../EditorContext';
 import { EditorCore } from '../EditorCore';
@@ -94,6 +95,24 @@ export struct WwEditor {
           resp.setResponseMimeType(this.getMimeType(relPath));
           resp.setResponseCode(200);
           resp.setReasonMessage('OK');
+
+          // ★ 用户图片：从沙箱 filesDir/userimg 读
+          if (relPath.startsWith('userimg/')) {
+            try {
+              const filePath: string = getContext(this).filesDir + '/' + relPath;
+              const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
+              const stat = fs.statSync(filePath);
+              const buf: ArrayBuffer = new ArrayBuffer(stat.size);
+              fs.readSync(file.fd, buf);
+              fs.closeSync(file);
+              resp.setResponseData(buf);
+              resp.setResponseHeader([{ headerKey: 'Access-Control-Allow-Origin', headerValue: WW_HOST }]);
+              resp.setResponseIsReady(true);
+              return resp;
+            } catch (e) {
+              return null;
+            }
+          }
 
           try {
             const ctx: resourceManager.ResourceManager = getContext(this).resourceManager;
@@ -186,6 +205,11 @@ export struct WwEditor {
     if (path.endsWith('.woff2')) return 'font/woff2';
     if (path.endsWith('.woff')) return 'font/woff';
     if (path.endsWith('.ttf')) return 'font/ttf';
+    if (path.endsWith('.png')) return 'image/png';
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+    if (path.endsWith('.gif')) return 'image/gif';
+    if (path.endsWith('.webp')) return 'image/webp';
+    if (path.endsWith('.bmp')) return 'image/bmp';
     return 'text/html';
   }
 }

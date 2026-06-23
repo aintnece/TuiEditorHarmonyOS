@@ -7,7 +7,9 @@
  * 参考：tui.editor src/ui/popup/imagePopup.ts
  */
 
+import { picker } from '@kit.CoreFileKit';
 import { ThemeColors } from '../services/ThemeService';
+import { fileService } from '../services/FileService';
 
 @Component
 export struct ImageEditor {
@@ -16,6 +18,30 @@ export struct ImageEditor {
   themeColors: ThemeColors = new ThemeColors();
   onConfirm?: (alt: string, url: string) => void;
   onCancel?: () => void;
+
+  private pickFromGallery(): void {
+    const self: ImageEditor = this;
+    try {
+      const photoPicker = new picker.PhotoViewPicker();
+      const opt = new picker.PhotoSelectOptions();
+      opt.MIMEType = picker.PhotoViewMIMETypes.IMAGE_TYPE;
+      opt.maxSelectNumber = 1;
+      photoPicker.select(opt).then((res: picker.PhotoSelectResult): void => {
+        if (res && res.photoUris && res.photoUris.length > 0) {
+          const uri: string = res.photoUris[0];
+          const imageDir: string = getContext(self).filesDir + '/userimg';
+          const name: string | null = fileService.copyImageToSandbox(uri, imageDir);
+          if (name !== null) {
+            self.imageUrl = 'userimg/' + name;
+          }
+        }
+      }).catch((_e: Object): void => {
+        // 用户取消或失败，静默
+      });
+    } catch (_e) {
+      // ignore
+    }
+  }
 
   build() {
     Column() {
@@ -49,6 +75,18 @@ export struct ImageEditor {
         .onChange((value: string) => {
           this.imageUrl = value;
         })
+
+      // ── 从图库选择 ──
+      Button('从图库选择')
+        .fontSize(13)
+        .height(36)
+        .width('100%')
+        .backgroundColor(Color.Transparent)
+        .fontColor('#0366d6')
+        .border({ width: 1, color: this.themeColors.borderColor })
+        .borderRadius(6)
+        .margin({ bottom: 12 })
+        .onClick(() => { this.pickFromGallery(); })
 
       // ── 替代文本 ──
       Text('替代文本 (alt)')

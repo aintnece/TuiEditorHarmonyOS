@@ -202,6 +202,26 @@ export class FileService {
       return false;
     }
   }
+
+  /** 复制选中的图片到沙箱图片目录，返回文件名（不含目录）；失败返回 null。
+   *  srcUri: 选择器返回的图片 URI；imageDir: 目标目录绝对路径（如 filesDir/userimg） */
+  copyImageToSandbox(srcUri: string, imageDir: string): string | null {
+    if (srcUri.length === 0 || imageDir.length === 0) {
+      return null;
+    }
+    if (!this.ensureDir(imageDir)) {
+      return null;
+    }
+    try {
+      const ext: string = imageExt(srcUri);
+      const name: string = 'img_' + Date.now().toString() + ext;
+      const dest: string = imageDir + '/' + name;
+      fs.copyFileSync(srcUri, dest);
+      return name;
+    } catch (_e) {
+      return null;
+    }
+  }
 }
 
 // ── 辅助 ──
@@ -217,3 +237,17 @@ function baseName(fileName: string): string {
 // ── 全局单例 ──
 
 export const fileService: FileService = new FileService();
+
+// ── 辅助函数 ──
+
+/** 从 URI/路径提取图片扩展名（带点），无法识别则默认 .jpg */
+function imageExt(uri: string): string {
+  const dot: number = uri.lastIndexOf('.');
+  if (dot >= 0) {
+    const e: string = uri.substring(dot).toLowerCase();
+    if (e === '.png' || e === '.jpg' || e === '.jpeg' || e === '.gif' || e === '.webp' || e === '.bmp') {
+      return e;
+    }
+  }
+  return '.jpg';
+}
