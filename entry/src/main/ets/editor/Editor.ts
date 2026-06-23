@@ -173,6 +173,8 @@ export class Editor {
     if (name === 'TaskList') { c.cmd = 'taskList'; return c; }
     if (name === 'Codeblock') { c.cmd = 'codeBlock'; return c; }
     if (name === 'HorizontalRule') { c.cmd = 'hr'; return c; }
+    if (name === 'Indent') { c.cmd = 'indent'; return c; }
+    if (name === 'Outdent') { c.cmd = 'outdent'; return c; }
     return null;
   }
 

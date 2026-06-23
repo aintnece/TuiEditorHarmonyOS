@@ -199,10 +199,10 @@ Button({ type: ButtonType.Normal }) {
 
 ### SVG 图标资产
 
-路径：`resources/base/media/tui_xxx.svg`
+路径：`entry/src/main/resources/base/media/tui_xxx.svg`（**必须用全路径**，别用仓库根 `resources/`——放错位置 `$r('app.media.xxx')` 解析不到）
 规范：Feather Icons 风格，24×24 viewBox，`stroke="currentColor"`，不要 `fill`。渲染时 Image 设为 16×16。
 
-现有：`tui_bold, tui_italic, tui_strike, tui_code, tui_heading, tui_quote, tui_bullet, tui_ordered, tui_task, tui_codeblock, tui_link, tui_image, tui_table, tui_hr, tui_undo, tui_redo, tui_save`
+现有：`tui_bold, tui_italic, tui_strike, tui_code, tui_heading, tui_quote, tui_bullet, tui_ordered, tui_task, tui_codeblock, tui_link, tui_image, tui_table, tui_hr, tui_undo, tui_redo, tui_save, tui_indent, tui_outdent`
 
 新增按钮前检查是否缺少 SVG 资产，缺少则先创建。
 

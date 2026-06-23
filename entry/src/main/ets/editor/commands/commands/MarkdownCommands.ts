@@ -230,6 +230,84 @@ export const ImageCommand: UndoableCommand = {
   }
 };
 
+/** 缩进 — 行首加 2 个空格 */
+export const IndentCommand: UndoableCommand = {
+  name: 'Indent',
+  execute(state: EditorState): EditorState {
+    const md: string = state.markdown;
+    const selStart: number = state.selectionStart;
+
+    // 定位当前行首
+    let lineStart: number = selStart;
+    while (lineStart > 0 && md[lineStart - 1] !== '\n') {
+      lineStart--;
+    }
+
+    const result: EditorState = state.snapshot();
+    result.markdown = md.substring(0, lineStart) + '  ' + md.substring(lineStart);
+    result.selectionStart = state.selectionStart + 2;
+    result.selectionEnd = state.selectionEnd + 2;
+    result.isDirty = true;
+    return result;
+  },
+  undo(state: EditorState): EditorState {
+    // Undo via snapshots — see BoldCommand comment.
+    return state.snapshot();
+  }
+};
+
+/** 减少缩进 — 删除行首至多 2 个空格或 1 个 tab */
+export const OutdentCommand: UndoableCommand = {
+  name: 'Outdent',
+  execute(state: EditorState): EditorState {
+    const md: string = state.markdown;
+    const selStart: number = state.selectionStart;
+
+    // 定位当前行首
+    let lineStart: number = selStart;
+    while (lineStart > 0 && md[lineStart - 1] !== '\n') {
+      lineStart--;
+    }
+
+    // 计算可删除的缩进字符数
+    let removed: number = 0;
+    if (md[lineStart] === '\t') {
+      removed = 1;
+    } else {
+      // 数行首连续空格数（不用正则）
+      let n: number = 0;
+      let i: number = lineStart;
+      while (i < md.length && md[i] === ' ') {
+        n++;
+        i++;
+      }
+      // 至多删 2 个
+      if (n >= 2) {
+        removed = 2;
+      } else if (n === 1) {
+        removed = 1;
+      } else {
+        removed = 0;
+      }
+    }
+
+    if (removed === 0) {
+      return state;
+    }
+
+    const result: EditorState = state.snapshot();
+    result.markdown = md.substring(0, lineStart) + md.substring(lineStart + removed);
+    result.selectionStart = Math.max(lineStart, state.selectionStart - removed);
+    result.selectionEnd = Math.max(lineStart, state.selectionEnd - removed);
+    result.isDirty = true;
+    return result;
+  },
+  undo(state: EditorState): EditorState {
+    // Undo via snapshots — see BoldCommand comment.
+    return state.snapshot();
+  }
+};
+
 /** 表格模板 */
 export const TableCommand: UndoableCommand = {
   name: 'Table',
@@ -356,6 +434,8 @@ export function getBuiltinCommands(): UndoableCommand[] {
   cmds.push(TaskListCommand);
   cmds.push(CodeBlockCommand);
   cmds.push(HorizontalRuleCommand);
+  cmds.push(IndentCommand);
+  cmds.push(OutdentCommand);
   cmds.push(LinkCommand);
   cmds.push(ImageCommand);
   cmds.push(TableCommand);

@@ -167,6 +167,11 @@ export struct Toolbar {
       // ── 代码块 ──
       this.iconBtn($r('app.media.tui_codeblock'), '代码块', () => { if (editorContext.editor) { editorContext.editor.exec('Codeblock'); } })
 
+      // ── 缩进 ──
+      this.iconBtn($r('app.media.tui_indent'), '缩进', () => { if (editorContext.editor) { editorContext.editor.exec('Indent'); } })
+      // ── 减少缩进 ──
+      this.iconBtn($r('app.media.tui_outdent'), '减少缩进', () => { if (editorContext.editor) { editorContext.editor.exec('Outdent'); } })
+
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
       // ── 链接 ──
