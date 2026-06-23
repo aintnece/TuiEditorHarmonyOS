@@ -9,6 +9,7 @@
 import { AstNode, AstNodeType } from './Node';
 import { ParseState } from './ParseState';
 import { parseInlines } from './Inlines';
+import { parseLinkRefDefLine } from './Inlines';
 import { tryParseGfmBlock } from './Gfm';
 
 /**
@@ -74,6 +75,13 @@ export function tryParseBlock(state: ParseState): AstNode | null {
   // GFM 扩展（表格等）
   const gfm: AstNode | null = tryParseGfmBlock(state);
   if (gfm) return gfm;
+
+  // 链接引用定义行 [label]: dest "title" — 消费但不渲染
+  if (parseLinkRefDefLine(line) !== null) {
+    state.nextLine(); // 必须推进，否则死循环
+    // 返回空段落节点（renderParagraph 对空内容返回 ''，定义行不产生输出）
+    return new AstNode(AstNodeType.Paragraph);
+  }
 
   return null;
 }

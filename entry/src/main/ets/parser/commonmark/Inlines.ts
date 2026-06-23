@@ -7,6 +7,7 @@
  */
 
 import { AstNode, AstNodeType } from './Node';
+import { linkRefs, LinkRefDef } from './LinkRefs';
 
 /** 解析 destination 的返回值（parseAngleDest / parseBareDest） */
 class DestResult {
@@ -83,9 +84,20 @@ export function parseInlines(text: string, parent: AstNode): void {
         i = result.nextIndex;
         continue;
       }
+      // 引用式图片 ![alt][label] / ![alt][]
+      const refImgResult: InlineMatchResult | null = tryParseReferenceLink(text, i, true);
+      if (refImgResult) {
+        const imgNode: AstNode = new AstNode(AstNodeType.Image);
+        imgNode.attrs.alt = refImgResult.text;
+        imgNode.attrs.url = refImgResult.url;
+        imgNode.attrs.title = refImgResult.title;
+        parent.appendChild(imgNode);
+        i = refImgResult.nextIndex;
+        continue;
+      }
     }
 
-    // ── 链接 [text](url) ──
+    // ── 链接 [text](url) / 引用式链接 [text][label] / [text][] / [text] ──
     if (text[i] === '[') {
       const result: InlineMatchResult | null = tryParseLinkOrImage(text, i, false);
       if (result) {
@@ -95,6 +107,17 @@ export function parseInlines(text: string, parent: AstNode): void {
         node.attrs.title = result.title;
         parent.appendChild(node);
         i = result.nextIndex;
+        continue;
+      }
+      // 引用式链接 full/collapsed/shortcut
+      const refLinkResult: InlineMatchResult | null = tryParseReferenceLink(text, i, false);
+      if (refLinkResult) {
+        const linkNode: AstNode = new AstNode(AstNodeType.Link);
+        parseInlines(refLinkResult.text, linkNode);
+        linkNode.attrs.url = refLinkResult.url;
+        linkNode.attrs.title = refLinkResult.title;
+        parent.appendChild(linkNode);
+        i = refLinkResult.nextIndex;
         continue;
       }
     }
@@ -327,7 +350,7 @@ function parseDestAndTitle(text: string, start: number): DestAndTitleResult | nu
 }
 
 /** 解析尖括号式 destination `<...>` */
-function parseAngleDest(text: string, start: number): DestResult | null {
+export function parseAngleDest(text: string, start: number): DestResult | null {
   let pos: number = start + 1; // 跳过 '<'
   const len: number = text.length;
   let content: string = '';
@@ -357,7 +380,7 @@ function parseAngleDest(text: string, start: number): DestResult | null {
 }
 
 /** 解析裸式 destination（不以 < 开头） */
-function parseBareDest(text: string, start: number): DestResult | null {
+export function parseBareDest(text: string, start: number): DestResult | null {
   let pos: number = start;
   const len: number = text.length;
   let content: string = '';
@@ -412,7 +435,7 @@ function parseBareDest(text: string, start: number): DestResult | null {
 }
 
 /** 解析 title："..."、'...' 或 (...) */
-function parseTitle(text: string, start: number): TitleResult | null {
+export function parseTitle(text: string, start: number): TitleResult | null {
   if (start >= text.length) return null;
   const delimiter: string = text[start];
   if (delimiter !== '"' && delimiter !== "'" && delimiter !== '(') return null;
@@ -482,7 +505,7 @@ function skipSpace(text: string, start: number): number {
 }
 
 /** 解析反斜杠转义：\X → X（X 为 ASCII 标点符号） */
-function resolveBackslashEscapes(s: string): string {
+export function resolveBackslashEscapes(s: string): string {
   let result: string = '';
   let i: number = 0;
   while (i < s.length) {
@@ -498,7 +521,7 @@ function resolveBackslashEscapes(s: string): string {
 }
 
 /** URL 里字面空格编码为 %20 */
-function encodeSpacesInUrl(url: string): string {
+export function encodeSpacesInUrl(url: string): string {
   let result: string = '';
   for (let i: number = 0; i < url.length; i++) {
     if (url[i] === ' ') {
@@ -565,4 +588,156 @@ function tryParseEntity(text: string, start: number): string | null {
     return '?'; // 简化：返回占位符（完整实现需查 Unicode）
   }
   return null;
+}
+
+// ── 引用式链接解析 ──
+
+/** 尝试解析引用式链接/图片（full/collapsed/shortcut）。
+ *  前置条件：tryParseLinkOrImage 已失败（无内联 (...) 或解析失败）。*/
+function tryParseReferenceLink(text: string, start: number, isImage: boolean): InlineMatchResult | null {
+  const bracketStart: number = isImage ? start + 1 : start;
+  const bracketEnd: number = findClosingBracket(text, bracketStart);
+  if (bracketEnd < 0) return null;
+
+  const contentText: string = text.substring(bracketStart + 1, bracketEnd);
+  const afterEnd: number = bracketEnd + 1;
+  const len: number = text.length;
+
+  // Full reference: [text][label] 或 Collapsed: [text][]
+  if (afterEnd < len && text[afterEnd] === '[') {
+    const labelEnd: number = findClosingBracket(text, afterEnd);
+    if (labelEnd >= 0) {
+      let label: string = text.substring(afterEnd + 1, labelEnd);
+      // Collapsed: empty label → use text as label
+      if (label === '') {
+        label = contentText;
+      }
+      const def: LinkRefDef | undefined = linkRefs.get(label);
+      if (def) {
+        const result: InlineMatchResult = new InlineMatchResult();
+        result.text = contentText;
+        result.url = def.url;
+        result.title = def.title;
+        result.nextIndex = labelEnd + 1;
+        return result;
+      }
+    }
+  }
+
+  // Shortcut reference: [text] — only for links, not images
+  // Must not start with ^ (footnote exclusion), and not followed by ( or [
+  if (!isImage && !contentText.startsWith('^')) {
+    if (afterEnd >= len || (text[afterEnd] !== '(' && text[afterEnd] !== '[')) {
+      const def: LinkRefDef | undefined = linkRefs.get(contentText);
+      if (def) {
+        const result: InlineMatchResult = new InlineMatchResult();
+        result.text = contentText;
+        result.url = def.url;
+        result.title = def.title;
+        result.nextIndex = afterEnd; // only consume [text]
+        return result;
+      }
+    }
+  }
+
+  return null;
+}
+
+// ── 链接引用定义行解析 ──
+
+/** 解析单行链接引用定义行的返回类型 */
+export class LinkRefDefParseResult {
+  label: string = '';
+  def: LinkRefDef = new LinkRefDef();
+}
+
+/**
+ * 解析单行链接引用定义 [label]: destination "title"
+ * 返回 label + LinkRefDef，若不是合法定义行则返回 null。
+ * 复用 parseAngleDest / parseBareDest / parseTitle / resolveBackslashEscapes / encodeSpacesInUrl。
+ */
+export function parseLinkRefDefLine(line: string): LinkRefDefParseResult | null {
+  // Step 1: Skip up to 3 spaces indent
+  let pos: number = 0;
+  while (pos < line.length && line[pos] === ' ') {
+    pos++;
+  }
+  if (pos > 3) return null;
+
+  // Must start with [
+  if (pos >= line.length || line[pos] !== '[') return null;
+  pos++; // skip [
+
+  // Find ]:
+  const colonIdx: number = line.indexOf(']:', pos);
+  if (colonIdx < 0) return null;
+
+  // Extract raw label
+  const rawLabel: string = line.substring(pos, colonIdx);
+
+  // Label must not be empty and must not contain line breaks
+  if (rawLabel.length === 0) return null;
+  for (let i: number = 0; i < rawLabel.length; i++) {
+    if (rawLabel[i] === '\n' || rawLabel[i] === '\r') return null;
+  }
+
+  // Resolve backslash escapes in label
+  const label: string = resolveBackslashEscapes(rawLabel);
+
+  // After ]: parse destination
+  pos = colonIdx + 2; // skip ]:
+
+  // Skip whitespace
+  while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
+    pos++;
+  }
+
+  // Must have a destination
+  if (pos >= line.length) return null;
+
+  let url: string = '';
+  if (line[pos] === '<') {
+    const angleRes: DestResult | null = parseAngleDest(line, pos);
+    if (!angleRes) return null;
+    // parseAngleDest already resolves backslash escapes
+    url = encodeSpacesInUrl(angleRes.url);
+    pos = angleRes.nextIdx;
+  } else {
+    const bareRes: DestResult | null = parseBareDest(line, pos);
+    if (!bareRes) return null;
+    // parseBareDest already resolves backslash escapes; destination must be non-empty
+    const resolved: string = bareRes.url;
+    if (resolved === '') return null;
+    url = encodeSpacesInUrl(resolved);
+    pos = bareRes.nextIdx;
+  }
+
+  // Skip whitespace
+  while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
+    pos++;
+  }
+
+  // Optional title
+  let title: string = '';
+  if (pos < line.length) {
+    const titleRes: TitleResult | null = parseTitle(line, pos);
+    if (titleRes) {
+      title = titleRes.title;
+      pos = titleRes.nextIdx;
+    }
+  }
+
+  // Only whitespace remaining
+  while (pos < line.length && (line[pos] === ' ' || line[pos] === '\t')) {
+    pos++;
+  }
+  if (pos < line.length) return null;
+
+  const result: LinkRefDefParseResult = new LinkRefDefParseResult();
+  result.label = label;
+  const def: LinkRefDef = new LinkRefDef();
+  def.url = url;
+  def.title = title;
+  result.def = def;
+  return result;
 }
