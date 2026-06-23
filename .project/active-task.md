@@ -71,5 +71,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 8.1（CommonMark spec 测试管线 + 基线）完成，commit d233380 已 push main。基线 exact **35.89%** (234/652)，STRUCT 417，ERROR 0，HANG 1(#12 反斜杠死循环)。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。下一步 = **Phase 8.2 解析器修复**（见 status.md Next；建议 8.2a 快赢先行：① 图片 alt 吞首字符 off-by-one ② 反斜杠转义死循环 ③ Tabs 缩进代码块）。每批 CC 修 → 重跑 harness → 用 baseline.json 量增量。harness 跑法见下「Phase 8 测试管线」。
+**Status**: Phase 8.2a（解析器快赢修复：图片 alt / 反斜杠死循环 / Tabs）完成，commit 775679b 已 push main。基线 exact **36.96%** (241/652)，error 0，hang 0（死循环已消灭，skip.json 已清空）。harness 已改为干净单线程版。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。下一步 = **Phase 8.2b 强调/加粗**（Emphasis 86/132 最大簇，需补 CommonMark delimiter-run 算法）。harness 跑法见下「Phase 8 测试管线」。每批 CC 修 → 重跑 harness → 用 baseline.json 量增量。
