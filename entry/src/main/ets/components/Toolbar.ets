@@ -83,6 +83,53 @@ export struct Toolbar {
   }
 
   // ═══════════════════════════════════════════════════════════
+  //  @Builder headingBtn — 标题下拉菜单按钮
+  //  (照搬 iconBtn 视觉，但用 bindMenu 替换 onClick)
+  // ═══════════════════════════════════════════════════════════
+
+  @Builder
+  headingBtn() {
+    Button({ type: ButtonType.Normal }) {
+      Image($r('app.media.tui_heading')).width(16).height(16)
+    }
+    .width(32).height(32).padding(0)
+    .backgroundColor(this.hoveredTip === '标题' ? this.themeColors.toolbarHover : Color.Transparent)
+    .borderRadius(4)
+    .onHover((isHover: boolean): void => {
+      if (isHover) {
+        this.hoveredTip = '标题';
+      } else if (this.hoveredTip === '标题') {
+        this.hoveredTip = '';
+      }
+    })
+    .bindPopup(this.hoveredTip === '标题', {
+      message: '标题',
+      placement: Placement.Bottom,
+      mask: false
+    })
+    .bindMenu(this.headingMenu)
+    .margin({ left: 2, right: 2 })
+  }
+
+  @Builder
+  headingMenu() {
+    Menu() {
+      MenuItem({ content: '标题 1', labelInfo: 'H1' })
+        .onClick((): void => { if (editorContext.editor) { editorContext.editor.exec('Heading', '1'); } })
+      MenuItem({ content: '标题 2', labelInfo: 'H2' })
+        .onClick((): void => { if (editorContext.editor) { editorContext.editor.exec('Heading', '2'); } })
+      MenuItem({ content: '标题 3', labelInfo: 'H3' })
+        .onClick((): void => { if (editorContext.editor) { editorContext.editor.exec('Heading', '3'); } })
+      MenuItem({ content: '标题 4', labelInfo: 'H4' })
+        .onClick((): void => { if (editorContext.editor) { editorContext.editor.exec('Heading', '4'); } })
+      MenuItem({ content: '标题 5', labelInfo: 'H5' })
+        .onClick((): void => { if (editorContext.editor) { editorContext.editor.exec('Heading', '5'); } })
+      MenuItem({ content: '标题 6', labelInfo: 'H6' })
+        .onClick((): void => { if (editorContext.editor) { editorContext.editor.exec('Heading', '6'); } })
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
   //  build()
   // ═══════════════════════════════════════════════════════════
 
@@ -103,7 +150,7 @@ export struct Toolbar {
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
       // ── 标题 ──
-      this.iconBtn($r('app.media.tui_heading'), '标题', () => { if (editorContext.editor) { editorContext.editor.exec('Heading', '2'); } })
+      this.headingBtn()
 
       // ── 引用 ──
       this.iconBtn($r('app.media.tui_quote'), '引用', () => { if (editorContext.editor) { editorContext.editor.exec('Quote'); } })
