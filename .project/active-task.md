@@ -10,7 +10,11 @@
 
 ---
 
-## 🎯 当前任务：Phase 6 — Toolbar 增强 + 更多 Markdown 命令
+## 🎯 当前任务：Phase 8.2 — 解析器修复（见 status.md Next / Checkpoint）
+
+> Phase 6（标题/缩进/字数）+ Phase 7（代码高亮）+ Phase 8.1（CommonMark 基线）均已完成。下面 Phase 6 段保留作**命令路由参考**。
+
+## 命令路由机制（加新命令必读）— Phase 6 — Toolbar 增强 + 更多 Markdown 命令
 
 > 新会话从这里开工。**Phase 6 具体范围建议开工前与用户确认**（下面是建议清单，未拍板）。
 
@@ -54,7 +58,18 @@
 - **开工前**：grep/读 Obsidian `鸿蒙开发/踩坑记录/` 对应文档；新坑解决后补录（一坑一文件）。`官方组件示例` 离线仓库在 `/data/Online Document/_refs/HarmonyOSComponentUXExamples/`。
 - CC 不编译（无 CLI）；编译/真机由用户在 DevEco(Windows) 做。每个改动 push 后请用户 `git pull` + 真机验证。
 
+## Phase 8 测试管线（恢复必读）
+
+- harness 在仓库根 `tools/commonmark-spec/`（**不进 hvigor 构建**，只在 Node 跑）。
+- 跑基线：`/app/venv/bin/docker exec claude-code bash -lc 'cd /data/docs/TuiEditorHarmonyOS/tools/commonmark-spec && ./node_modules/.bin/tsx run-spec.ts'`（CC 视角路径；Hermes 视角 `/data/Online Document/...`）。
+- `node_modules`(tsx) 是 **Hermes 离线 vendoring**（CC 容器 npm registry 直连+mihomo 代理都不通）；已 gitignore 不入库。重建：Hermes 主机 `npm i tsx@4` 后 cp node_modules 进去（两边 node 22.23 / x86_64 二进制兼容）。
+- `spec.json`(CommonMark 0.31.2, 652 用例) / `baseline.json` / `skip.json` 入库；`failures.txt` gitignore。
+- **skip.json**：数据驱动「已知死循环」名单。run-spec.ts 读它跳过并标 HANG（**绝不 parse**，否则挂死整轮）。修好某死循环后从 skip.json 移除该 example。
+- 5 类：EXACT(逐字节) / COSMETIC(仅空白差,归一化后等) / STRUCT(真结构差) / ERROR(抛异常) / HANG(已知死循环跳过)。
+- 8.2 每修一批：CC 改 entry/ 解析器 → 重跑 harness → 对比 baseline.json 的 exactPct 增量。Hermes 审 diff + 修权限(`docker exec claude-code chown -R 1000:1000 .../tools`) + commit/push + 更新 baseline.json。
+- ⚠️ CC 跑 tsx 撞到未跳过的死循环会把 `claude -p` 进程一起挂死——**新发现死循环先加进 skip.json 再让 CC 跑**。
+
 ## Checkpoint
 
-**Status**: Phase 6 + Phase 7（代码语法高亮，Markdown+WYSIWYG 双模式）全部真机验证 ✓。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。下一步候选见 `status.md` 的 Next + 本文件暂缓区。
+**Status**: Phase 8.1（CommonMark spec 测试管线 + 基线）完成，commit d233380 已 push main。基线 exact **35.89%** (234/652)，STRUCT 417，ERROR 0，HANG 1(#12 反斜杠死循环)。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。下一步 = **Phase 8.2 解析器修复**（见 status.md Next；建议 8.2a 快赢先行：① 图片 alt 吞首字符 off-by-one ② 反斜杠转义死循环 ③ Tabs 缩进代码块）。每批 CC 修 → 重跑 harness → 用 baseline.json 量增量。harness 跑法见下「Phase 8 测试管线」。
