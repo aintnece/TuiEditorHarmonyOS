@@ -31,7 +31,7 @@
 ### Phase 6 建议批次（待与用户确认/调整）
 
 - [x] 6.1 标题级别 H1-H6 — **✅ 真机验证通过**（两模式）。Toolbar.ets 标题按钮改 bindMenu 下拉（H1-H6），后端 mapToTui/HeadingCommand 本就支持级别参数，未动。spec: `.project/6.1-heading-levels-spec.md`。
-- [x] 6.2 缩进 / 减少缩进（tui 命令 `indent` / `outdent`）— **代码完成 ⏳ 待真机验证**。三处代码 + 2 新图标（Toolbar/Editor.mapToTui/MarkdownCommands + tui_indent/tui_outdent.svg）。spec: `.project/6.2-indent-outdent-spec.md`。
+- [x] 6.2 缩进 / 减少缩进（tui 命令 `indent` / `outdent`）— **✅ 真机验证通过**（两模式）。三处代码 + 2 新图标。WYSIWYG 行为同 tui 原版：indent/outdent 仅作用于列表项（普通段落被引擎禁用，无效属正常）；indent 需前置兄弟项才能嵌套；顶层项 outdent = 提升为段落。spec: `.project/6.2-indent-outdent-spec.md`。
 - [ ] 6.3 其它（查找替换 / 字数统计强化 / 更多对齐 等）— 范围待定。
 
 ### 暂缓（用户明确放后面）
