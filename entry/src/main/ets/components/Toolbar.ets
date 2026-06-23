@@ -20,7 +20,7 @@ export struct Toolbar {
   onLink?: () => void;
   onImage?: () => void;
   onTable?: () => void;
-  @State saveHover: boolean = false;
+  @State hoveredTip: string = '';
 
   private i18n: I18n = I18n.getInstance();
 
@@ -55,146 +55,98 @@ export struct Toolbar {
   }
 
   // ═══════════════════════════════════════════════════════════
+  //  @Builder iconBtn — 图标按钮 + hover 中文 tooltip
+  // ═══════════════════════════════════════════════════════════
+
+  @Builder
+  iconBtn(media: Resource, tip: string, action: () => void) {
+    Stack({ alignContent: Alignment.TopStart }) {
+      Button({ type: ButtonType.Normal }) {
+        Image(media).width(16).height(16)
+      }
+      .width(32).height(32).padding(0)
+      .backgroundColor(this.hoveredTip === tip ? this.themeColors.toolbarHover : Color.Transparent)
+      .borderRadius(4)
+      .onClick(action)
+      .onHover((isHover: boolean): void => {
+        if (isHover) {
+          this.hoveredTip = tip;
+        } else if (this.hoveredTip === tip) {
+          this.hoveredTip = '';
+        }
+      })
+
+      if (this.hoveredTip === tip) {
+        Text(tip)
+          .fontSize(11)
+          .fontColor('#ffffff')
+          .backgroundColor('#333333')
+          .borderRadius(4)
+          .padding({ left: 6, right: 6, top: 3, bottom: 3 })
+          .position({ x: 0, y: 36 })
+          .zIndex(2)
+      }
+    }
+    .margin({ left: 2, right: 2 })
+  }
+
+  // ═══════════════════════════════════════════════════════════
   //  build()
   // ═══════════════════════════════════════════════════════════
 
   build() {
     Row() {
       // ── 粗体 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_bold'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Bold'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_bold'), '加粗', () => { if (editorContext.editor) { editorContext.editor.exec('Bold'); } })
 
       // ── 斜体 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_italic'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Italic'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_italic'), '斜体', () => { if (editorContext.editor) { editorContext.editor.exec('Italic'); } })
 
       // ── 删除线 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_strike'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Strike'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_strike'), '删除线', () => { if (editorContext.editor) { editorContext.editor.exec('Strike'); } })
 
       // ── 行内代码 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_code'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Code'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_code'), '行内代码', () => { if (editorContext.editor) { editorContext.editor.exec('Code'); } })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
       // ── 标题 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_heading'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Heading', '2'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_heading'), '标题', () => { if (editorContext.editor) { editorContext.editor.exec('Heading', '2'); } })
 
       // ── 引用 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_quote'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Quote'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_quote'), '引用', () => { if (editorContext.editor) { editorContext.editor.exec('Quote'); } })
 
       // ── 无序列表 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_bullet'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('BulletList'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_bullet'), '无序列表', () => { if (editorContext.editor) { editorContext.editor.exec('BulletList'); } })
 
       // ── 有序列表 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_ordered'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('OrderedList'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_ordered'), '有序列表', () => { if (editorContext.editor) { editorContext.editor.exec('OrderedList'); } })
 
       // ── 任务列表 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_task'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('TaskList'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_task'), '任务列表', () => { if (editorContext.editor) { editorContext.editor.exec('TaskList'); } })
 
       // ── 代码块 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_codeblock'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('Codeblock'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_codeblock'), '代码块', () => { if (editorContext.editor) { editorContext.editor.exec('Codeblock'); } })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
       // ── 链接 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_link'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => {
-          if (this.onLink) { this.onLink(); } else if (editorContext.editor) { editorContext.editor.exec('Link'); }
-        })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_link'), '链接', () => {
+        if (this.onLink) { this.onLink(); } else if (editorContext.editor) { editorContext.editor.exec('Link'); }
+      })
 
       // ── 图片 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_image'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => {
-          if (this.onImage) { this.onImage(); } else if (editorContext.editor) { editorContext.editor.exec('Image'); }
-        })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_image'), '图片', () => {
+        if (this.onImage) { this.onImage(); } else if (editorContext.editor) { editorContext.editor.exec('Image'); }
+      })
 
       // ── 表格 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_table'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => {
-          if (this.onTable) { this.onTable(); } else if (editorContext.editor) { editorContext.editor.exec('Table'); }
-        })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_table'), '表格', () => {
+        if (this.onTable) { this.onTable(); } else if (editorContext.editor) { editorContext.editor.exec('Table'); }
+      })
 
       // ── 分割线 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_hr'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.exec('HorizontalRule'); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_hr'), '分割线', () => { if (editorContext.editor) { editorContext.editor.exec('HorizontalRule'); } })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
@@ -253,38 +205,15 @@ export struct Toolbar {
       Blank()
 
       // ── 撤销 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_undo'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.undo(); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_undo'), '撤销', () => { if (editorContext.editor) { editorContext.editor.undo(); } })
 
       // ── 重做 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_redo'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0).backgroundColor(Color.Transparent).borderRadius(4)
-        .onClick(() => { if (editorContext.editor) { editorContext.editor.redo(); } })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_redo'), '重做', () => { if (editorContext.editor) { editorContext.editor.redo(); } })
 
       Divider().vertical(true).height(20).width(1).color(this.themeColors.borderColor).margin({ left: 4, right: 4 })
 
       // ── 保存 ──
-      Button({ type: ButtonType.Normal }) {
-        Image($r('app.media.tui_save'))
-          .width(16).height(16)
-      }
-        .width(32).height(32).padding(0)
-        .backgroundColor(this.saveHover ? this.themeColors.toolbarHover : Color.Transparent)
-        .borderRadius(4)
-        .onClick(() => { if (this.onSave) this.onSave(); })
-        .onHover((isHover: boolean): void => {
-          this.saveHover = isHover;
-        })
-        .margin({ left: 2, right: 2 })
+      this.iconBtn($r('app.media.tui_save'), '保存', () => { if (this.onSave) this.onSave(); })
 
       // ── 导出 ──
       Button({ type: ButtonType.Normal }) {
@@ -302,5 +231,6 @@ export struct Toolbar {
     .padding({ left: 8, right: 8 })
     .backgroundColor(this.themeColors.toolbarBg)
     .border({ width: { bottom: 1 }, color: this.themeColors.borderColor })
+    .clip(false)
   }
 }
