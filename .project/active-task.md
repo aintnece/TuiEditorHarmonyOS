@@ -32,12 +32,15 @@
 
 - [x] 6.1 标题级别 H1-H6 — **✅ 真机验证通过**（两模式）。Toolbar.ets 标题按钮改 bindMenu 下拉（H1-H6），后端 mapToTui/HeadingCommand 本就支持级别参数，未动。spec: `.project/6.1-heading-levels-spec.md`。
 - [x] 6.2 缩进 / 减少缩进（tui 命令 `indent` / `outdent`）— **✅ 真机验证通过**（两模式）。三处代码 + 2 新图标。WYSIWYG 行为同 tui 原版：indent/outdent 仅作用于列表项（普通段落被引擎禁用，无效属正常）；indent 需前置兄弟项才能嵌套；顶层项 outdent = 提升为段落。spec: `.project/6.2-indent-outdent-spec.md`。
-- [~] 6.3 字数统计强化 — **代码完成 ⏳ 待真机验证**。StatusBar.ets 加总行数（lineCount + countLines + 两处更新 + 显示）；字符/词数本已实时。spec: `.project/6.3-wordcount-spec.md`。（查找替换 / 更多对齐仍待定，见下）
+- [x] 6.3 字数统计强化 — **✅ 真机验证通过**。StatusBar.ets 加总行数；Markdown 实时。已知限制（暂缓）：WYSIWYG 字数/字符/行数不实时，切模式才同步。撤销/重做经确认两模式正常（仅工具栏命令；打字撤销未支持，暂缓）。spec: `.project/6.3-wordcount-spec.md`。
 - [ ] 6.3+ 其它候选（待定）：查找替换（独立大批次）；更多对齐（不建议，与 Markdown 内核冲突）。
 
 ### 暂缓（用户明确放后面）
 
 - 图片 pickStatus 失败文案美化、DocumentViewPicker（任意文件源）、大图压缩。
+- WYSIWYG 模式字数/字符/行数实时更新（现切模式才同步；修它需碰 Phase 5 的 change 回写路径，有 echo-loop 回归风险）。
+- 打字撤销/重做（现仅工具栏命令进撤销栈；打字需加防抖快照，Markdown 走 CommandManager、WYSIWYG 走引擎 history，两边各有坑）。
+- Phase 6.3+ 候选：查找替换（独立大批次）；更多对齐（不建议，与 Markdown 内核冲突）。
 
 ---
 
