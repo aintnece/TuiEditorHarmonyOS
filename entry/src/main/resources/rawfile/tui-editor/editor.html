@@ -6,6 +6,7 @@
   <title>WYSIWYG Editor</title>
   <link rel="stylesheet" href="https://wweditor.local/toastui-editor.min.css">
   <link rel="stylesheet" href="https://wweditor.local/toastui-editor-dark.css" id="tui-dark-css" disabled>
+  <link rel="stylesheet" href="https://wweditor.local/toastui-editor-plugin-code-syntax-highlight.min.css">
   <style>
     html, body {
       margin: 0;
@@ -30,6 +31,7 @@
   <div id="editor"></div>
 
   <script src="https://wweditor.local/toastui-editor-all.min.js"></script>
+  <script src="https://wweditor.local/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
   <script>
     (function () {
       // ── Window-flag + content-compare change suppression ──
@@ -48,6 +50,10 @@
       // Initialize tui.editor — WYSIWYG only, no built-in toolbar
       try {
         var EditorCtor = (toastui.Editor && toastui.Editor.default) ? toastui.Editor.default : toastui.Editor;
+        var plugins = [];
+        if (toastui.Editor.plugin && toastui.Editor.plugin.codeSyntaxHighlight) {
+          plugins.push(toastui.Editor.plugin.codeSyntaxHighlight);
+        }
         var ed = new EditorCtor({
           el: document.getElementById('editor'),
           initialEditType: 'wysiwyg',
@@ -55,7 +61,8 @@
           hideModeSwitch: true,
           height: '100%',
           initialValue: '',
-          toolbarItems: []
+          toolbarItems: [],
+          plugins: plugins
         });
       } catch (e) {
         console.error('ww init failed', e);

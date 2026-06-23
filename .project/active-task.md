@@ -55,5 +55,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 6（6.1/6.2/6.3）全部真机验证 ✓。Phase 7 代码语法高亮 进行中：Batch A(MdPreview Prism) 代码完成待真机验证；Batch B(WYSIWYG tui 插件) 待做（资产已 vendoring）。
-**Resume**: 新会话读本文件 + `status.md`。Phase 7 spec：`.project/7a-codehl-mdpreview-spec.md`（A，已实现待验证）；Batch B 待写 spec。资产已在 `rawfile/prism/`（MdPreview）和 `rawfile/tui-editor/`（插件全局名 `toastui.Editor.plugin.codeSyntaxHighlight`）。
+**Status**: Phase 6 全部真机验证 ✓。Phase 7 代码语法高亮：Batch A(MdPreview Prism) ✅ 真机验证（含主题修复）；Batch B(WYSIWYG, editor.html 注册 tui 插件) 代码完成待真机验证。
+**Resume**: 新会话读本文件 + `status.md`。Phase 7 spec：`7a-codehl-mdpreview-spec.md`/`7a-fix-theme-spec.md`（A，已验证）、`7b-codehl-wysiwyg-spec.md`（B，待验证）。资产在 `rawfile/prism/`（MdPreview）+ `rawfile/tui-editor/`（含 code-syntax-highlight 插件，全局名 `toastui.Editor.plugin.codeSyntaxHighlight`）。
