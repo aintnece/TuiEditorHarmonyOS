@@ -72,5 +72,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 8.2c-1（内联链接目标/标题解析重写）完成，commit 7728a7b 已 push main。基线 exact **39.11%** (255/652)，error 0，hang 0。Links 22→33，Images 5→6。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。下一步候选：**8.2c-2 引用式链接**(`[x][y]`/`[x]:` 定义，需 ref 表，Links 剩 57+Link-ref-def 22) 或 **8.2b Emphasis**(最大簇 86/132，需 delimiter-run 算法)。每批 CC 修 → 重跑 harness → baseline.json 量增量。
+**Status**: Phase 8.2c-2（引用式链接 + 链接引用定义，Links 线收口）完成，commit ef14189 已 push main。基线 exact **44.63%** (291/652)，error 0，hang 0。Links 33→55，Link-ref-def 5→13，Images 6→11。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。下一步候选：**8.2d Lists**(List items 42/48 + Lists 22/26，tight/loose + ol start + 嵌套，中等) 或 **8.2b Emphasis**(最大簇 86/132，需 delimiter-run 算法，大工程/高风险)。每批 CC 修 → 重跑 harness → baseline.json 量增量。⚠️ 解析器改动审 diff 必过 ArkTS 规则（见 Phase 8 测试管线 末条）。
