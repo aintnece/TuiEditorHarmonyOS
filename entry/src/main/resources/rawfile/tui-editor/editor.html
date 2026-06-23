@@ -30,7 +30,7 @@
   <div id="diag" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#222;color:#0f0;font:11px monospace;padding:2px 4px;white-space:pre-wrap;max-height:40%;overflow:auto">DIAG: </div>
   <div id="editor"></div>
 
-  <script src="https://wweditor.local/toastui-editor.min.js"></script>
+  <script src="https://wweditor.local/toastui-editor-all.min.js"></script>
   <script>
     // ── Global error capture ──
     window.onerror = function(m, src, ln, col, e) {
@@ -57,7 +57,8 @@
 
       // Initialize tui.editor — WYSIWYG only, no built-in toolbar
       try {
-        var ed = new toastui.Editor({
+        var EditorCtor = (toastui.Editor && toastui.Editor.default) ? toastui.Editor.default : toastui.Editor;
+        var ed = new EditorCtor({
           el: document.getElementById('editor'),
           initialEditType: 'wysiwyg',
           previewStyle: 'vertical',
