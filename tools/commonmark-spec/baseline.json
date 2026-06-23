@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-23T16:54:27.561Z",
+  "date": "2026-06-23T17:18:44.634Z",
   "total": 652,
-  "exact": 234,
+  "exact": 241,
   "cosmetic": 0,
-  "struct": 417,
+  "struct": 411,
   "error": 0,
-  "hang": 1,
-  "exactPct": 35.89,
-  "nearPct": 35.89,
+  "hang": 0,
+  "exactPct": 36.96,
+  "nearPct": 36.96,
   "bySection": [
     {
       "section": "ATX headings",
@@ -31,11 +31,11 @@
     {
       "section": "Backslash escapes",
       "total": 13,
-      "exact": 5,
+      "exact": 6,
       "cosmetic": 0,
       "struct": 7,
       "error": 0,
-      "hang": 1
+      "hang": 0
     },
     {
       "section": "Blank lines",
@@ -112,9 +112,9 @@
     {
       "section": "Images",
       "total": 22,
-      "exact": 1,
+      "exact": 5,
       "cosmetic": 0,
-      "struct": 21,
+      "struct": 17,
       "error": 0,
       "hang": 0
     },
@@ -148,9 +148,9 @@
     {
       "section": "Links",
       "total": 90,
-      "exact": 21,
+      "exact": 22,
       "cosmetic": 0,
-      "struct": 69,
+      "struct": 68,
       "error": 0,
       "hang": 0
     },
@@ -220,9 +220,9 @@
     {
       "section": "Tabs",
       "total": 11,
-      "exact": 4,
+      "exact": 5,
       "cosmetic": 0,
-      "struct": 7,
+      "struct": 6,
       "error": 0,
       "hang": 0
     },

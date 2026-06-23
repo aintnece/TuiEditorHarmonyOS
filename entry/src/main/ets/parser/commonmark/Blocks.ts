@@ -49,8 +49,8 @@ export function tryParseBlock(state: ParseState): AstNode | null {
   if (isThematicBreak(line)) {
     return parseThematicBreak(state);
   }
-  // 缩进代码块 (4+ 空格)
-  if (line.startsWith('    ') || line.startsWith('\t')) {
+  // 缩进代码块 (≥4 列缩进，tab 制表位=4)
+  if (countIndentColumns(line) >= 4) {
     // 只在不处在其他块内部时解析
     return parseIndentedCodeBlock(state);
   }
@@ -256,8 +256,6 @@ export function parseParagraph(state: ParseState): AstNode {
     if (isThematicBreak(line)) break;
     // HTML 块
     if (isHtmlBlockStart(line)) break;
-    // GFM 表格检测
-    if (line.includes('|') && text === '') break;
 
     text += (text !== '' ? '\n' : '') + line;
     state.nextLine();
@@ -281,7 +279,45 @@ export function parseParagraph(state: ParseState): AstNode {
 
 // ── 新增块解析 ──
 
-/** 缩进代码块（每行 4+ 空格开头） */
+/** 计算行首缩进的列数（tab 制表位 = 4，空格 +1 列，tab 跳到下一个 4 的倍数列） */
+function countIndentColumns(line: string): number {
+  let col: number = 0;
+  for (let i: number = 0; i < line.length; i++) {
+    const ch: string = line[i];
+    if (ch === ' ') {
+      col += 1;
+    } else if (ch === '\t') {
+      col += 4 - (col % 4);
+    } else {
+      break;
+    }
+  }
+  return col;
+}
+
+/** 剥掉行首前 4 列缩进（按 tab 展开计算），返回剩余内容 */
+function stripIndent(line: string): string {
+  let col: number = 0;
+  let pos: number = 0;
+  while (pos < line.length) {
+    const ch: string = line[pos];
+    if (ch === ' ') {
+      col += 1;
+      pos += 1;
+    } else if (ch === '\t') {
+      col += 4 - (col % 4);
+      pos += 1;
+    } else {
+      break;
+    }
+    if (col >= 4) {
+      return line.substring(pos);
+    }
+  }
+  return line;
+}
+
+/** 缩进代码块（每行 ≥4 列缩进） */
 function parseIndentedCodeBlock(state: ParseState): AstNode | null {
   const saved: number = state.save();
   let code: string = '';
@@ -294,13 +330,9 @@ function parseIndentedCodeBlock(state: ParseState): AstNode | null {
       state.nextLine();
       continue;
     }
-    // 检查是否缩进
-    if (line.startsWith('    ')) {
-      code += line.substring(4) + '\n';
-      hasContent = true;
-      state.nextLine();
-    } else if (line.startsWith('\t')) {
-      code += line.substring(1) + '\n';
+    // 检查是否缩进 ≥4 列
+    if (countIndentColumns(line) >= 4) {
+      code += stripIndent(line) + '\n';
       hasContent = true;
       state.nextLine();
     } else {

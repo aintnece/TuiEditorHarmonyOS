@@ -223,7 +223,7 @@ class InlineMatchResult {
 
 /** 尝试解析链接 [text](url) 或图片 ![alt](url) */
 function tryParseLinkOrImage(text: string, start: number, isImage: boolean): InlineMatchResult | null {
-  const bracketStart: number = isImage ? start + 2 : start;
+  const bracketStart: number = isImage ? start + 1 : start;
   const bracketEnd: number = findClosingBracket(text, bracketStart);
   if (bracketEnd < 0) return null;
   if (bracketEnd + 1 >= text.length || text[bracketEnd + 1] !== '(') return null;

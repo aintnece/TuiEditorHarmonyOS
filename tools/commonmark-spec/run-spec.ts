@@ -1,12 +1,8 @@
 /**
- * run-spec.ts — CommonMark 0.31.2 规范一致性测试管线
+ * run-spec.ts — CommonMark 0.31.2 规范一致性测试管线（单线程版）
  *
- * 对 652 条官方用例逐一运行解析+渲染，分类为 EXACT/COSMETIC/STRUCT/ERROR/HANG，
+ * 对 652 条官方用例逐条运行解析+渲染，分类为 EXACT/COSMETIC/STRUCT/ERROR/HANG，
  * 按 section 聚合统计，输出分节表 + failures.txt + baseline.json。
- *
- * 使用 child_process spawn 做 per-case 超时保护：
- * 启动一个长期存活的 worker 进程处理用例，主线程逐条发送 markdown 并等待结果。
- * 若某条用例超时未返回，kill worker 并重启，该条计为 ERROR(TIMEOUT)。
  *
  * HANG 保护：启动时读 skip.json，遇到已知死循环用例直接跳过，绝不调用 parse。
  *
@@ -15,8 +11,9 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { spawn, ChildProcess } from 'child_process';
-import { createInterface } from 'readline';
+
+import { ToastMark } from '../../entry/src/main/ets/parser/ToastMark';
+import { HtmlRenderer } from '../../entry/src/main/ets/parser/html/Renderer';
 
 // ── 类型 ──
 
@@ -62,87 +59,6 @@ function normalize(s: string): string {
     .replace(/^\n+/, '');
 }
 
-// ── Worker 管理 ──
-
-const PER_CASE_TIMEOUT_MS = 5000;
-
-class ParserWorker {
-  private proc: ChildProcess | null = null;
-  private ready: boolean = false;
-  private rl: ReturnType<typeof createInterface> | null = null;
-  private pendingResolve: ((value: { actual?: string; error?: string }) => void) | null = null;
-  private tsxPath: string;
-  private workerPath: string;
-
-  constructor(tsxPath: string, workerPath: string) {
-    this.tsxPath = tsxPath;
-    this.workerPath = workerPath;
-  }
-
-  async start(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.proc = spawn(this.tsxPath, [this.workerPath], {
-        stdio: ['pipe', 'pipe', 'inherit'],
-      });
-
-      this.rl = createInterface({ input: this.proc.stdout! });
-
-      this.rl.on('line', (line: string) => {
-        try {
-          const msg = JSON.parse(line);
-          if (msg.ready) {
-            this.ready = true;
-            resolve();
-          } else if (this.pendingResolve) {
-            this.pendingResolve(msg);
-            this.pendingResolve = null;
-          }
-        } catch (_e) {
-          // ignore unparseable lines
-        }
-      });
-
-      this.proc.on('error', (err: Error) => {
-        this.ready = false;
-        reject(err);
-      });
-
-      this.proc.on('exit', () => {
-        this.ready = false;
-        if (this.pendingResolve) {
-          this.pendingResolve({ error: 'Worker exited unexpectedly' });
-          this.pendingResolve = null;
-        }
-      });
-    });
-  }
-
-  async parseAndRender(md: string): Promise<{ actual?: string; error?: string }> {
-    if (!this.proc || !this.ready) {
-      throw new Error('Worker not ready');
-    }
-
-    return new Promise((resolve) => {
-      this.pendingResolve = resolve;
-      this.proc!.stdin!.write(JSON.stringify({ markdown: md }) + '\n');
-    });
-  }
-
-  async kill(): Promise<void> {
-    if (this.proc) {
-      this.proc.kill('SIGKILL');
-      this.proc = null;
-      this.ready = false;
-      if (this.pendingResolve) {
-        this.pendingResolve({ error: 'Worker killed (timeout)' });
-        this.pendingResolve = null;
-      }
-      // Brief pause to let OS clean up
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
-}
-
 // ── skip.json 读取 ──
 
 interface SkipEntry {
@@ -177,12 +93,17 @@ function loadSkipSet(skipPath: string): { skipSet: Set<number>; reasonMap: Map<n
   return { skipSet, reasonMap };
 }
 
+// ── 单条用例执行 ──
+
+function runOne(tc: SpecCase): { actual?: string; error?: string } {
+  const ast = new ToastMark().parse(tc.markdown);
+  const html = new HtmlRenderer().renderBody(ast);
+  return { actual: html };
+}
+
 // ── 主逻辑 ──
 
-async function run(): Promise<void> {
-  const tsxPath: string = join(__dirname, 'node_modules', '.bin', 'tsx');
-  const workerPath: string = join(__dirname, 'spec-worker.ts');
-
+function run(): void {
   // 1. 读 spec.json
   const specPath: string = join(__dirname, 'spec.json');
   let cases: SpecCase[];
@@ -208,12 +129,6 @@ async function run(): Promise<void> {
   const results: ResultEntry[] = new Array(cases.length);
   const sectionMap: Map<string, SectionStat> = new Map<string, SectionStat>();
 
-  // Create initial worker
-  let worker = new ParserWorker(tsxPath, workerPath);
-  await worker.start();
-
-  let sequentialErrorCount = 0;
-
   for (let i = 0; i < cases.length; i++) {
     const tc = cases[i];
 
@@ -230,7 +145,6 @@ async function run(): Promise<void> {
         actual: '',
         reason: reasonMap.get(tc.example) ?? 'Known infinite loop (skip.json)',
       };
-      sequentialErrorCount = 0;
 
       results[i] = result;
 
@@ -254,23 +168,11 @@ async function run(): Promise<void> {
       continue;
     }
 
+    // ── 正常执行：try/catch 包住 parse+render ──
     try {
-      const timeoutPromise = new Promise<{ actual?: string; error?: string }>((resolve) => {
-        setTimeout(() => resolve({ error: 'TIMEOUT: parse/render exceeded ' + PER_CASE_TIMEOUT_MS + 'ms, likely infinite loop' }), PER_CASE_TIMEOUT_MS);
-      });
+      const { actual, error } = runOne(tc);
 
-      const workPromise = worker.parseAndRender(tc.markdown);
-
-      const outcome = await Promise.race([workPromise, timeoutPromise]);
-
-      if (outcome.error) {
-        // Worker might still be alive; kill and restart
-        if (outcome.error.startsWith('TIMEOUT')) {
-          await worker.kill();
-          worker = new ParserWorker(tsxPath, workerPath);
-          await worker.start();
-        }
-
+      if (error) {
         result = {
           example: tc.example,
           section: tc.section,
@@ -278,15 +180,14 @@ async function run(): Promise<void> {
           markdown: tc.markdown,
           expected: tc.html,
           actual: '',
-          error: outcome.error,
+          error,
         };
-        sequentialErrorCount++;
       } else {
-        const actual: string = outcome.actual!;
+        const actualHtml: string = actual!;
         let cat: Category;
-        if (actual === tc.html) {
+        if (actualHtml === tc.html) {
           cat = 'EXACT';
-        } else if (normalize(actual) === normalize(tc.html)) {
+        } else if (normalize(actualHtml) === normalize(tc.html)) {
           cat = 'COSMETIC';
         } else {
           cat = 'STRUCT';
@@ -298,16 +199,10 @@ async function run(): Promise<void> {
           category: cat,
           markdown: tc.markdown,
           expected: tc.html,
-          actual,
+          actual: actualHtml,
         };
-        sequentialErrorCount = 0;
       }
     } catch (e) {
-      // Worker crashed — restart and mark as error
-      await worker.kill().catch(() => {});
-      worker = new ParserWorker(tsxPath, workerPath);
-      await worker.start();
-
       result = {
         example: tc.example,
         section: tc.section,
@@ -315,9 +210,8 @@ async function run(): Promise<void> {
         markdown: tc.markdown,
         expected: tc.html,
         actual: '',
-        error: 'Worker crashed: ' + ((e as Error).message || ''),
+        error: (e as Error).message || String(e),
       };
-      sequentialErrorCount++;
     }
 
     results[i] = result;
@@ -343,8 +237,6 @@ async function run(): Promise<void> {
       console.log(`  ${i + 1}/${cases.length}  exact=${exactSoFar}  error=${errSoFar}  hang=${hangSoFar}`);
     }
   }
-
-  await worker.kill().catch(() => {});
 
   // ── 排序：按 section 名字典序 ──
 
@@ -478,12 +370,6 @@ async function run(): Promise<void> {
   const baselinePath: string = join(__dirname, 'baseline.json');
   writeFileSync(baselinePath, JSON.stringify(baseline, null, 2) + '\n', 'utf-8');
   console.log('baseline.json written: ' + Buffer.byteLength(JSON.stringify(baseline, null, 2) + '\n', 'utf-8') + ' bytes');
-
-  // Warning if any timeout
-  const timeoutCount = results.filter((r: ResultEntry) => r.error && r.error.startsWith('TIMEOUT')).length;
-  if (timeoutCount > 0) {
-    console.log(`\n⚠ ${timeoutCount} case(s) timed out (killed by process termination)`);
-  }
 
   process.exit(0);
 }
