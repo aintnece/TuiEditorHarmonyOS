@@ -68,8 +68,9 @@
 - 5 类：EXACT(逐字节) / COSMETIC(仅空白差,归一化后等) / STRUCT(真结构差) / ERROR(抛异常) / HANG(已知死循环跳过)。
 - 8.2 每修一批：CC 改 entry/ 解析器 → 重跑 harness → 对比 baseline.json 的 exactPct 增量。Hermes 审 diff + 修权限(`docker exec claude-code chown -R 1000:1000 .../tools`) + commit/push + 更新 baseline.json。
 - ⚠️ CC 跑 tsx 撞到未跳过的死循环会把 `claude -p` 进程一起挂死——**新发现死循环先加进 skip.json 再让 CC 跑**。
+- ⚠️ **harness(tsx) 不检查 ArkTS 严格模式规则**——解析器改动即使 harness 全过、数字漂亮，仍可能含 `arkts-no-untyped-obj-literals`(匿名对象字面量) 等违规、炸 DevEco 构建。**每批解析器改动 Hermes 审 diff 时必须按 CLAUDE.md ArkTS 规则人工核一遍**（重点：匿名对象字面量→具名 class+new、无 spread/Record/any/索引访问）。8.2c-1 真实踩过。
 
 ## Checkpoint
 
-**Status**: Phase 8.2a（解析器快赢修复：图片 alt / 反斜杠死循环 / Tabs）完成，commit 775679b 已 push main。基线 exact **36.96%** (241/652)，error 0，hang 0（死循环已消灭，skip.json 已清空）。harness 已改为干净单线程版。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。下一步 = **Phase 8.2b 强调/加粗**（Emphasis 86/132 最大簇，需补 CommonMark delimiter-run 算法）。harness 跑法见下「Phase 8 测试管线」。每批 CC 修 → 重跑 harness → 用 baseline.json 量增量。
+**Status**: Phase 8.2c-1（内联链接目标/标题解析重写）完成，commit 7728a7b 已 push main。基线 exact **39.11%** (255/652)，error 0，hang 0。Links 22→33，Images 5→6。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。下一步候选：**8.2c-2 引用式链接**(`[x][y]`/`[x]:` 定义，需 ref 表，Links 剩 57+Link-ref-def 22) 或 **8.2b Emphasis**(最大簇 86/132，需 delimiter-run 算法)。每批 CC 修 → 重跑 harness → baseline.json 量增量。
