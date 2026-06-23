@@ -34,6 +34,11 @@ class NavData {
   fileName: string = '';
 }
 
+/** WYSIWYG payload 小类 — 用于 JSON.stringify 序列化传给 ww.exec */
+class LinkPayload { linkText: string = ''; linkUrl: string = ''; }
+class ImagePayload { altText: string = ''; imageUrl: string = ''; }
+class TablePayload { rowCount: number = 3; columnCount: number = 3; }
+
 @Entry
 @Component
 struct EditorPage {
@@ -67,25 +72,41 @@ struct EditorPage {
   /** 确认插入链接 */
   private confirmLink = (text: string, url: string): void => {
     this.showLinkEditor = false;
-    if (editorContext.core) {
-      const md: string = editorContext.core.getMarkdown();
-      const pos: number = editorContext.core.state.selectionStart;
-      const snippet: string = '[' + text + '](' + url + ')';
-      const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
-      editorContext.core.onContentChange(newMd);
+    if (!editorContext.core) return;
+    if (editorContext.core.state.editorType === EditorType.Wysiwyg) {
+      if (editorContext.editor) {
+        const p: LinkPayload = new LinkPayload();
+        p.linkText = text;
+        p.linkUrl = url;
+        editorContext.editor.wysiwygExec('addLink', JSON.stringify(p));
+      }
+      return;
     }
+    const md: string = editorContext.core.getMarkdown();
+    const pos: number = editorContext.core.state.selectionStart;
+    const snippet: string = '[' + text + '](' + url + ')';
+    const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
+    editorContext.core.onContentChange(newMd);
   };
 
   /** 确认插入图片 */
   private confirmImage = (alt: string, url: string): void => {
     this.showImageEditor = false;
-    if (editorContext.core) {
-      const md: string = editorContext.core.getMarkdown();
-      const pos: number = editorContext.core.state.selectionStart;
-      const snippet: string = '![' + alt + '](' + url + ')';
-      const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
-      editorContext.core.onContentChange(newMd);
+    if (!editorContext.core) return;
+    if (editorContext.core.state.editorType === EditorType.Wysiwyg) {
+      if (editorContext.editor) {
+        const p: ImagePayload = new ImagePayload();
+        p.altText = alt;
+        p.imageUrl = url;
+        editorContext.editor.wysiwygExec('addImage', JSON.stringify(p));
+      }
+      return;
     }
+    const md: string = editorContext.core.getMarkdown();
+    const pos: number = editorContext.core.state.selectionStart;
+    const snippet: string = '![' + alt + '](' + url + ')';
+    const newMd: string = md.substring(0, pos) + snippet + md.substring(pos);
+    editorContext.core.onContentChange(newMd);
   };
 
   /** 处理表格操作 */
@@ -541,7 +562,17 @@ struct EditorPage {
               onExport: () => { this.handleExport(); },
               onLink: () => { this.showLinkEditor = true; },
               onImage: () => { this.showImageEditor = true; },
-              onTable: () => { this.showTableMenu = !this.showTableMenu; }
+              onTable: () => {
+                if (editorContext.core && editorContext.core.state.editorType === EditorType.Wysiwyg) {
+                  if (editorContext.editor) {
+                    const p: TablePayload = new TablePayload();
+                    // 默认 3x3，tui.editor 插入后可用其自带表内菜单增删行列
+                    editorContext.editor.wysiwygExec('addTable', JSON.stringify(p));
+                  }
+                  return;
+                }
+                this.showTableMenu = !this.showTableMenu;
+              }
             })
           }
 

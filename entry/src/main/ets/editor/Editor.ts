@@ -31,6 +31,15 @@ export class Editor {
     this.wwExec = fn;
   }
 
+  /** WYSIWYG 下执行带 payload 的命令（payloadJson 为 JSON 字符串）。已注册 wwExec 才生效 */
+  wysiwygExec(name: string, payloadJson: string): boolean {
+    if (this.wwExec) {
+      this.wwExec(name, payloadJson);
+      return true;
+    }
+    return false;
+  }
+
   private constructor(config: EditorConfig) {
     this.core = new EditorCore(config);
   }
