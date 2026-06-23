@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="https://wweditor.local/toastui-editor.min.css">
   <link rel="stylesheet" href="https://wweditor.local/toastui-editor-dark.css" id="tui-dark-css" disabled>
   <link rel="stylesheet" href="https://wweditor.local/toastui-editor-plugin-code-syntax-highlight.min.css">
+  <link rel="stylesheet" href="https://wweditor.local/prism-light.min.css" id="prism-light-css">
+  <link rel="stylesheet" href="https://wweditor.local/prism-tomorrow.min.css" id="prism-dark-css" disabled>
   <style>
     html, body {
       margin: 0;
@@ -74,6 +76,15 @@
         diag("plugins.len: " + plugins.length);
         diag("Prism: " + (typeof window.Prism) + " py=" + ((window.Prism && window.Prism.languages && window.Prism.languages.python) ? "Y" : "N"));
         diag("init-ok");
+        try {
+          programmaticSet = true;
+          ed.setMarkdown('```python\nx = 1\n```', false);
+          var rt = ed.getMarkdown();
+          diag("rt: " + rt.split("\n").join("\\n").slice(0, 60));
+          ed.setMarkdown("", false);
+          lastSetMd = ed.getMarkdown();
+          programmaticSet = false;
+        } catch (e) { diag("rt-ERR: " + (e && e.message ? e.message : e)); programmaticSet = false; }
       } catch (e) {
         console.error('ww init failed', e);
         diag("init-ERR: " + (e && e.message ? e.message : e));
@@ -106,6 +117,8 @@
           if (darkLink) {
             darkLink.disabled = !dark;
           }
+          var prismDark = document.getElementById('prism-dark-css');
+          if (prismDark) { prismDark.disabled = !dark; }
           if (dark) {
             document.body.classList.add('toastui-editor-dark');
           } else {
