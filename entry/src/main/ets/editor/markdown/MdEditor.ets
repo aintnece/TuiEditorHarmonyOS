@@ -81,7 +81,7 @@ export struct MdEditor {
         .borderWidth(0)
         .onChange((value: string) => {
           this.editorText = value;
-          if (editorContext.core) {
+          if (editorContext.core && value !== editorContext.core.getMarkdown()) {
             editorContext.core.onContentChange(value);
           }
           this.updateLineCount();
