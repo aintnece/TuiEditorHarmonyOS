@@ -60,33 +60,25 @@ export struct Toolbar {
 
   @Builder
   iconBtn(media: Resource, tip: string, action: () => void) {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Button({ type: ButtonType.Normal }) {
-        Image(media).width(16).height(16)
-      }
-      .width(32).height(32).padding(0)
-      .backgroundColor(this.hoveredTip === tip ? this.themeColors.toolbarHover : Color.Transparent)
-      .borderRadius(4)
-      .onClick(action)
-      .onHover((isHover: boolean): void => {
-        if (isHover) {
-          this.hoveredTip = tip;
-        } else if (this.hoveredTip === tip) {
-          this.hoveredTip = '';
-        }
-      })
-
-      if (this.hoveredTip === tip) {
-        Text(tip)
-          .fontSize(11)
-          .fontColor('#ffffff')
-          .backgroundColor('#333333')
-          .borderRadius(4)
-          .padding({ left: 6, right: 6, top: 3, bottom: 3 })
-          .position({ x: 0, y: 36 })
-          .zIndex(2)
-      }
+    Button({ type: ButtonType.Normal }) {
+      Image(media).width(16).height(16)
     }
+    .width(32).height(32).padding(0)
+    .backgroundColor(this.hoveredTip === tip ? this.themeColors.toolbarHover : Color.Transparent)
+    .borderRadius(4)
+    .onClick(action)
+    .onHover((isHover: boolean): void => {
+      if (isHover) {
+        this.hoveredTip = tip;
+      } else if (this.hoveredTip === tip) {
+        this.hoveredTip = "";
+      }
+    })
+    .bindPopup(this.hoveredTip === tip, {
+      message: tip,
+      placement: Placement.Bottom,
+      mask: false
+    })
     .margin({ left: 2, right: 2 })
   }
 
