@@ -55,5 +55,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 5 + 图库插图全部完成并真机验证 ✓。Phase 6 待开工（范围建议先与用户确认）。
-**Resume**: 新会话读本文件 + `status.md`。用户说"继续 Phase 6"即可从上面建议批次开始（先确认范围）。
+**Status**: Phase 6（6.1/6.2/6.3）全部真机验证 ✓。Phase 7 代码语法高亮 进行中：Batch A(MdPreview Prism) 代码完成待真机验证；Batch B(WYSIWYG tui 插件) 待做（资产已 vendoring）。
+**Resume**: 新会话读本文件 + `status.md`。Phase 7 spec：`.project/7a-codehl-mdpreview-spec.md`（A，已实现待验证）；Batch B 待写 spec。资产已在 `rawfile/prism/`（MdPreview）和 `rawfile/tui-editor/`（插件全局名 `toastui.Editor.plugin.codeSyntaxHighlight`）。

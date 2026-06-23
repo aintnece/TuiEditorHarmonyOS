@@ -18,6 +18,7 @@ import { editorContext } from '../EditorContext';
 
 const APP_URL: string = 'https://markdown.local/preview';
 const KATEX_PREFIX: string = 'https://unpkg.com/katex@0.16.22/';
+const PRISM_PREFIX: string = 'https://markdown.local/prismassets/';
 const USERIMG_PREFIX: string = 'https://markdown.local/userimg/';
 
 @Component
@@ -121,6 +122,34 @@ export struct MdPreview {
           }
         }
 
+        // 拦截 Prism 请求 → 返回本地 rawfile
+        if (url.startsWith(PRISM_PREFIX)) {
+          const path: string = url.substring(PRISM_PREFIX.length);
+          const resp = new WebResourceResponse();
+          resp.setResponseEncoding('utf-8');
+          resp.setResponseMimeType(this.getMimeType(path));
+          resp.setResponseCode(200);
+          resp.setReasonMessage('OK');
+
+          try {
+            const ctx: resourceManager.ResourceManager = getContext(this).resourceManager;
+            const rawPath: string = 'prism/' + path;
+            const data: Uint8Array = ctx.getRawFileContentSync(rawPath);
+            const copy: Uint8Array = new Uint8Array(data.byteLength);
+            copy.set(data);
+            resp.setResponseData(copy.buffer);
+            resp.setResponseHeader([{
+              headerKey: 'Access-Control-Allow-Origin',
+              headerValue: 'https://markdown.local'
+            }]);
+            resp.setResponseIsReady(true);
+            return resp;
+          } catch (e) {
+            // rawfile 不存在时静默忽略，让 WebView 走默认处理
+            return null;
+          }
+        }
+
         // 拦截用户图片请求 → 从沙箱 filesDir/userimg 读
         if (url.startsWith(USERIMG_PREFIX)) {
           const rel: string = 'userimg/' + url.substring(USERIMG_PREFIX.length);
@@ -172,6 +201,7 @@ export struct MdPreview {
         // 首次加载：构造完整 HTML 页面（含 KaTeX），通过 loadUrl 触发拦截器加载
         let fullHtml: string = editorContext.core.getFullHTML();
         fullHtml = this.injectKatex(fullHtml);
+        fullHtml = this.injectPrism(fullHtml);
         this.currentHtml = fullHtml;
         this.controller.loadUrl(APP_URL + '?t=' + Date.now());
         this.bodyOnly = true;
@@ -190,6 +220,9 @@ export struct MdPreview {
           '      ],' +
           '      throwOnError: false' +
           '    });' +
+          '  }' +
+          '  if (typeof Prism !== "undefined") {' +
+          '    Prism.highlightAllUnder(article);' +
           '  }' +
           '}'
         );
@@ -237,6 +270,37 @@ export struct MdPreview {
     result = result.split('</body>').join(
       katexJs + '\n' + autoRenderJs + '\n' + initScript + '\n</body>'
     );
+
+    return result;
+  }
+
+  // ── Prism 代码高亮注入 ──
+
+  /**
+   * 在完整 HTML 页面中注入 Prism CSS / JS 引用。
+   * 用 split/join 替代正则，遵守 ArkTS 严格模式。
+   */
+  private injectPrism(html: string): string {
+    const prismCss: string =
+      '<link rel="stylesheet" href="' + PRISM_PREFIX + (this.themeColors.isDark ? 'prism-tomorrow.min.css' : 'prism-light.min.css') + '">';
+
+    const prismJs: string =
+      '<script src="' + PRISM_PREFIX + 'prism.js"></' + 'script>';
+    const prismInit: string =
+      '<script>' +
+      'document.addEventListener("DOMContentLoaded", function() {' +
+      '  if (typeof Prism !== "undefined") {' +
+      '    Prism.highlightAll();' +
+      '  }' +
+      '});' +
+      '</' + 'script>';
+
+    let result: string = html;
+    // 在 </head> 前注入 Prism CSS
+    result = result.split('</head>').join(prismCss + '\n</head>');
+
+    // 在 </body> 前注入 Prism JS + 初始化
+    result = result.split('</body>').join(prismJs + '\n' + prismInit + '\n</body>');
 
     return result;
   }
