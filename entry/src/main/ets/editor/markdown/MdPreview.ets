@@ -35,6 +35,8 @@ export struct MdPreview {
   private currentHtml: string = '';
   private bodyOnly: boolean = false;
   private changeHandler: Handler = (): void => {};
+  private lastIsDark: boolean = false;
+  private stateChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
     if (!editorContext.core) return;
@@ -54,6 +56,20 @@ export struct MdPreview {
     };
     editorContext.core.on('change', this.changeHandler);
 
+    self.lastIsDark = editorContext.core.getTheme().isDark;
+    this.stateChangeHandler = (): void => {
+      if (!editorContext.core) return;
+      const dark: boolean = editorContext.core.getTheme().isDark;
+      if (dark !== self.lastIsDark) {
+        self.lastIsDark = dark;
+        // 主题变了 → 强制整页重载（新底色 + 新 Prism/KaTeX 主题）
+        self.bodyOnly = false;
+        self.lastRendered = '';
+        self.doRender();
+      }
+    };
+    editorContext.core.on('stateChange', this.stateChangeHandler);
+
     if (this.onControllerReady) {
       this.onControllerReady(this.controller);
     }
@@ -63,6 +79,7 @@ export struct MdPreview {
     if (!editorContext.core) return;
 
     editorContext.core.off('change', this.changeHandler);
+    editorContext.core.off('stateChange', this.stateChangeHandler);
     if (this.debounceTimer !== 0) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = 0;
@@ -282,7 +299,7 @@ export struct MdPreview {
    */
   private injectPrism(html: string): string {
     const prismCss: string =
-      '<link rel="stylesheet" href="' + PRISM_PREFIX + (this.themeColors.isDark ? 'prism-tomorrow.min.css' : 'prism-light.min.css') + '">';
+      '<link rel="stylesheet" href="' + PRISM_PREFIX + ((editorContext.core ? editorContext.core.getTheme().isDark : this.themeColors.isDark) ? 'prism-tomorrow.min.css' : 'prism-light.min.css') + '">';
 
     const prismJs: string =
       '<script src="' + PRISM_PREFIX + 'prism.js"></' + 'script>';

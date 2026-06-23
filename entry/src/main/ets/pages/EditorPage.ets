@@ -478,11 +478,12 @@ struct EditorPage {
           .borderRadius(4)
           .fontColor(this.theme.toolbarFg)
           .onClick(() => {
-            ThemeService.getInstance().toggleTheme();
-            this.theme = ThemeService.getInstance().getTheme();
             if (editorContext.editor) {
               editorContext.editor.toggleTheme();
+            } else {
+              ThemeService.getInstance().toggleTheme();
             }
+            this.theme = ThemeService.getInstance().getTheme();
           })
       }
       .width('100%')
