@@ -68,7 +68,7 @@ export class EditorCore {
   /** 设置 Markdown 内容 */
   setMarkdown(md: string): void {
     this.state.markdown = md;
-    this.state.isDirty = true;
+    this.state.isDirty = false;
     this.eventEmitter.emit('change');
   }
 

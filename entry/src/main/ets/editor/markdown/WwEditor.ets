@@ -39,6 +39,7 @@ class WwBridge {
 export struct WwEditor {
   @Prop themeColors: ThemeColors;
   @Prop fontSize: number = 16;
+  @Prop @Watch('onLoadTokenChange') loadToken: number = 0;
 
   onControllerReady?: (ctrl: webview.WebviewController) => void;
 
@@ -127,6 +128,12 @@ export struct WwEditor {
 
   // ── Initial content injection ──
 
+  onLoadTokenChange(): void {
+    if (this.isReady) {
+      this.applyInitial();
+    }
+  }
+
   /**
    * After first page load, inject initial markdown content and theme
    * into the tui.editor instance via the __ww bridge.
@@ -138,13 +145,10 @@ export struct WwEditor {
   private applyInitial(): void {
     const core = editorContext.core;
     const initialMd: string = core ? core.getMarkdown() : '';
-
-    if (initialMd.length > 0) {
-      const escaped: string = encodeURIComponent(initialMd);
-      this.controller.runJavaScript(
-        'window.__ww && window.__ww.setMarkdown(decodeURIComponent("' + escaped + '"))'
-      );
-    }
+    const escaped: string = encodeURIComponent(initialMd);
+    this.controller.runJavaScript(
+      'window.__ww && window.__ww.setMarkdown(decodeURIComponent("' + escaped + '"))'
+    );
 
     // Sync theme (in case it changed between aboutToAppear and onPageEnd)
     const isDarkStr: string = this.themeColors.isDark ? 'true' : 'false';

@@ -58,6 +58,7 @@ struct EditorPage {
   @State currentFilePath: string = '';
   @State sidePanelRefresh: number = 0;
   @State isDirty: boolean = false;
+  @State wwLoadToken: number = 0;
 
   private i18n: I18n = I18n.getInstance();
 
@@ -373,7 +374,7 @@ struct EditorPage {
     editorContext.editor.on('change', (): void => {
       if (editorContext.core) {
         this.content = editorContext.core.getMarkdown();
-        this.isDirty = true;
+        this.isDirty = editorContext.core.state.isDirty;
         this.canUndo = editorContext.core.commandManager.canUndo();
         this.canRedo = editorContext.core.commandManager.canRedo();
       }
@@ -515,12 +516,14 @@ struct EditorPage {
             this.currentFilePath = path;
             this.fileName = extractFileName(path);
             this.isDirty = false;
+            this.wwLoadToken++;
           },
           onNewFile: (path: string) => {
             // 新文件已创建，更新路径和文件名
             this.currentFilePath = path;
             this.fileName = extractFileName(path);
             this.isDirty = false;
+            this.wwLoadToken++;
           },
           onOpenFile: () => {
             // Phase 8 补充：系统文件选择器
@@ -605,7 +608,8 @@ struct EditorPage {
             // WYSIWYG 区域 — WwEditor(批次2)，渲染区
             WwEditor({
               themeColors: this.theme,
-              fontSize: 16
+              fontSize: 16,
+              loadToken: this.wwLoadToken
             })
               .width('100%')
               .layoutWeight(1)
