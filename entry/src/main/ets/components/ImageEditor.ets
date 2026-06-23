@@ -15,6 +15,7 @@ import { fileService } from '../services/FileService';
 export struct ImageEditor {
   @State imageUrl: string = '';
   @State altText: string = '';
+  @State pickStatus: string = '';
   themeColors: ThemeColors = new ThemeColors();
   onConfirm?: (alt: string, url: string) => void;
   onCancel?: () => void;
@@ -27,19 +28,24 @@ export struct ImageEditor {
       opt.MIMEType = picker.PhotoViewMIMETypes.IMAGE_TYPE;
       opt.maxSelectNumber = 1;
       photoPicker.select(opt).then((res: picker.PhotoSelectResult): void => {
-        if (res && res.photoUris && res.photoUris.length > 0) {
-          const uri: string = res.photoUris[0];
-          const imageDir: string = getContext(self).filesDir + '/userimg';
-          const name: string | null = fileService.copyImageToSandbox(uri, imageDir);
-          if (name !== null) {
+        try {
+          if (res && res.photoUris && res.photoUris.length > 0) {
+            const uri: string = res.photoUris[0];
+            const imageDir: string = getContext(self).filesDir + '/userimg';
+            const name: string = fileService.copyImageToSandbox(uri, imageDir);
             self.imageUrl = 'userimg/' + name;
+            self.pickStatus = '已选择: ' + name;
+          } else {
+            self.pickStatus = '未选择图片';
           }
+        } catch (e) {
+          self.pickStatus = '复制失败: ' + ((e as Error).message !== undefined ? (e as Error).message : 'unknown');
         }
-      }).catch((_e: Object): void => {
-        // 用户取消或失败，静默
+      }).catch((e: Object): void => {
+        self.pickStatus = '选择出错: ' + String(e);
       });
-    } catch (_e) {
-      // ignore
+    } catch (e) {
+      self.pickStatus = '启动选择器出错: ' + ((e as Error).message !== undefined ? (e as Error).message : 'unknown');
     }
   }
 
@@ -87,6 +93,15 @@ export struct ImageEditor {
         .borderRadius(6)
         .margin({ bottom: 12 })
         .onClick(() => { this.pickFromGallery(); })
+
+      if (this.pickStatus !== '') {
+        Text(this.pickStatus)
+          .fontSize(11)
+          .fontColor(this.themeColors.editorPlaceholder)
+          .width('100%')
+          .textAlign(TextAlign.Start)
+          .margin({ bottom: 8 })
+      }
 
       // ── 替代文本 ──
       Text('替代文本 (alt)')

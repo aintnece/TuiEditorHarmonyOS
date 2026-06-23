@@ -203,24 +203,28 @@ export class FileService {
     }
   }
 
-  /** 复制选中的图片到沙箱图片目录，返回文件名（不含目录）；失败返回 null。
+  /** 复制选中的图片到沙箱图片目录，返回文件名（不含目录）。出错抛异常（由调用方捕获显示）。
    *  srcUri: 选择器返回的图片 URI；imageDir: 目标目录绝对路径（如 filesDir/userimg） */
-  copyImageToSandbox(srcUri: string, imageDir: string): string | null {
-    if (srcUri.length === 0 || imageDir.length === 0) {
-      return null;
+  copyImageToSandbox(srcUri: string, imageDir: string): string {
+    if (srcUri.length === 0) {
+      throw new Error('empty srcUri');
     }
     if (!this.ensureDir(imageDir)) {
-      return null;
+      throw new Error('ensureDir failed: ' + imageDir);
     }
+    const ext: string = imageExt(srcUri);
+    const name: string = 'img_' + Date.now().toString() + ext;
+    const dest: string = imageDir + '/' + name;
+    // 打开图库 URI（选择器已授临时读权限），再用 fd 复制——比直接 copyFileSync(uri,path) 可靠
+    const srcFile = fs.openSync(srcUri, fs.OpenMode.READ_ONLY);
+    const destFile = fs.openSync(dest, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
     try {
-      const ext: string = imageExt(srcUri);
-      const name: string = 'img_' + Date.now().toString() + ext;
-      const dest: string = imageDir + '/' + name;
-      fs.copyFileSync(srcUri, dest);
-      return name;
-    } catch (_e) {
-      return null;
+      fs.copyFileSync(srcFile.fd, destFile.fd);
+    } finally {
+      fs.closeSync(srcFile);
+      fs.closeSync(destFile);
     }
+    return name;
   }
 }
 
