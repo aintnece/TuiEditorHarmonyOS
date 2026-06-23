@@ -38,6 +38,7 @@
 ### 暂缓（用户明确放后面）
 
 - 图片 pickStatus 失败文案美化、DocumentViewPicker（任意文件源）、大图压缩。
+- **WYSIWYG/MdPreview 暗色与应用 ThemeService 调色板统一**（现三处暗色各自为政：ArkUI 外壳=ThemeService 28 token / MdPreview=HtmlRenderer 自有暗色 / WYSIWYG=tui+prism 暗色）。方案=把 ThemeService token 注入两个 WebView、覆盖其暗色 CSS 变量/选择器。⚠️ HarmonyOS 系统深色（`Web().darkMode(WebDarkMode.Auto)`/`forceDarkAccess`）只跟随 OS、不解决与自定义调色板一致，且 forceDark 算法反色会和 tui 自带暗色打架，又与现有应用内手动主题按钮冲突——**不采用**。
 - WYSIWYG 模式字数/字符/行数实时更新（现切模式才同步；修它需碰 Phase 5 的 change 回写路径，有 echo-loop 回归风险）。
 - 打字撤销/重做（现仅工具栏命令进撤销栈；打字需加防抖快照，Markdown 走 CommandManager、WYSIWYG 走引擎 history，两边各有坑）。
 - Phase 6.3+ 候选：查找替换（独立大批次）；更多对齐（不建议，与 Markdown 内核冲突）。
@@ -55,5 +56,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 6 全部真机验证 ✓。Phase 7 代码语法高亮：Batch A(MdPreview Prism) ✅ 真机验证（含主题修复）；Batch B(WYSIWYG, editor.html 注册 tui 插件) 代码完成待真机验证。
-**Resume**: 新会话读本文件 + `status.md`。Phase 7 spec：`7a-codehl-mdpreview-spec.md`/`7a-fix-theme-spec.md`（A，已验证）、`7b-codehl-wysiwyg-spec.md`（B，待验证）。资产在 `rawfile/prism/`（MdPreview）+ `rawfile/tui-editor/`（含 code-syntax-highlight 插件，全局名 `toastui.Editor.plugin.codeSyntaxHighlight`）。
+**Status**: Phase 6 + Phase 7（代码语法高亮，Markdown+WYSIWYG 双模式）全部真机验证 ✓。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。下一步候选见 `status.md` 的 Next + 本文件暂缓区。

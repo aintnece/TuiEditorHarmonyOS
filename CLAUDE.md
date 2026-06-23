@@ -1,7 +1,7 @@
 # TuiEditorHarmonyOS — Toast UI Editor 鸿蒙原生移植
 
 **项目目标**: 1:1 复刻 TOAST UI Editor v3.2.2 到 HarmonyOS NEXT (ArkTS)
-**当前阶段**: ✅ Phase 6 全部验证。Phase 7 代码语法高亮：Batch A(MdPreview) ✅ 真机验证；Batch B(WYSIWYG editor.html 注册 tui 插件) 代码完成待验证。资产 vendoring 完毕。见 .project/status.md
+**当前阶段**: ✅ Phase 6 + Phase 7（代码语法高亮 Markdown+WYSIWYG 双模式）全部真机验证。无进行中阶段。遗留暂缓：WYSIWYG/MdPreview 暗色与应用调色板统一（见 .project/active-task 暂缓区）。见 .project/status.md
 **技术栈**: ArkTS (strict mode) + ArkUI + API 12
 **IDE**: DevEco Studio 5.0+ (Windows)
 
