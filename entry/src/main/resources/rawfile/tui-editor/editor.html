@@ -32,11 +32,11 @@
   <script src="https://wweditor.local/toastui-editor-all.min.js"></script>
   <script>
     (function () {
-      // ── Suppress change events during programmatic setMarkdown ──
-      // Prevents echo loop: setMarkdown → ed 'change' → nativeBridge.onChange →
-      // core.onContentChange → emit('change') → setMarkdown → …
-      // Also prevents the editor from becoming dirty on initial load.
-      var suppressChange = false;
+      // ── Content-based change suppression ──
+      // lastSetMd captures the normalized content after setMarkdown.
+      // Any change (sync or async) where cur === lastSetMd is ignored — it's a
+      // programmatic set, not a user edit. Only real user edits pass through.
+      var lastSetMd = '';
 
       // Parse ?theme=dark|light from URL query string
       var queryTheme = 'light';
@@ -64,11 +64,10 @@
       // ── Global bridge API ──
       window.__ww = {
         /** Inject markdown content into wysiwyg (convert=false to keep raw markdown).
-         *  Wrapped with suppressChange to avoid triggering change → nativeBridge echo. */
+         *  Captures normalized content in lastSetMd so the change handler ignores it. */
         setMarkdown: function (md) {
-          suppressChange = true;
           ed.setMarkdown(md || '', false);
-          suppressChange = false;
+          lastSetMd = ed.getMarkdown();
         },
 
         /** Get current content as markdown string */
@@ -105,9 +104,10 @@
 
       // ── JS→ArkTS bridge: relay tui.editor changes to native side ──
       ed.on('change', function () {
-        if (suppressChange) return;
+        var cur = ed.getMarkdown();
+        if (cur === lastSetMd) return;
         if (window.nativeBridge && window.nativeBridge.onChange) {
-          try { window.nativeBridge.onChange(ed.getMarkdown()); } catch (e) {}
+          try { window.nativeBridge.onChange(cur); } catch (e) {}
         }
       });
 
