@@ -118,7 +118,7 @@ Button().onClick(() => this.handleClick())       // ✅
 | `version` 对象 (AppScope) | 平铺 `versionCode`/`versionName` |
 
 ### 已知陷阱
-- **bindPopup 不可靠** — 32px 按钮上需要双击才能触发 onClick。改用 Stack + position() 内联 tooltip
+- **bindPopup 做 tooltip（已纠正）** — 悬停提示用 `.bindPopup(this.hoveredTip===tip, {message, placement:Bottom, mask:false})`（系统浮层，**不被父容器裁切**）。**别用 Stack+position 内联浮层**（会被裁）。"双击坑"只针对「点击触发」的 bindPopup；悬停触发 + mask:false 不拦 onClick。详见 obsidian `踩坑记录/bindPopup悬浮提示.md` + `官方组件示例-ComponentUXExamples.md`
 - **PanGesture.offsetX 累积值** — 用 delta 模式（存 lastPanX，每次计算差值）
 - **WebView 只能用 loadUrl(data: URI)** — 不能用 loadData()
 - **鸿蒙 WebView 8KB URL 限制** — 大 HTML 分段加载
