@@ -1,7 +1,7 @@
 # TuiEditorHarmonyOS — Toast UI Editor 鸿蒙原生移植
 
 **项目目标**: 1:1 复刻 TOAST UI Editor v3.2.2 到 HarmonyOS NEXT (ArkTS)
-**当前阶段**: Phase 5 批次 1+2 完成 ✓ — 引擎已 vendoring + WwEditor WebView 容器就绪（待真机验证 WebView 输入）。下一步批次 3 JS 桥，见 .project/active-task.md
+**当前阶段**: Phase 5 批次 1-4 完成 ✓ 真机验证 — WYSIWYG 引擎/容器/输入/双向桥/模式·文件切换同步全通过。下一步批次 5 Toolbar 联动，见 .project/active-task.md
 **技术栈**: ArkTS (strict mode) + ArkUI + API 12
 **IDE**: DevEco Studio 5.0+ (Windows)
 
@@ -155,8 +155,8 @@ Button().onClick(() => this.handleClick())       // ✅
 详见 `.project/status.md` 和 `.project/active-task.md`。
 
 **Phase 1-4.8 完成** — 编辑器具备完整 Markdown 能力 + 真实文件 I/O（真机验证）。
-**Phase 5 批次 1+2 完成** — WYSIWYG 引擎（@toast-ui/editor v3.2.2）vendoring 到 `rawfile/tui-editor/` + `WwEditor.ets` WebView 容器（onInterceptRequest 离线加载 + focusable(true) + `window.__ww` 桥）。**待真机验证 WebView 输入法/光标**。
-**下一步**: Phase 5 批次 3（ArkTS↔JS 桥）。批次拆解见 `.project/active-task.md`。
+**Phase 5 批次 1-4 完成** — WYSIWYG（@toast-ui/editor v3.2.2 -all 全打包版）：`WwEditor.ets` WebView 容器 + `editor.html` 离线引擎 + ArkTS↔JS 双向桥（onChange 回写 core / exec / registerJavaScriptProxy）+ 模式·文件切换同步。**均真机验证通过**。
+**下一步**: Phase 5 批次 5（Toolbar 命令在 WYSIWYG 下路由到 `window.__ww.exec`）。批次拆解见 `.project/active-task.md`。
 
 ## UI 按钮设计规范（强制！CC 和 Hermes 都必须遵守）
 
