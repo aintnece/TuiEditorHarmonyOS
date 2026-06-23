@@ -17,6 +17,7 @@ export struct StatusBar {
 
   @State private charCount: number = 0;
   @State private wordCount: number = 0;
+  @State private lineCount: number = 1;
   @State private cursorLine: number = 1;
   @State private cursorCol: number = 1;
   @State private editorType: EditorType = EditorType.Markdown;
@@ -35,6 +36,7 @@ export struct StatusBar {
     // 初始值
     self.charCount = core.getMarkdown().length;
     self.wordCount = self.countWords(core.getMarkdown());
+    self.lineCount = self.countLines(core.getMarkdown());
     self.cursorLine = core.state.cursorLine;
     self.cursorCol = core.state.cursorCol;
     self.editorType = core.state.editorType;
@@ -45,6 +47,7 @@ export struct StatusBar {
       const md: string = core.getMarkdown();
       self.charCount = md.length;
       self.wordCount = self.countWords(md);
+      self.lineCount = self.countLines(md);
     };
     core.on('change', this.changeHandler);
 
@@ -80,6 +83,11 @@ export struct StatusBar {
         .margin({ left: 8, right: 12 })
 
       Text('词数 ' + this.wordCount.toString())
+        .fontSize(11)
+        .fontColor(this.themeColors.editorPlaceholder)
+        .margin({ right: 12 })
+
+      Text('行数 ' + this.lineCount.toString())
         .fontSize(11)
         .fontColor(this.themeColors.editorPlaceholder)
         .margin({ right: 12 })
@@ -163,5 +171,11 @@ export struct StatusBar {
     }
 
     return chineseCount + words.length;
+  }
+
+  /** 统计总行数（空文档算 1 行） */
+  private countLines(text: string): number {
+    if (text.length === 0) { return 1; }
+    return text.split('\n').length;
   }
 }
