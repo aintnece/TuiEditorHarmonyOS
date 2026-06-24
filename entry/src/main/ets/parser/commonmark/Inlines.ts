@@ -9,6 +9,7 @@
 
 import { AstNode, AstNodeType } from './Node';
 import { linkRefs, LinkRefDef } from './LinkRefs';
+import { HTML_ENTITY_PACKED } from './HtmlEntities';
 
 /** 解析 destination 的返回值（parseAngleDest / parseBareDest） */
 class DestResult {
@@ -1141,7 +1142,40 @@ function normalizeUri(sVal: string): string {
   return result;
 }
 
-/** 实体引用解码：命名(6 个) + 数字(十进制/十六进制)。返回 EntityResult 或 null(非实体，留字面) */
+/** 命名实体表（惰性构建，name → 解码字符串）。 */
+let namedEntityMap: Map<string, string> | null = null;
+
+/** 把 HTML_ENTITY_PACKED ("name=cp,cp;...") 解析进 Map。仅首次调用时构建。 */
+function getNamedEntityMap(): Map<string, string> {
+  if (namedEntityMap !== null) return namedEntityMap;
+  const m: Map<string, string> = new Map<string, string>();
+  const entries: string[] = HTML_ENTITY_PACKED.split(';');
+  for (let i: number = 0; i < entries.length; i++) {
+    const entry: string = entries[i];
+    const eq: number = entry.indexOf('=');
+    if (eq <= 0) continue;
+    const name: string = entry.substring(0, eq);
+    const cpsPart: string = entry.substring(eq + 1);
+    const cpStrs: string[] = cpsPart.split(',');
+    let decoded: string = '';
+    for (let j: number = 0; j < cpStrs.length; j++) {
+      const cp: number = parseInt(cpStrs[j], 10);
+      decoded += String.fromCodePoint(cp);     // 逐个拼，别用 spread（arkts-no-spread）
+    }
+    m.set(name, decoded);
+  }
+  namedEntityMap = m;
+  return m;
+}
+
+/** 查命名实体（name 不含 & 和 ;）。命中返回解码字符串，否则 null。 */
+function lookupNamedEntity(name: string): string | null {
+  const m: Map<string, string> = getNamedEntityMap();
+  const v: string | undefined = m.get(name);
+  return v === undefined ? null : v;
+}
+
+/** 实体引用解码：命名(表查找) + 数字(十进制/十六进制)。返回 EntityResult 或 null(非实体，留字面) */
 function tryParseEntity(text: string, start: number): EntityResult | null {
   const len: number = text.length;
   if (start >= len || text[start] !== '&') return null;
@@ -1171,20 +1205,14 @@ function tryParseEntity(text: string, start: number): EntityResult | null {
     return er;
   }
 
-  // ── 命名实体（保留现有 6 个）──
+  // ── 命名实体（HTML5 全表，2125 项）──
   const semi: number = text.indexOf(';', start);
-  if (semi < 0 || semi - start > 32) return null;
-  const entity: string = text.substring(start, semi + 1);
-  let v: string | null = null;
-  if (entity === '&amp;') { v = '&'; }
-  else if (entity === '&lt;') { v = '<'; }
-  else if (entity === '&gt;') { v = '>'; }
-  else if (entity === '&quot;') { v = '"'; }
-  else if (entity === '&apos;') { v = "'"; }
-  else if (entity === '&nbsp;') { v = ' '; }
-  if (v === null) return null;
+  if (semi < 0 || semi - start - 1 < 1 || semi - start - 1 > 32) return null;   // 名长 1..32
+  const name: string = text.substring(start + 1, semi);   // & 与 ; 之间
+  const decoded: string | null = lookupNamedEntity(name);
+  if (decoded === null) return null;
   const er2: EntityResult = new EntityResult();
-  er2.value = v;
+  er2.value = decoded;
   er2.nextIdx = semi + 1;
   return er2;
 }
