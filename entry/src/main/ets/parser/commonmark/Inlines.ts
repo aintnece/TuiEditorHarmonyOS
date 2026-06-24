@@ -243,14 +243,24 @@ export function parseInlines(text: string, parent: AstNode): void {
       }
     }
 
-    // ── 自动链接 <url> (GFM) ──
-    if (text[i] === '<' && i + 2 < len) {
+    // ── 自动链接 <scheme:uri> / <email> ──
+    if (text[i] === '<') {
       const end: number = text.indexOf('>', i + 1);
       if (end >= 0) {
         const inner: string = text.substring(i + 1, end);
-        if (isAutolink(inner)) {
+        if (isUriAutolink(inner)) {
           const node: AstNode = new AstNode(AstNodeType.Link);
-          node.attrs.url = inner;
+          node.attrs.url = inner;                 // 原文（normalizeURI 留横切批次）；renderer 做 HTML escape
+          const txt: AstNode = new AstNode(AstNodeType.Text);
+          txt.text = inner;
+          node.appendChild(txt);
+          out.push(node);
+          i = end + 1;
+          continue;
+        }
+        if (isEmailAutolink(inner)) {
+          const node: AstNode = new AstNode(AstNodeType.Link);
+          node.attrs.url = 'mailto:' + inner;
           const txt: AstNode = new AstNode(AstNodeType.Text);
           txt.text = inner;
           node.appendChild(txt);
@@ -826,15 +836,64 @@ function isEscapable(ch: string): boolean {
          ch === '}' || ch === '~';
 }
 
-/** 检测自动链接 <url> 或 <email> */
-function isAutolink(text: string): boolean {
-  // 简单检测：以协议开头或包含 @
-  if (text.startsWith('http://') || text.startsWith('https://') ||
-      text.startsWith('ftp://') || text.startsWith('mailto:')) {
-    return true;
+function isAsciiLetter(c: number): boolean { return (c >= 65 && c <= 90) || (c >= 97 && c <= 122); }
+function isAsciiDigit(c: number): boolean { return c >= 48 && c <= 57; }
+function isAsciiAlnum(c: number): boolean { return isAsciiLetter(c) || isAsciiDigit(c); }
+
+/** URI autolink：合法返回 true（inner = <...> 之间的内容） */
+function isUriAutolink(inner: string): boolean {
+  const n: number = inner.length;
+  if (n < 1) return false;
+  // scheme：首字母
+  if (!isAsciiLetter(inner.charCodeAt(0))) return false;
+  let p: number = 1;
+  while (p < n) {
+    const c: number = inner.charCodeAt(p);
+    if (isAsciiAlnum(c) || c === 43 /*+*/ || c === 46 /*.*/ || c === 45 /*-*/) { p++; }
+    else { break; }
   }
-  if (text.indexOf('@') > 0) return true; // email
-  return false;
+  // p 处必须是 ':'，scheme 长度 2–32
+  if (p >= n || inner[p] !== ':') return false;
+  if (p < 2 || p > 32) return false;
+  // rest（: 之后）不得含空白 / < / 控制符
+  for (let k: number = p + 1; k < n; k++) {
+    const c: number = inner.charCodeAt(k);
+    if (c <= 0x20 || c === 0x7F) return false;   // 含空格(0x20)、tab、控制符
+    if (c === 60 /*<*/) return false;
+  }
+  return true;
+}
+
+/** Email autolink：合法返回 true */
+function isEmailAutolink(inner: string): boolean {
+  const n: number = inner.length;
+  const at: number = inner.indexOf('@');
+  if (at <= 0 || at >= n - 1) return false;       // 必须有 @ 且两侧非空
+  // local part：1+ 个允许字符（无 @ 之前再次出现 @ 已由 indexOf 第一个 @ 界定，但 local 内不能有 @）
+  for (let k: number = 0; k < at; k++) {
+    const c: number = inner.charCodeAt(k);
+    const ok: boolean = isAsciiAlnum(c) ||
+      c === 46 || c === 33 || c === 35 || c === 36 || c === 37 || c === 38 ||  // . ! # $ % &
+      c === 39 || c === 42 || c === 43 || c === 47 || c === 61 || c === 63 ||  // ' * + / = ?
+      c === 94 || c === 95 || c === 96 || c === 123 || c === 124 || c === 125 || // ^ _ ` { | }
+      c === 126 || c === 45;                                                    // ~ -
+    if (!ok) return false;
+  }
+  // domain：label('.'label)*，label = alnum (alnum|-){0,61} 末位 alnum
+  const domain: string = inner.substring(at + 1);
+  const labels: string[] = domain.split('.');
+  for (let li: number = 0; li < labels.length; li++) {
+    const lab: string = labels[li];
+    const m: number = lab.length;
+    if (m < 1 || m > 63) return false;
+    if (!isAsciiAlnum(lab.charCodeAt(0))) return false;
+    if (!isAsciiAlnum(lab.charCodeAt(m - 1))) return false;
+    for (let j: number = 1; j < m - 1; j++) {
+      const c: number = lab.charCodeAt(j);
+      if (!(isAsciiAlnum(c) || c === 45 /*-*/)) return false;
+    }
+  }
+  return true;
 }
 
 /** 是否十进制数字字符 */
