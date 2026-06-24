@@ -39,8 +39,16 @@ export function parseInlines(text: string, parent: AstNode): void {
   let topDelim: Delimiter | null = null;
 
   while (i < len) {
-    // ── 转义字符 ──
+    // ── 转义字符 / 反斜杠硬换行 ──
     if (text[i] === '\\' && i + 1 < len) {
+      // 反斜杠 + 行结束 → 硬换行
+      if (text[i + 1] === '\n') {
+        const br: AstNode = new AstNode(AstNodeType.HardBreak);
+        out.push(br);
+        i += 2;
+        while (i < len && text[i] === ' ') { i++; }
+        continue;
+      }
       const escaped: string = text[i + 1];
       // 只有 ASCII 标点符号需要转义
       if (isEscapable(escaped)) {
@@ -59,25 +67,23 @@ export function parseInlines(text: string, parent: AstNode): void {
       }
     }
 
-    // ── 硬换行（行尾两个空格）──
-    if (text[i] === ' ' && i + 1 < len && text[i + 1] === ' ') {
-      // 检查后面是否紧跟换行（在 Markdown 块处理中已合并为 \n）
-      // 这里简化处理：两个空格后紧跟文本换行 → 硬换行
-      let j: number = i + 2;
-      while (j < len && text[j] === ' ') j++;
-      if (j < len && text[j] === '\n') {
-        const br: AstNode = new AstNode(AstNodeType.HardBreak);
-        out.push(br);
-        i = j + 1; // 跳过空格和 \n
-        continue;
-      }
-    }
-
-    // ── 软换行（单个 \n）──
+    // ── 行结束：软/硬换行（剥换行前尾随空格 + 跳下一行行首空格）──
     if (text[i] === '\n') {
-      const br: AstNode = new AstNode(AstNodeType.SoftBreak);
+      // 弹出已入 out 的尾随空格 Text 节点并计数
+      let spaceCount: number = 0;
+      while (out.length > 0) {
+        const last: AstNode = out[out.length - 1];
+        if (last.type === AstNodeType.Text && last.text === ' ') {
+          out.pop();
+          spaceCount++;
+        } else {
+          break;
+        }
+      }
+      const br: AstNode = new AstNode(spaceCount >= 2 ? AstNodeType.HardBreak : AstNodeType.SoftBreak);
       out.push(br);
       i++;
+      while (i < len && text[i] === ' ') { i++; }
       continue;
     }
 

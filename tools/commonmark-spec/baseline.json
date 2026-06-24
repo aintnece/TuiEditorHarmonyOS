@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T02:22:06.447Z",
+  "date": "2026-06-24T03:06:05.798Z",
   "total": 652,
-  "exact": 449,
-  "cosmetic": 2,
-  "struct": 201,
+  "exact": 455,
+  "cosmetic": 0,
+  "struct": 197,
   "error": 0,
   "hang": 0,
-  "exactPct": 68.87,
-  "nearPct": 69.17,
+  "exactPct": 69.79,
+  "nearPct": 69.79,
   "bySection": [
     {
       "section": "ATX headings",
@@ -31,9 +31,9 @@
     {
       "section": "Backslash escapes",
       "total": 13,
-      "exact": 9,
+      "exact": 10,
       "cosmetic": 0,
-      "struct": 4,
+      "struct": 3,
       "error": 0,
       "hang": 0
     },
@@ -94,9 +94,9 @@
     {
       "section": "Hard line breaks",
       "total": 15,
-      "exact": 9,
+      "exact": 12,
       "cosmetic": 0,
-      "struct": 6,
+      "struct": 3,
       "error": 0,
       "hang": 0
     },
@@ -148,8 +148,8 @@
     {
       "section": "Links",
       "total": 90,
-      "exact": 61,
-      "cosmetic": 1,
+      "exact": 62,
+      "cosmetic": 0,
       "struct": 28,
       "error": 0,
       "hang": 0
@@ -211,8 +211,8 @@
     {
       "section": "Soft line breaks",
       "total": 2,
-      "exact": 1,
-      "cosmetic": 1,
+      "exact": 2,
+      "cosmetic": 0,
       "struct": 0,
       "error": 0,
       "hang": 0

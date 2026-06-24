@@ -85,5 +85,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 8.2e-3（Autolinks `<scheme:uri>`/`<email>` 严格识别）完成。基线 exact **68.87%** (449/652)，Autolinks 10→18，error 0，hang 0，全 26 节 0 回归。仅改 Inlines.ts（autolink 分支 + 替换 isAutolink 为 char-loop URI/email 校验）。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。剩余 8.2e 子簇（逐个做、各自一批 CC → harness → 全节回归）：Hard breaks 反斜杠换行+行尾空格(Ex634/637/639/645，小而 contained 快赢) / normalizeURI 百分号编码(横切：link dest/title/autolink href 都只编码空格，补全 mdurl.encode 惠及 Links/Images/Autolinks-Ex603) / 命名实体大表(Ex25/32/33/34，Hermes vendoring ~2125 项表 + CC 写解码器 + 链接 dest/title/info-string 上下文) / inline Raw HTML(14，需 HTML 标签文法，连带 Emphasis 剩的 Ex475-477) / HTML blocks(24，块级 7 型起始条件大功能) / Setext(7)。⚠️ 解析器改动审 diff 必过 ArkTS 规则（无正则/无匿名对象字面量）+ 全节回归对比（见 Phase 8 测试管线）。
+**Status**: Phase 8.2e-4（Hard breaks 反斜杠换行 + 换行前尾随空格剥离）完成。基线 exact **69.79%** (455/652)，cosmetic 归零，Hard breaks 9→12，error 0，hang 0，全 26 节 0 回归（连带 Links/Backslash escapes/Soft line breaks 各 +1）。仅改 Inlines.ts 换行三分支。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。剩余 8.2e 子簇（逐个做、各自一批 CC → harness → 全节回归）：normalizeURI 百分号编码(横切快赢：link dest/title/autolink href 现都只编码空格，补全 mdurl.encode 惠及 Links/Images/Autolinks-Ex603) / 命名实体大表(Ex25/32/33/34，Hermes vendoring ~2125 项表 + CC 写解码器 + 链接 dest/title/info-string 上下文) / inline Raw HTML(14，需 HTML 标签文法，连带 Emphasis 剩的 Ex475-477、Hard breaks 剩的 Ex642/643) / HTML blocks(24，块级 7 型起始条件大功能) / Setext(7) / Ex645(块末尾尾随空格，Blocks 层 trim)。⚠️ 解析器改动审 diff 必过 ArkTS 规则（无正则/无匿名对象字面量）+ 全节回归对比（见 Phase 8 测试管线）。
