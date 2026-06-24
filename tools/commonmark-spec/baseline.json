@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T03:49:39.421Z",
+  "date": "2026-06-24T04:07:40.170Z",
   "total": 652,
-  "exact": 485,
+  "exact": 510,
   "cosmetic": 0,
-  "struct": 167,
+  "struct": 142,
   "error": 0,
   "hang": 0,
-  "exactPct": 74.39,
-  "nearPct": 74.39,
+  "exactPct": 78.22,
+  "nearPct": 78.22,
   "bySection": [
     {
       "section": "ATX headings",
@@ -31,9 +31,9 @@
     {
       "section": "Backslash escapes",
       "total": 13,
-      "exact": 11,
+      "exact": 12,
       "cosmetic": 0,
-      "struct": 2,
+      "struct": 1,
       "error": 0,
       "hang": 0
     },
@@ -76,9 +76,9 @@
     {
       "section": "Entity and numeric character references",
       "total": 17,
-      "exact": 12,
+      "exact": 13,
       "cosmetic": 0,
-      "struct": 5,
+      "struct": 4,
       "error": 0,
       "hang": 0
     },
@@ -103,9 +103,9 @@
     {
       "section": "HTML blocks",
       "total": 44,
-      "exact": 22,
+      "exact": 43,
       "cosmetic": 0,
-      "struct": 22,
+      "struct": 1,
       "error": 0,
       "hang": 0
     },
@@ -193,9 +193,9 @@
     {
       "section": "Raw HTML",
       "total": 20,
-      "exact": 18,
+      "exact": 20,
       "cosmetic": 0,
-      "struct": 2,
+      "struct": 0,
       "error": 0,
       "hang": 0
     },

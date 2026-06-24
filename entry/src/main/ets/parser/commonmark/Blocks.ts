@@ -8,8 +8,7 @@
 
 import { AstNode, AstNodeType } from './Node';
 import { ParseState } from './ParseState';
-import { parseInlines } from './Inlines';
-import { parseLinkRefDefLine } from './Inlines';
+import { parseInlines, parseLinkRefDefLine, parseHtmlOpenTag, parseHtmlCloseTag } from './Inlines';
 import { tryParseGfmBlock } from './Gfm';
 
 /**
@@ -420,8 +419,8 @@ export function parseParagraph(state: ParseState): AstNode {
     if (line.startsWith('>')) break;
     if (isBulletListMarker(line) || isOrderedListMarker(line)) break;
     if (isThematicBreak(line)) break;
-    // HTML 块
-    if (isHtmlBlockStart(line)) break;
+    // HTML 块（type 7 不打断段落）
+    if (isHtmlBlockInterrupt(line)) break;
 
     text += (text !== '' ? '\n' : '') + line.trimStart();
     state.nextLine();
@@ -525,7 +524,7 @@ function isNonListBlockStart(line: string): boolean {
   if (line.startsWith('>')) return true;
   if (line.startsWith('```') || line.startsWith('~~~')) return true;
   if (isThematicBreak(line)) return true;
-  if (isHtmlBlockStart(line)) return true;
+  if (isHtmlBlockInterrupt(line)) return true;
   return false;
 }
 
@@ -603,48 +602,158 @@ function parseIndentedCodeBlock(state: ParseState): AstNode | null {
   return node;
 }
 
-/** HTML 块起始检测 */
-function isHtmlBlockStart(line: string): boolean {
-  const trimmed: string = line.trimStart();
-  if (!trimmed.startsWith('<')) return false;
-  // Type 6: 以特定标签开头的行
-  const tags: string[] = ['<address', '<article', '<aside', '<base', '<basefont',
-    '<blockquote', '<body', '<caption', '<center', '<col', '<colgroup', '<dd',
-    '<details', '<dialog', '<dir', '<div', '<dl', '<dt', '<fieldset', '<figcaption',
-    '<figure', '<footer', '<form', '<frame', '<frameset', '<h1', '<h2', '<h3',
-    '<h4', '<h5', '<h6', '<head', '<header', '<hr', '<html', '<iframe', '<legend',
-    '<li', '<link', '<main', '<menu', '<menuitem', '<nav', '<noframes', '<ol',
-    '<optgroup', '<option', '<p', '<param', '<section', '<source', '<summary',
-    '<table', '<tbody', '<td', '<tfoot', '<th', '<thead', '<title', '<tr', '<track',
-    '<ul', '<pre', '<script', '<style'];
-  const lower: string = trimmed.toLowerCase();
-  for (let i = 0; i < tags.length; i++) {
-    if (lower.startsWith(tags[i])) return true;
+// ── HTML 块解析（CommonMark 4.6 七型分类）──
+
+/** 常量：Type 6 HTML 块标签名单 */
+const HTML_BLOCK_TYPE6_NAMES: string[] = ['address', 'article', 'aside', 'base', 'basefont',
+  'blockquote', 'body', 'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dialog', 'dir',
+  'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'frame', 'frameset',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'html', 'iframe', 'legend', 'li',
+  'link', 'main', 'menu', 'menuitem', 'nav', 'noframes', 'ol', 'optgroup', 'option', 'p', 'param',
+  'section', 'search', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'title', 'tr',
+  'track', 'ul'];
+
+/** 字符 helper（charCode，无正则） */
+function isAsciiLetterCh(cc: number): boolean { return (cc >= 65 && cc <= 90) || (cc >= 97 && cc <= 122); }
+function isAsciiAlnumCh(cc: number): boolean { return isAsciiLetterCh(cc) || (cc >= 48 && cc <= 57); }
+
+function isAllWhitespaceFrom(s: string, from: number): boolean {
+  for (let k: number = from; k < s.length; k++) {
+    const c: string = s[k];
+    if (c !== ' ' && c !== '\t') return false;
   }
-  // Type 7: </...> 或 <.../> 或 <... >
-  if (trimmed.startsWith('</')) return true;
-  // Type 1: <!-- ... --> 或 <![CDATA[
-  if (trimmed.startsWith('<!--') || trimmed.startsWith('<![CDATA[')) return true;
-  // Type 2: <? ... ?>
-  if (trimmed.startsWith('<?')) return true;
+  return true;
+}
+
+function isBlankLine(line: string): boolean {
+  for (let k: number = 0; k < line.length; k++) {
+    const c: string = line[k];
+    if (c !== ' ' && c !== '\t') return false;
+  }
+  return true;
+}
+
+function isType6Name(name: string): boolean {
+  return HTML_BLOCK_TYPE6_NAMES.indexOf(name) >= 0;
+}
+
+/** 提取 < 或 </ 后的字母数字 tagname，匹配 type1 名单或 type6 名单。
+ *  isType6=false → 查 type1 名单(script/pre/textarea/style)，终止符不含 '/'；
+ *  isType6=true  → 查 type6 名单，终止符含 '/'。
+ *  命中返回 1 或 6，否则 0。 */
+function matchHtmlTagNameType(s: string, isType6: boolean): number {
+  let p: number = 1;
+  if (isType6 && s.length > 1 && s[1] === '/') {
+    p = 2;
+  }
+  if (p >= s.length || !isAsciiLetterCh(s.charCodeAt(p))) return 0;
+  const nameStart: number = p;
+  p += 1;
+  while (p < s.length && isAsciiAlnumCh(s.charCodeAt(p))) {
+    p += 1;
+  }
+  const name: string = s.substring(nameStart, p).toLowerCase();
+  const term: string = p < s.length ? s[p] : '';
+  const isWs: boolean = term === '' || term === ' ' || term === '\t';
+  if (!isType6) {
+    if (name === 'script' || name === 'pre' || name === 'textarea' || name === 'style') {
+      if (isWs || term === '>') return 1;
+    }
+    return 0;
+  } else {
+    if (isType6Name(name)) {
+      if (isWs || term === '>' || term === '/') return 6;
+    }
+    return 0;
+  }
+}
+
+/** HTML 块类型检测：返回 0(非) 或 1-7。s 用「去前导(<4列)空白后」的子串匹配。 */
+function htmlBlockStartType(line: string): number {
+  let i: number = 0;
+  let col: number = 0;
+  while (i < line.length && col < 4) {
+    const ch: string = line[i];
+    if (ch === ' ') { col += 1; i += 1; }
+    else if (ch === '\t') { col += 4 - (col % 4); i += 1; }
+    else break;
+  }
+  if (col >= 4) return 0;
+  const s: string = line.substring(i);
+  if (s.length === 0 || s[0] !== '<') return 0;
+
+  // type 1: < (script|pre|textarea|style) 终止符(空白|>|EOL，不含/)
+  const t1: number = matchHtmlTagNameType(s, false);
+  if (t1 === 1) return 1;
+  // type 2: <!--
+  if (s.length >= 4 && s[1] === '!' && s[2] === '-' && s[3] === '-') return 2;
+  // type 3: <?
+  if (s.length >= 2 && s[1] === '?') return 3;
+  // type 5: <![CDATA[ (先于 type4 测，避免歧义)
+  if (s.length >= 9 && s.substring(0, 9) === '<![CDATA[') return 5;
+  // type 4: <! + ASCII 字母
+  if (s.length >= 3 && s[1] === '!' && isAsciiLetterCh(s.charCodeAt(2))) return 4;
+  // type 6: </? 名字∈名单 终止符(空白|>|/|EOL)
+  const t6: number = matchHtmlTagNameType(s, true);
+  if (t6 === 6) return 6;
+  // type 7: 完整开/闭标签 + 仅空白到行尾
+  let e: number = -1;
+  if (s.length >= 2 && s[1] === '/') {
+    e = parseHtmlCloseTag(s, 0);
+  } else {
+    e = parseHtmlOpenTag(s, 0);
+  }
+  if (e >= 0 && isAllWhitespaceFrom(s, e)) return 7;
+  return 0;
+}
+
+/** 任意 HTML 块起始（type 1-7）——用于 tryParseBlock 的新块入口 */
+function isHtmlBlockStart(line: string): boolean {
+  return htmlBlockStartType(line) > 0;
+}
+
+/** 可打断段落/懒续行的 HTML 块（type 1-6；type 7 不能打断段落） */
+function isHtmlBlockInterrupt(line: string): boolean {
+  const t: number = htmlBlockStartType(line);
+  return t >= 1 && t <= 6;
+}
+
+/** 结束标记判定 */
+function htmlBlockCloseMatch(line: string, blockType: number): boolean {
+  if (blockType === 1) {
+    const lc: string = line.toLowerCase();
+    return lc.indexOf('</script>') >= 0 || lc.indexOf('</pre>') >= 0 ||
+           lc.indexOf('</textarea>') >= 0 || lc.indexOf('</style>') >= 0;
+  }
+  if (blockType === 2) return line.indexOf('-->') >= 0;
+  if (blockType === 3) return line.indexOf('?>') >= 0;
+  if (blockType === 4) return line.indexOf('>') >= 0;
+  if (blockType === 5) return line.indexOf(']]>') >= 0;
   return false;
 }
 
 /** 解析 HTML 块 */
 function parseHtmlBlock(state: ParseState): AstNode {
   const node: AstNode = new AstNode(AstNodeType.HtmlBlock);
-  let html: string = '';
-
+  const firstLine: string = state.currentLine();
+  const blockType: number = htmlBlockStartType(firstLine);
+  const lines: string[] = [];
   while (!state.isEnd()) {
     const line: string = state.currentLine();
-    html += line + '\n';
-    state.nextLine();
-    // 空行后结束 HTML 块
-    if (line === '') break;
+    if (blockType >= 6) {
+      // type 6 / 7：空行结束（空行不计入、不消费）
+      if (isBlankLine(line)) break;
+      lines.push(line);
+      state.nextLine();
+    } else {
+      // type 1-5：先收进，再判结束标记（首行也判）；中间空行也收
+      lines.push(line);
+      state.nextLine();
+      if (htmlBlockCloseMatch(line, blockType)) break;
+    }
   }
-
   const textNode: AstNode = new AstNode(AstNodeType.Text);
-  textNode.text = html.trim();
+  textNode.text = lines.join('\n');
   node.appendChild(textNode);
   return node;
 }

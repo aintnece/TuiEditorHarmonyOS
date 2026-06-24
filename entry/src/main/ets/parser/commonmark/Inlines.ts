@@ -900,7 +900,7 @@ function tryParseHtmlTag(text: string, start: number): number {
 }
 
 /** 开标签 <tag attr* /?> */
-function parseHtmlOpenTag(text: string, start: number): number {
+export function parseHtmlOpenTag(text: string, start: number): number {
   const len: number = text.length;
   let p: number = start + 1;
   if (p >= len || !isAsciiLetter(text.charCodeAt(p))) return -1;
@@ -948,7 +948,7 @@ function parseHtmlOpenTag(text: string, start: number): number {
 }
 
 /** 闭标签 </tag > （不许属性） */
-function parseHtmlCloseTag(text: string, start: number): number {
+export function parseHtmlCloseTag(text: string, start: number): number {
   const len: number = text.length;
   let p: number = start + 2;   // 跳过 </
   if (p >= len || !isAsciiLetter(text.charCodeAt(p))) return -1;
