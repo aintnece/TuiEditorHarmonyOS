@@ -55,7 +55,7 @@ export function tryParseBlock(state: ParseState): AstNode | null {
     return parseIndentedCodeBlock(state);
   }
   // 块引用
-  if (line.startsWith('>')) {
+  if (isBlockQuoteStart(line)) {
     return parseBlockQuote(state);
   }
   // HTML 块
@@ -147,25 +147,80 @@ export function parseThematicBreak(state: ParseState): AstNode {
   return node;
 }
 
-/** 块引用 > content */
+// ── 块引用 helpers（lazy paragraph continuation）──
+
+/** 引用块标记剥离：跳 ≤3 前导空格 → '>' → 一个可选空格/制表。返回剥后内容；非引用行返回 null。 */
+function blockQuoteMarkerStrip(line: string): string | null {
+  let i: number = 0;
+  let col: number = 0;
+  while (i < line.length && col < 4) {
+    const ch: string = line[i];
+    if (ch === ' ') { col += 1; i += 1; }
+    else if (ch === '\t') { col += 4 - (col % 4); i += 1; }
+    else break;
+  }
+  if (col >= 4) return null;                       // 缩进≥4 → 非引用块
+  if (i >= line.length || line[i] !== '>') return null;
+  i += 1;                                           // 消费 '>'
+  if (i < line.length && (line[i] === ' ' || line[i] === '\t')) { i += 1; }   // 一个可选空格/制表
+  return line.substring(i);
+}
+
+/** 引用块起始（容忍 ≤3 前导空格）。 */
+function isBlockQuoteStart(line: string): boolean {
+  return blockQuoteMarkerStrip(line) !== null;
+}
+
+/** 收进 rest 后，引用块尾部是否有「开着的段落」（决定后续非 > 行能否懒续）。
+ *  blank / ATX 标题(#) / 围栏(```/~~~) / 分割线 → false（无开段落或不可懒续）；
+ *  其余（普通段落文本、嵌套 > 行、列表项等）→ true（乐观；递归会正确收口）。 */
+function setsParaOpen(rest: string): boolean {
+  if (isBlankLine(rest)) return false;
+  if (rest.startsWith('#')) return false;
+  if (rest.startsWith('```') || rest.startsWith('~~~')) return false;
+  if (isThematicBreak(rest)) return false;
+  return true;
+}
+
+/** 非 > 行能否作为段落懒续行（= parseParagraph 不会被它打断）。
+ *  缩进≥4 的行本批保守不收（Ex238 缩进列表懒续行留后续，避免动 parseParagraph 列表打断规则）。 */
+function isLazyContinuable(line: string): boolean {
+  if (isBlankLine(line)) return false;
+  if (countIndentColumns(line) >= 4) return false;     // 本批不处理缩进懒续行（Ex238 延后）
+  if (line.startsWith('#')) return false;              // ATX 标题打断段落
+  if (line.startsWith('```') || line.startsWith('~~~')) return false;  // 围栏打断
+  if (isThematicBreak(line)) return false;             // 分割线打断
+  if (line.startsWith('>')) return false;              // > 行另行处理
+  if (isHtmlBlockInterrupt(line)) return false;        // HTML 块 type1-6 打断
+  if (isBulletListMarker(line) || isOrderedListMarker(line)) return false;  // 非缩进列表标记打断
+  return true;
+}
+
+/** 块引用 > content（含懒段落续行） */
 export function parseBlockQuote(state: ParseState): AstNode {
   const node: AstNode = new AstNode(AstNodeType.BlockQuote);
-
-  // 收集所有连续引用行
   let content: string = '';
+  let paraOpen: boolean = false;
   while (!state.isEnd()) {
     const line: string = state.currentLine();
-    if (!line.startsWith('>')) break;
-    // 移除引用标记（可选空格）
-    let rest: string = line.substring(1);
-    if (rest.length > 0 && rest[0] === ' ') {
-      rest = rest.substring(1);
+    const rest: string | null = blockQuoteMarkerStrip(line);
+    if (rest !== null) {
+      // > 行：纯空白 rest 归一为空行（Ex241）
+      const piece: string = isBlankLine(rest) ? '' : rest;
+      content += piece + '\n';
+      paraOpen = setsParaOpen(rest);
+      state.nextLine();
+    } else {
+      // 非 > 行：懒续行候选
+      if (paraOpen && isLazyContinuable(line)) {
+        content += line + '\n';     // 原样收（内层 parseParagraph 会 trimStart）
+        // paraOpen 保持 true
+        state.nextLine();
+      } else {
+        break;                       // 引用块结束
+      }
     }
-    content += rest + '\n';
-    state.nextLine();
   }
-
-  // 递归解析引用内容
   const innerState: ParseState = new ParseState();
   innerState.reset(content);
   parseBlocks(innerState, node);
