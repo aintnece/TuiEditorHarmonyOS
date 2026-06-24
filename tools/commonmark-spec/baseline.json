@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T04:07:40.170Z",
+  "date": "2026-06-24T04:23:25.951Z",
   "total": 652,
-  "exact": 510,
+  "exact": 518,
   "cosmetic": 0,
-  "struct": 142,
+  "struct": 134,
   "error": 0,
   "hang": 0,
-  "exactPct": 78.22,
-  "nearPct": 78.22,
+  "exactPct": 79.45,
+  "nearPct": 79.45,
   "bySection": [
     {
       "section": "ATX headings",
@@ -202,9 +202,9 @@
     {
       "section": "Setext headings",
       "total": 27,
-      "exact": 20,
+      "exact": 26,
       "cosmetic": 0,
-      "struct": 7,
+      "struct": 1,
       "error": 0,
       "hang": 0
     },
@@ -238,9 +238,9 @@
     {
       "section": "Thematic breaks",
       "total": 19,
-      "exact": 15,
+      "exact": 17,
       "cosmetic": 0,
-      "struct": 4,
+      "struct": 2,
       "error": 0,
       "hang": 0
     }

@@ -428,11 +428,11 @@ export function parseParagraph(state: ParseState): AstNode {
     // Setext 标题前瞻：下一行是 === 或 ---
     if (!state.isEnd()) {
       const nextLine: string = state.currentLine();
-      if (isSetextUnderline(nextLine)) {
-        // 创建标题节点替代段落
+      const setextLevel: number = setextUnderlineType(nextLine);
+      if (setextLevel > 0) {
         const heading: AstNode = new AstNode(AstNodeType.Heading);
-        heading.attrs.level = nextLine.startsWith('=') ? 1 : 2;
-        parseInlines(text, heading);
+        heading.attrs.level = setextLevel;
+        parseInlines(stripTrailingSpacesTabs(text), heading);   // 去标题内容尾随空白
         state.nextLine(); // 消费下划线行
         return heading;   // 直接返回，不返回段落
       }
@@ -758,20 +758,42 @@ function parseHtmlBlock(state: ParseState): AstNode {
   return node;
 }
 
-/** Setext 标题下划线检测 */
-function isSetextUnderline(line: string): boolean {
-  if (line.length < 1) return false;
-  const ch: string = line[0];
-  if (ch !== '=' && ch !== '-') return false;
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] !== ch && line[i] !== ' ') return false;
+/** 去掉字符串尾随的空格/制表（不动行内、不动 \n）。 */
+function stripTrailingSpacesTabs(s: string): string {
+  let e: number = s.length;
+  while (e > 0) {
+    const c: string = s[e - 1];
+    if (c !== ' ' && c !== '\t') break;
+    e -= 1;
   }
-  return true;
+  return s.substring(0, e);
+}
+
+/** Setext 下划线检测：返回 0(非) / 1(=,H1) / 2(-,H2)。
+ *  规则：0-3 前导空格 → 连续的 '='+ 或 '-'+ → 其后仅空格/制表到行尾。4+ 前导空格 → 0。 */
+function setextUnderlineType(line: string): number {
+  let i: number = 0;
+  while (i < line.length && line[i] === ' ') { i += 1; }
+  if (i > 3) return 0;                 // 4+ 前导空格 → 非下划线（缩进）
+  if (i >= line.length) return 0;      // 全空白
+  const ch: string = line[i];
+  if (ch !== '=' && ch !== '-') return 0;
+  // 连续 run
+  let j: number = i;
+  while (j < line.length && line[j] === ch) { j += 1; }
+  // 其后只能是尾随空格/制表
+  while (j < line.length) {
+    const c: string = line[j];
+    if (c !== ' ' && c !== '\t') return 0;
+    j += 1;
+  }
+  return ch === '=' ? 1 : 2;
 }
 
 // ── 行级辅助 ──
 
 export function isThematicBreak(line: string): boolean {
+  if (countIndentColumns(line) >= 4) return false;   // 缩进≥4 → 非分割线
   const trimmed: string = line.trim();
   if (trimmed.length < 3) return false;
   const ch: string = trimmed[0];
