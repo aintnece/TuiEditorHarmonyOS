@@ -70,7 +70,9 @@
 - ⚠️ CC 跑 tsx 撞到未跳过的死循环会把 `claude -p` 进程一起挂死——**新发现死循环先加进 skip.json 再让 CC 跑**。
 - ⚠️ **harness(tsx) 不检查 ArkTS 严格模式规则**——解析器改动即使 harness 全过、数字漂亮，仍可能含 `arkts-no-untyped-obj-literals`(匿名对象字面量) 等违规、炸 DevEco 构建。**每批解析器改动 Hermes 审 diff 时必须按 CLAUDE.md ArkTS 规则人工核一遍**（重点：匿名对象字面量→具名 class+new、无 spread/Record/any/索引访问）。8.2c-1 真实踩过。
 
-## 8.2b 开工提示（Emphasis — 新会话直接看这里）
+## ✅ 8.2b 开工提示（Emphasis — 已于本批完成，保留作算法参考）
+
+> **已完成**：delimiter-run 算法已落地 `Inlines.ts`（具名 class `Delimiter`/`EmphasisProcessor` + charCode flanking helper），Emphasis 46→129/132，总 329→421，0 回归。spec: `.project/8.2b-emphasis-spec.md`。下面原始提示保留备查。
 
 **开场**：「继续 TuiEditorHarmonyOS，做 8.2b Emphasis」。先读本文件 + status.md 恢复。
 
@@ -83,5 +85,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 8.2d-2（列表项内容模型重写：多块/嵌套/tight-loose）完成，commit d1567a0 已 push main。基线 exact **50.46%** (329/652)，error 0，hang 0，全 26 节 0 回归。List items 9→23，Lists 6→14。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。剩余最大杠杆 = **8.2b Emphasis**（最大簇 86/132，需 CommonMark delimiter-run 算法，大工程/高风险）；或 **8.2e 零碎节**（Entity refs/Code spans/HTML blocks 等）。每批 CC 修 → 重跑 harness → baseline.json 量增量。⚠️ 解析器改动审 diff 必过 ArkTS 规则 + 全节回归对比（见 Phase 8 测试管线）。
+**Status**: Phase 8.2b（Emphasis CommonMark delimiter-run 算法）完成。基线 exact **64.57%** (421/652)，Emphasis 节 46→129/132，error 0，hang 0，全 26 节 0 回归（连带 Links +5 / Code spans +1 / Hard breaks +1 / Setext +1 / Thematic +1）。仅改 Inlines.ts。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。剩余杠杆 = **8.2e 零碎节**（Entity refs / inline Raw HTML〔含 Emphasis 剩的 Ex475-477〕/ HTML blocks / Autolinks / Setext 等，逐节累加）。每批 CC 修 → 重跑 harness → baseline.json 量增量。⚠️ 解析器改动审 diff 必过 ArkTS 规则 + 全节回归对比（见 Phase 8 测试管线）。

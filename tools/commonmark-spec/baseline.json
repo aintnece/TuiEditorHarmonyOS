@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T01:12:33.336Z",
+  "date": "2026-06-24T01:41:18.592Z",
   "total": 652,
-  "exact": 329,
+  "exact": 421,
   "cosmetic": 2,
-  "struct": 321,
+  "struct": 229,
   "error": 0,
   "hang": 0,
-  "exactPct": 50.46,
-  "nearPct": 50.77,
+  "exactPct": 64.57,
+  "nearPct": 64.88,
   "bySection": [
     {
       "section": "ATX headings",
@@ -58,18 +58,18 @@
     {
       "section": "Code spans",
       "total": 22,
-      "exact": 8,
+      "exact": 9,
       "cosmetic": 0,
-      "struct": 14,
+      "struct": 13,
       "error": 0,
       "hang": 0
     },
     {
       "section": "Emphasis and strong emphasis",
       "total": 132,
-      "exact": 46,
+      "exact": 129,
       "cosmetic": 0,
-      "struct": 86,
+      "struct": 3,
       "error": 0,
       "hang": 0
     },
@@ -94,9 +94,9 @@
     {
       "section": "Hard line breaks",
       "total": 15,
-      "exact": 6,
+      "exact": 7,
       "cosmetic": 0,
-      "struct": 9,
+      "struct": 8,
       "error": 0,
       "hang": 0
     },
@@ -148,9 +148,9 @@
     {
       "section": "Links",
       "total": 90,
-      "exact": 56,
+      "exact": 61,
       "cosmetic": 1,
-      "struct": 33,
+      "struct": 28,
       "error": 0,
       "hang": 0
     },
@@ -202,9 +202,9 @@
     {
       "section": "Setext headings",
       "total": 27,
-      "exact": 19,
+      "exact": 20,
       "cosmetic": 0,
-      "struct": 8,
+      "struct": 7,
       "error": 0,
       "hang": 0
     },
@@ -238,9 +238,9 @@
     {
       "section": "Thematic breaks",
       "total": 19,
-      "exact": 14,
+      "exact": 15,
       "cosmetic": 0,
-      "struct": 5,
+      "struct": 4,
       "error": 0,
       "hang": 0
     }

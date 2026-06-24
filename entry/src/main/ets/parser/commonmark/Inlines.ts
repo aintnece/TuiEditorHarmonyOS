@@ -3,6 +3,7 @@
  *
  * 对标 tui.editor libs/toastmark/src/commonmark/inlines.ts。
  * 处理行内格式：粗体、斜体、删除线、链接、图片、行内代码、转义、换行。
+ * 强调/加粗使用 CommonMark 0.31.2 delimiter-run 算法（flanking + rule-of-three）。
  * 所有函数为纯函数，不持有状态。
  */
 
@@ -28,6 +29,8 @@ class TitleResult {
 export function parseInlines(text: string, parent: AstNode): void {
   let i: number = 0;
   const len: number = text.length;
+  const out: AstNode[] = [];
+  let topDelim: Delimiter | null = null;
 
   while (i < len) {
     // ── 转义字符 ──
@@ -37,14 +40,14 @@ export function parseInlines(text: string, parent: AstNode): void {
       if (isEscapable(escaped)) {
         const txt: AstNode = new AstNode(AstNodeType.Text);
         txt.text = escaped;
-        parent.appendChild(txt);
+        out.push(txt);
         i += 2;
         continue;
       } else {
         // 非转义字符，反斜杠保留为普通文本
         const txt: AstNode = new AstNode(AstNodeType.Text);
         txt.text = '\\';
-        parent.appendChild(txt);
+        out.push(txt);
         i++;
         continue;
       }
@@ -58,7 +61,7 @@ export function parseInlines(text: string, parent: AstNode): void {
       while (j < len && text[j] === ' ') j++;
       if (j < len && text[j] === '\n') {
         const br: AstNode = new AstNode(AstNodeType.HardBreak);
-        parent.appendChild(br);
+        out.push(br);
         i = j + 1; // 跳过空格和 \n
         continue;
       }
@@ -67,7 +70,7 @@ export function parseInlines(text: string, parent: AstNode): void {
     // ── 软换行（单个 \n）──
     if (text[i] === '\n') {
       const br: AstNode = new AstNode(AstNodeType.SoftBreak);
-      parent.appendChild(br);
+      out.push(br);
       i++;
       continue;
     }
@@ -80,7 +83,7 @@ export function parseInlines(text: string, parent: AstNode): void {
         node.attrs.alt = result.text;
         node.attrs.url = result.url;
         node.attrs.title = result.title;
-        parent.appendChild(node);
+        out.push(node);
         i = result.nextIndex;
         continue;
       }
@@ -91,7 +94,7 @@ export function parseInlines(text: string, parent: AstNode): void {
         imgNode.attrs.alt = refImgResult.text;
         imgNode.attrs.url = refImgResult.url;
         imgNode.attrs.title = refImgResult.title;
-        parent.appendChild(imgNode);
+        out.push(imgNode);
         i = refImgResult.nextIndex;
         continue;
       }
@@ -105,7 +108,7 @@ export function parseInlines(text: string, parent: AstNode): void {
         parseInlines(result.text, node);
         node.attrs.url = result.url;
         node.attrs.title = result.title;
-        parent.appendChild(node);
+        out.push(node);
         i = result.nextIndex;
         continue;
       }
@@ -116,59 +119,77 @@ export function parseInlines(text: string, parent: AstNode): void {
         parseInlines(refLinkResult.text, linkNode);
         linkNode.attrs.url = refLinkResult.url;
         linkNode.attrs.title = refLinkResult.title;
-        parent.appendChild(linkNode);
+        out.push(linkNode);
         i = refLinkResult.nextIndex;
         continue;
       }
     }
 
-    // ── 粗体 **text** 或 __text__ ──
-    if (i + 1 < len && ((text[i] === '*' && text[i + 1] === '*') ||
-                         (text[i] === '_' && text[i + 1] === '_'))) {
-      const marker: string = text[i] + text[i + 1];
-      const end: number = text.indexOf(marker, i + 2);
-      if (end >= 0) {
-        const node: AstNode = new AstNode(AstNodeType.Strong);
-        parseInlines(text.substring(i + 2, end), node);
-        parent.appendChild(node);
-        i = end + 2;
-        continue;
-      }
-    }
-
-    // ── 删除线 ~~text~~ ──
+    // ── 删除线 ~~text~~ ──（保留）
     if (i + 1 < len && text[i] === '~' && text[i + 1] === '~') {
       const end: number = text.indexOf('~~', i + 2);
       if (end >= 0) {
         const node: AstNode = new AstNode(AstNodeType.Strike);
         parseInlines(text.substring(i + 2, end), node);
-        parent.appendChild(node);
+        out.push(node);
         i = end + 2;
         continue;
       }
     }
 
-    // ── 斜体 *text* 或 _text_ ──
+    // ── 强调/加粗：* 或 _ ──（delimiter-run 算法，替换原朴素 indexOf 粗体+斜体）
     if (text[i] === '*' || text[i] === '_') {
-      const ch: string = text[i];
-      // 双字符标记已在上面处理，这里处理单字符
-      if (i + 1 < len && text[i + 1] !== ch) {
-        const end: number = text.indexOf(ch, i + 1);
-        if (end > i + 1) {
-          // 确保不跨越换行
-          let hasNewline: boolean = false;
-          for (let k: number = i + 1; k < end; k++) {
-            if (text[k] === '\n') { hasNewline = true; break; }
-          }
-          if (!hasNewline) {
-            const node: AstNode = new AstNode(AstNodeType.Emph);
-            parseInlines(text.substring(i + 1, end), node);
-            parent.appendChild(node);
-            i = end + 1;
-            continue;
-          }
-        }
+      const cc: string = text[i];
+      // 1) 扫描连续同字符 run
+      let j: number = i;
+      while (j < len && text[j] === cc) { j++; }
+      const numdelims: number = j - i;
+
+      // 2) flanking 判定（before/after 用 '\n' 作行首/行尾哨兵）
+      const charBefore: string = (i === 0) ? '\n' : text[i - 1];
+      const charAfter: string = (j >= len) ? '\n' : text[j];
+      const afterWs: boolean = isUnicodeWhitespace(charAfter);
+      const afterPunct: boolean = isPunctuation(charAfter);
+      const beforeWs: boolean = isUnicodeWhitespace(charBefore);
+      const beforePunct: boolean = isPunctuation(charBefore);
+
+      const leftFlanking: boolean =
+        !afterWs && (!afterPunct || beforeWs || beforePunct);
+      const rightFlanking: boolean =
+        !beforeWs && (!beforePunct || afterWs || afterPunct);
+
+      let canOpen: boolean;
+      let canClose: boolean;
+      if (cc === '_') {
+        canOpen = leftFlanking && (!rightFlanking || beforePunct);
+        canClose = rightFlanking && (!leftFlanking || afterPunct);
+      } else {  // '*'
+        canOpen = leftFlanking;
+        canClose = rightFlanking;
       }
+
+      // 3) 产出一个承载整段 run 文本的 Text 节点
+      const node: AstNode = new AstNode(AstNodeType.Text);
+      node.text = text.substring(i, j);
+      out.push(node);
+
+      // 4) 仅当能开或能合时才入栈（既不能开也不能合 → 留作普通文本）
+      if (canOpen || canClose) {
+        const d: Delimiter = new Delimiter();
+        d.ch = cc;
+        d.numdelims = numdelims;
+        d.origdelims = numdelims;
+        d.node = node;
+        d.canOpen = canOpen;
+        d.canClose = canClose;
+        d.previous = topDelim;
+        d.next = null;
+        if (topDelim !== null) { topDelim.next = d; }
+        topDelim = d;
+      }
+
+      i = j;
+      continue;
     }
 
     // ── 行内代码 `code` ──
@@ -177,7 +198,7 @@ export function parseInlines(text: string, parent: AstNode): void {
       if (end >= 0) {
         const node: AstNode = new AstNode(AstNodeType.Code);
         node.text = text.substring(i + 1, end);
-        parent.appendChild(node);
+        out.push(node);
         i = end + 1;
         continue;
       }
@@ -194,7 +215,7 @@ export function parseInlines(text: string, parent: AstNode): void {
           const txt: AstNode = new AstNode(AstNodeType.Text);
           txt.text = inner;
           node.appendChild(txt);
-          parent.appendChild(node);
+          out.push(node);
           i = end + 1;
           continue;
         }
@@ -217,7 +238,7 @@ export function parseInlines(text: string, parent: AstNode): void {
         if (valid) {
           const ref: AstNode = new AstNode(AstNodeType.FootnoteRef);
           ref.text = label;
-          parent.appendChild(ref);
+          out.push(ref);
           i = end + 1;
           continue;
         }
@@ -230,7 +251,7 @@ export function parseInlines(text: string, parent: AstNode): void {
       if (entity) {
         const txt: AstNode = new AstNode(AstNodeType.Text);
         txt.text = entity;
-        parent.appendChild(txt);
+        out.push(txt);
         i += entity.length + 2; // rough estimate — 实际按原文本长度跳
         // 用找到的 ; 位置
         const semi: number = text.indexOf(';', i);
@@ -242,8 +263,15 @@ export function parseInlines(text: string, parent: AstNode): void {
     // ── 普通文本 ──
     const txt: AstNode = new AstNode(AstNodeType.Text);
     txt.text = text[i];
-    parent.appendChild(txt);
+    out.push(txt);
     i++;
+  }
+
+  // 扫描结束 → 配对强调 → 挂到 parent
+  const proc: EmphasisProcessor = new EmphasisProcessor(out, topDelim);
+  proc.process();
+  for (let k: number = 0; k < out.length; k++) {
+    parent.appendChild(out[k]);
   }
 }
 
@@ -254,6 +282,189 @@ class InlineMatchResult {
   url: string = '';
   title: string = '';
   nextIndex: number = 0;
+}
+
+// ── 强调 delimiter-run 算法辅助类型 ──
+
+/** 强调 delimiter 栈节点（双向链表，对标 commonmark.js delimiters） */
+class Delimiter {
+  ch: string = '';                    // '*' 或 '_'
+  numdelims: number = 0;              // 剩余可用 delimiter 数（会被消耗递减）
+  origdelims: number = 0;             // 原始 run 长度（rule-of-three 用，不变）
+  node: AstNode | null = null;        // 承载 run 文本的 Text 节点
+  canOpen: boolean = false;
+  canClose: boolean = false;
+  previous: Delimiter | null = null;
+  next: Delimiter | null = null;
+}
+
+/** Unicode 空白（含行首/行尾哨兵 '\n'，对标 /^\s/） */
+function isUnicodeWhitespace(ch: string): boolean {
+  if (ch.length === 0) return true;
+  const code: number = ch.charCodeAt(0);
+  if (code === 32 || (code >= 9 && code <= 13)) return true;        // space, \t \n \v \f \r
+  if (code === 0x00A0 || code === 0x1680) return true;
+  if (code >= 0x2000 && code <= 0x200A) return true;
+  if (code === 0x2028 || code === 0x2029 || code === 0x202F) return true;
+  if (code === 0x205F || code === 0x3000 || code === 0xFEFF) return true;
+  return false;
+}
+
+/** ASCII 标点码点：33-47 / 58-64 / 91-96 / 123-126 */
+function isAsciiPunct(code: number): boolean {
+  return (code >= 33 && code <= 47) || (code >= 58 && code <= 64) ||
+         (code >= 91 && code <= 96) || (code >= 123 && code <= 126);
+}
+
+/** Unicode 标点或符号（CommonMark flanking 用） */
+function isPunctuation(ch: string): boolean {
+  if (ch.length === 0) return false;
+  const code: number = ch.charCodeAt(0);
+  if (isAsciiPunct(code)) return true;
+  if (code <= 127) return false;                       // 其余 ASCII（字母/数字/控制）非标点
+  // 非 ASCII：cased 字母（拉丁/西里尔/希腊等，大小写不同）→ 非标点
+  if (ch.toLowerCase() !== ch.toUpperCase()) return false;
+  // 无大小写区分的字母（CJK/假名/谚文等，码点 ≥ 0x3040）→ 非标点
+  if (code >= 0x3040) return false;
+  // 其余非 ASCII（Latin-1 符号、货币 £€、各类 symbol）→ 标点
+  return true;
+}
+
+/** 强调/加粗后处理：配对 delimiter，把区间包进 Emph/Strong（对标 commonmark.js processEmphasis(null)） */
+class EmphasisProcessor {
+  out: AstNode[];
+  top: Delimiter | null;   // delimiter 栈顶
+
+  constructor(out: AstNode[], top: Delimiter | null) {
+    this.out = out;
+    this.top = top;
+  }
+
+  /** 链表删除（对标 removeDelimiter） */
+  removeDelimiter(d: Delimiter): void {
+    if (d.previous !== null) { d.previous.next = d.next; }
+    if (d.next === null) {
+      this.top = d.previous;            // 删的是栈顶
+    } else {
+      d.next.previous = d.previous;
+    }
+  }
+
+  /** 跳过 bottom 与 top 之间的 delimiter（对标 removeDelimitersBetween） */
+  removeDelimitersBetween(bottom: Delimiter, top: Delimiter): void {
+    if (bottom.next !== top) {
+      bottom.next = top;
+      top.previous = bottom;
+    }
+  }
+
+  /** 把 out 中 fromNode 与 toNode 之间(不含两端)的节点包进 wrapper，wrapper 放到 fromNode 之后 */
+  private wrapBetween(fromNode: AstNode, toNode: AstNode, wrapper: AstNode): void {
+    const oi: number = this.out.indexOf(fromNode);
+    const ci: number = this.out.indexOf(toNode);
+    // 把 (oi, ci) 之间的节点搬进 wrapper（顺序不变）
+    for (let k: number = oi + 1; k < ci; k++) {
+      wrapper.appendChild(this.out[k]);
+    }
+    // 用 wrapper 替换 out[oi+1 .. ci-1]
+    this.out.splice(oi + 1, ci - oi - 1, wrapper);
+  }
+
+  /** 从 out 移除一个节点（按对象身份） */
+  private removeNode(n: AstNode): void {
+    const idx: number = this.out.indexOf(n);
+    if (idx >= 0) { this.out.splice(idx, 1); }
+  }
+
+  process(): void {
+    // openers_bottom：14 槽数组（0/1 留给引号，不用；_ 用 2..7，* 用 8..13）
+    const openersBottom: (Delimiter | null)[] = [];
+    for (let n: number = 0; n < 14; n++) { openersBottom.push(null); }
+
+    // 找到栈底之上的第一个 closer：从栈顶回退到底
+    let closer: Delimiter | null = this.top;
+    while (closer !== null && closer.previous !== null) {
+      closer = closer.previous;
+    }
+
+    // 前向扫描 closer
+    while (closer !== null) {
+      const closercc: string = closer.ch;
+      if (!closer.canClose) {
+        closer = closer.next;
+        continue;
+      }
+      // 找匹配 opener（往回）
+      let opener: Delimiter | null = closer.previous;
+      let openerFound: boolean = false;
+      let obIndex: number;
+      if (closercc === '_') {
+        obIndex = 2 + (closer.canOpen ? 3 : 0) + (closer.origdelims % 3);
+      } else {  // '*'
+        obIndex = 8 + (closer.canOpen ? 3 : 0) + (closer.origdelims % 3);
+      }
+      while (opener !== null && opener !== openersBottom[obIndex]) {
+        const oddMatch: boolean =
+          (closer.canOpen || opener.canClose) &&
+          (closer.origdelims % 3 !== 0) &&
+          ((opener.origdelims + closer.origdelims) % 3 === 0);
+        if (opener.ch === closer.ch && opener.canOpen && !oddMatch) {
+          openerFound = true;
+          break;
+        }
+        opener = opener.previous;
+      }
+      const oldCloser: Delimiter = closer;
+
+      if (openerFound && opener !== null) {
+        // 取实际消耗的 delimiter 数
+        const useDelims: number =
+          (closer.numdelims >= 2 && opener.numdelims >= 2) ? 2 : 1;
+        const openerNode: AstNode | null = opener.node;
+        const closerNode: AstNode | null = closer.node;
+        opener.numdelims -= useDelims;
+        closer.numdelims -= useDelims;
+        // 从两端 Text 节点切掉已消耗的 delimiter 字符
+        if (openerNode !== null) {
+          openerNode.text = openerNode.text.substring(0, openerNode.text.length - useDelims);
+        }
+        if (closerNode !== null) {
+          closerNode.text = closerNode.text.substring(0, closerNode.text.length - useDelims);
+        }
+        // 建 Emph / Strong，把两端之间节点搬进去
+        const emph: AstNode =
+          new AstNode(useDelims === 1 ? AstNodeType.Emph : AstNodeType.Strong);
+        if (openerNode !== null && closerNode !== null) {
+          this.wrapBetween(openerNode, closerNode, emph);
+        }
+        // 删除 opener 与 closer 之间的所有 delimiter
+        this.removeDelimitersBetween(opener, closer);
+        // opener 用尽 → 删栈 + 删空 Text 节点
+        if (opener.numdelims === 0) {
+          if (openerNode !== null) { this.removeNode(openerNode); }
+          this.removeDelimiter(opener);
+        }
+        // closer 用尽 → 删栈 + 删空 Text 节点，closer 前移到 next
+        if (closer.numdelims === 0) {
+          if (closerNode !== null) { this.removeNode(closerNode); }
+          const tempstack: Delimiter | null = closer.next;
+          this.removeDelimiter(closer);
+          closer = tempstack;
+        }
+      } else {
+        // 没找到 opener：抬高该 closer 类别的搜索下界
+        closer = closer.next;
+      }
+
+      if (!openerFound) {
+        openersBottom[obIndex] = oldCloser.previous;
+        if (!oldCloser.canOpen) {
+          this.removeDelimiter(oldCloser);
+        }
+      }
+    }
+    // out 已就地改好；delimiter 栈丢弃即可
+  }
 }
 
 /** 尝试解析链接 [text](url "title") 或图片 ![alt](url "title") */
