@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T14:35:58.622Z",
+  "date": "2026-06-24T14:53:48.573Z",
   "total": 652,
-  "exact": 579,
+  "exact": 596,
   "cosmetic": 0,
-  "struct": 73,
+  "struct": 56,
   "error": 0,
   "hang": 0,
-  "exactPct": 88.8,
-  "nearPct": 88.8,
+  "exactPct": 91.41,
+  "nearPct": 91.41,
   "bySection": [
     {
       "section": "ATX headings",
@@ -121,9 +121,9 @@
     {
       "section": "Indented code blocks",
       "total": 12,
-      "exact": 9,
+      "exact": 10,
       "cosmetic": 0,
-      "struct": 3,
+      "struct": 2,
       "error": 0,
       "hang": 0
     },
@@ -157,18 +157,18 @@
     {
       "section": "List items",
       "total": 48,
-      "exact": 38,
+      "exact": 48,
       "cosmetic": 0,
-      "struct": 10,
+      "struct": 0,
       "error": 0,
       "hang": 0
     },
     {
       "section": "Lists",
       "total": 26,
-      "exact": 17,
+      "exact": 22,
       "cosmetic": 0,
-      "struct": 9,
+      "struct": 4,
       "error": 0,
       "hang": 0
     },
@@ -220,9 +220,9 @@
     {
       "section": "Tabs",
       "total": 11,
-      "exact": 5,
+      "exact": 6,
       "cosmetic": 0,
-      "struct": 6,
+      "struct": 5,
       "error": 0,
       "hang": 0
     },
