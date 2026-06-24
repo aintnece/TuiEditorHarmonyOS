@@ -70,6 +70,17 @@
 - ⚠️ CC 跑 tsx 撞到未跳过的死循环会把 `claude -p` 进程一起挂死——**新发现死循环先加进 skip.json 再让 CC 跑**。
 - ⚠️ **harness(tsx) 不检查 ArkTS 严格模式规则**——解析器改动即使 harness 全过、数字漂亮，仍可能含 `arkts-no-untyped-obj-literals`(匿名对象字面量) 等违规、炸 DevEco 构建。**每批解析器改动 Hermes 审 diff 时必须按 CLAUDE.md ArkTS 规则人工核一遍**（重点：匿名对象字面量→具名 class+new、无 spread/Record/any/索引访问）。8.2c-1 真实踩过。
 
+## 8.2b 开工提示（Emphasis — 新会话直接看这里）
+
+**开场**：「继续 TuiEditorHarmonyOS，做 8.2b Emphasis」。先读本文件 + status.md 恢复。
+
+- **现状（要替换的代码）**：`commonmark/Inlines.ts` 的 `parseInlines` 里三处朴素配对——粗体 `**`/`__`(约 125-137)、删除线 `~~`(约 139-149，GFM，**保留**)、斜体 `*`/`_`(约 151-168)。全用 `text.indexOf(marker, ...)` 找最近的闭合标记，**没有 left/right-flanking 规则** → 把空格旁/标点旁的零散 `*`/`_` 误判成 `<em>`/`<strong>`（Ex351 `a * foo bar*`、Ex352 `a*"foo"*`、Ex353 `* a *` 都被错斜体）。
+- **修法**：移植 CommonMark **delimiter-run 算法**——扫描时把 `*`/`_` 的 delimiter run 入栈，按 left-flanking/right-flanking（看两侧是否空白/标点）判定能否 open/close，配对时遵守 rule-of-three（open+close 长度和为 3 倍数的限制）、`_` 的 intraword 限制（词内 `_` 不成强调，`*` 可以）、`***`=强调+加粗 的嵌套。参考 tui.editor `libs/toastmark/src/commonmark/inlines.ts` 的 delimiter 处理。
+- **⚠️ 最高回归风险**：现 Emphasis 已对 46/132，**别把已通过的改坏**。
+- **严格 gate（亲跑核对，不信 CC 自报）**：① Emphasis 节明显↑(现 46/132)；② 总 exact ≥ 329 且上升；③ **务必做全节回归对比**（`git show HEAD:tools/commonmark-spec/baseline.json` vs 新跑的，因为 emphasis 是核心内联、波及面大）；④ error=0、无死循环；⑤ Code spans/Links/段落等不回归。
+- **ArkTS**：禁匿名对象字面量(delimiter 栈项用具名 class，别 `{...}`——8.2c-1 炸过 DevEco)、禁 Record/索引访问、正则别用 `\\`。
+- 流程同前：investigate failures.txt 的 [Emphasis] 样例 → 写 `.project/8.2b-emphasis-spec.md` → 派 CC → 亲验(harness+全节回归+ArkTS) → commit/push → 更新 .project。
+
 ## Checkpoint
 
 **Status**: Phase 8.2d-2（列表项内容模型重写：多块/嵌套/tight-loose）完成，commit d1567a0 已 push main。基线 exact **50.46%** (329/652)，error 0，hang 0，全 26 节 0 回归。List items 9→23，Lists 6→14。无进行中批次。
