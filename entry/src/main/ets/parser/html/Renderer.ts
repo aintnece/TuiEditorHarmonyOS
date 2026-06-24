@@ -210,6 +210,10 @@ export class HtmlRenderer {
         // Tight: 只渲染段落 inner，不包 <p>
         result += this.renderChildren(child);
       } else {
+        // Tight 时非段落块级子节点前补条件换行（CommonMark 5.2/5.3）
+        if (tight && (result.length === 0 || result[result.length - 1] !== '\n')) {
+          result += '\n';
+        }
         result += this.renderNode(child);
       }
     }

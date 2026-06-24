@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T05:13:23.344Z",
+  "date": "2026-06-24T05:28:33.855Z",
   "total": 652,
-  "exact": 539,
+  "exact": 551,
   "cosmetic": 0,
-  "struct": 113,
+  "struct": 101,
   "error": 0,
   "hang": 0,
-  "exactPct": 82.67,
-  "nearPct": 82.67,
+  "exactPct": 84.51,
+  "nearPct": 84.51,
   "bySection": [
     {
       "section": "ATX headings",
@@ -103,9 +103,9 @@
     {
       "section": "HTML blocks",
       "total": 44,
-      "exact": 43,
+      "exact": 44,
       "cosmetic": 0,
-      "struct": 1,
+      "struct": 0,
       "error": 0,
       "hang": 0
     },
@@ -157,18 +157,18 @@
     {
       "section": "List items",
       "total": 48,
-      "exact": 25,
+      "exact": 32,
       "cosmetic": 0,
-      "struct": 23,
+      "struct": 16,
       "error": 0,
       "hang": 0
     },
     {
       "section": "Lists",
       "total": 26,
-      "exact": 14,
+      "exact": 17,
       "cosmetic": 0,
-      "struct": 12,
+      "struct": 9,
       "error": 0,
       "hang": 0
     },
@@ -238,9 +238,9 @@
     {
       "section": "Thematic breaks",
       "total": 19,
-      "exact": 17,
+      "exact": 18,
       "cosmetic": 0,
-      "struct": 2,
+      "struct": 1,
       "error": 0,
       "hang": 0
     }
