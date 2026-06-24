@@ -192,14 +192,47 @@ export function parseInlines(text: string, parent: AstNode): void {
       continue;
     }
 
-    // ── 行内代码 `code` ──
+    // ── 行内代码 `code`（CommonMark 反引号 run 等长匹配）──
     if (text[i] === '`') {
-      const end: number = text.indexOf('`', i + 1);
-      if (end >= 0) {
+      // 1) 开 run 长度
+      let p: number = i;
+      while (p < len && text[p] === '`') { p++; }
+      const openLen: number = p - i;
+      const contentStart: number = p;
+
+      // 2) 找等长闭 run
+      let q: number = p;
+      let closeStart: number = -1;
+      while (q < len) {
+        if (text[q] === '`') {
+          let r: number = q;
+          while (r < len && text[r] === '`') { r++; }
+          const runLen: number = r - q;
+          if (runLen === openLen) { closeStart = q; break; }
+          q = r;                       // 长度不符，跳过整个 run
+        } else {
+          q++;
+        }
+      }
+
+      if (closeStart >= 0) {
+        // 3) 内容处理：换行→空格 + 首尾单空格剥离
+        let content: string = codeSpanNewlinesToSpaces(text.substring(contentStart, closeStart));
+        if (content.length > 0 && codeSpanHasNonSpace(content) &&
+            content[0] === ' ' && content[content.length - 1] === ' ') {
+          content = content.substring(1, content.length - 1);
+        }
         const node: AstNode = new AstNode(AstNodeType.Code);
-        node.text = text.substring(i + 1, end);
+        node.text = content;
         out.push(node);
-        i = end + 1;
+        i = closeStart + openLen;
+        continue;
+      } else {
+        // 4) 无闭合：开 run 留字面，仅推进过开 run
+        const lit: AstNode = new AstNode(AstNodeType.Text);
+        lit.text = text.substring(i, p);
+        out.push(lit);
+        i = p;
         continue;
       }
     }
@@ -276,6 +309,25 @@ export function parseInlines(text: string, parent: AstNode): void {
 }
 
 // ── 辅助类型与函数 ──
+
+/** 行内代码内容：换行符（\n / \r）各转成一个空格（不折叠） */
+function codeSpanNewlinesToSpaces(s: string): string {
+  let out: string = '';
+  for (let k: number = 0; k < s.length; k++) {
+    const ch: string = s[k];
+    if (ch === '\n' || ch === '\r') { out += ' '; }
+    else { out += ch; }
+  }
+  return out;
+}
+
+/** 是否含至少一个非空格(U+0020)字符 */
+function codeSpanHasNonSpace(s: string): boolean {
+  for (let k: number = 0; k < s.length; k++) {
+    if (s[k] !== ' ') return true;
+  }
+  return false;
+}
 
 class InlineMatchResult {
   text: string = '';

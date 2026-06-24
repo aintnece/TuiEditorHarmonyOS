@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T01:41:18.592Z",
+  "date": "2026-06-24T01:56:15.677Z",
   "total": 652,
-  "exact": 421,
+  "exact": 434,
   "cosmetic": 2,
-  "struct": 229,
+  "struct": 216,
   "error": 0,
   "hang": 0,
-  "exactPct": 64.57,
-  "nearPct": 64.88,
+  "exactPct": 66.56,
+  "nearPct": 66.87,
   "bySection": [
     {
       "section": "ATX headings",
@@ -31,9 +31,9 @@
     {
       "section": "Backslash escapes",
       "total": 13,
-      "exact": 8,
+      "exact": 9,
       "cosmetic": 0,
-      "struct": 5,
+      "struct": 4,
       "error": 0,
       "hang": 0
     },
@@ -58,9 +58,9 @@
     {
       "section": "Code spans",
       "total": 22,
-      "exact": 9,
+      "exact": 18,
       "cosmetic": 0,
-      "struct": 13,
+      "struct": 4,
       "error": 0,
       "hang": 0
     },
@@ -85,18 +85,18 @@
     {
       "section": "Fenced code blocks",
       "total": 29,
-      "exact": 13,
+      "exact": 14,
       "cosmetic": 0,
-      "struct": 16,
+      "struct": 15,
       "error": 0,
       "hang": 0
     },
     {
       "section": "Hard line breaks",
       "total": 15,
-      "exact": 7,
+      "exact": 9,
       "cosmetic": 0,
-      "struct": 8,
+      "struct": 6,
       "error": 0,
       "hang": 0
     },
