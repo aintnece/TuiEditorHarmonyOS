@@ -752,7 +752,9 @@ export function parseTitle(text: string, start: number): TitleResult | null {
         r.nextIdx = pos + 1;
         return r;
       }
-      if (ch === '\n') return null;
+      // Allow \n in title for multiline ref-defs (block built from non-blank lines
+      // so \n\n won't occur here; inline links never hit this path — findClosingBracket
+      // rejects \n before we get to dest/title).
       raw += ch;
       pos++;
     }
@@ -767,7 +769,7 @@ export function parseTitle(text: string, start: number): TitleResult | null {
       pos += 2;
       continue;
     }
-    if (ch === '\n') return null;
+    // Allow \n in title for multiline ref-defs (same rationale as above).
     if (ch === delimiter) {
       const title: string = unescapeString(raw);
       const r: TitleResult = new TitleResult();
@@ -1392,6 +1394,249 @@ export function parseLinkRefDefLine(line: string): LinkRefDefParseResult | null 
   def.url = url;
   def.title = title;
   result.def = def;
+  return result;
+}
+
+// ── 多行链接引用定义块解析 ──
+
+/** parseLinkRefDefBlock 的返回值 */
+export class LinkRefDefBlockResult {
+  defs: LinkRefDefParseResult[] = [];
+  linesConsumed: number = 0;
+}
+
+/** 单个 ref-def 解析结果（parseSingleRefDef 内部用） */
+class SingleRefDefResult {
+  def: LinkRefDefParseResult = new LinkRefDefParseResult();
+  nextPos: number = 0;
+  consumedLines: number = 0;
+}
+
+/**
+ * 在 block 的 pos 处解析一个链接引用定义。
+ * 返回 def + nextPos + consumedLines，不是定义则返回 null。
+ */
+function parseSingleRefDef(block: string, pos: number): SingleRefDefResult | null {
+  const blockLen: number = block.length;
+
+  // Step 1: Skip up to 3 spaces indent
+  let spaceCount: number = 0;
+  while (pos < blockLen && block[pos] === ' ') {
+    pos++;
+    spaceCount++;
+  }
+  if (spaceCount > 3) return null;
+
+  // Must start with [
+  if (pos >= blockLen || block[pos] !== '[') return null;
+  pos++; // skip [
+
+  // Step 2: Find ]: — label can span lines (contain \n)
+  const colonIdx: number = block.indexOf(']:', pos);
+  if (colonIdx < 0) return null;
+
+  // Extract raw label
+  const rawLabel: string = block.substring(pos, colonIdx);
+
+  // Label must not be empty
+  if (rawLabel.length === 0) return null;
+
+  // Resolve backslash escapes in label
+  const label: string = resolveBackslashEscapes(rawLabel);
+
+  // Step 3: After ]: parse destination
+  pos = colonIdx + 2; // skip ]:
+
+  // Skip whitespace (spaces, tabs, at most one \n)
+  let newlineSeen: boolean = false;
+  while (pos < blockLen) {
+    const ch: string = block[pos];
+    if (ch === ' ' || ch === '\t') {
+      pos++;
+    } else if (ch === '\n') {
+      if (newlineSeen) break; // only one \n allowed before dest
+      newlineSeen = true;
+      pos++;
+    } else {
+      break;
+    }
+  }
+
+  // Must have a destination
+  if (pos >= blockLen) return null;
+
+  let url: string = '';
+  if (block[pos] === '<') {
+    const angleRes: DestResult | null = parseAngleDest(block, pos);
+    if (!angleRes) return null;
+    url = normalizeUri(angleRes.url);
+    pos = angleRes.nextIdx;
+  } else {
+    const bareRes: DestResult | null = parseBareDest(block, pos);
+    if (!bareRes) return null;
+    const resolved: string = bareRes.url;
+    if (resolved === '') return null;
+    url = normalizeUri(resolved);
+    pos = bareRes.nextIdx;
+  }
+
+  // Step 4: Skip whitespace after dest (spaces, tabs, at most one \n)
+  // Record position right after dest (before whitespace skip) in case title is discarded
+  const posAfterDest: number = pos;
+  newlineSeen = false;
+  while (pos < blockLen) {
+    const ch: string = block[pos];
+    if (ch === ' ' || ch === '\t') {
+      pos++;
+    } else if (ch === '\n') {
+      if (newlineSeen) break; // too many newlines before title
+      newlineSeen = true;
+      pos++;
+    } else {
+      break;
+    }
+  }
+
+  // Step 5: Optional title
+  let title: string = '';
+  let titleParsed: boolean = false;
+  if (pos < blockLen) {
+    const titleRes: TitleResult | null = parseTitle(block, pos);
+    if (titleRes) {
+      // Validate: after title, only whitespace up to next \n or end of block
+      let afterTitle: number = titleRes.nextIdx;
+      let validTitleEnd: boolean = true;
+      while (afterTitle < blockLen) {
+        const ch: string = block[afterTitle];
+        if (ch === ' ' || ch === '\t') {
+          afterTitle++;
+        } else if (ch === '\n') {
+          break; // end of line, valid
+        } else {
+          validTitleEnd = false;
+          break;
+        }
+      }
+      if (validTitleEnd) {
+        title = titleRes.title;
+        pos = afterTitle;
+        titleParsed = true;
+      }
+      // If title end is invalid (non-whitespace on same line), discard title,
+      // fall through to no-title path
+    }
+  }
+
+  if (!titleParsed) {
+    // No title (or title discarded). Reset position to after dest whitespace skip,
+    // then validate: rest of the "virtual line" after dest must be whitespace only.
+    pos = posAfterDest;
+    // Skip whitespace on the dest line (spaces, tabs)
+    while (pos < blockLen) {
+      const ch: string = block[pos];
+      if (ch === ' ' || ch === '\t') {
+        pos++;
+      } else if (ch === '\n') {
+        break; // end of line reached, ok
+      } else {
+        // Non-whitespace on dest line after dest → invalid def
+        return null;
+      }
+    }
+  }
+
+  // Step 6: Advance past trailing \n (if any) to start of next line
+  if (pos < blockLen && block[pos] === '\n') {
+    pos++; // skip \n, position at start of next "virtual line"
+  }
+
+  // Compute lines consumed by this def: count \n from colonIdx+2 to pos
+  // plus 1 for the label line (which may itself span multiple lines)
+  // Strategy: count \n in block[0..pos) and subtract \n in block[0..labelStart)
+  // Actually simpler: count \n in the def's territory and add 1 for the first line
+  // def territory: from the start of label line to pos
+  // But we know the def starts at some position. Let's track from the block start of this def.
+
+  // Actually, we compute consumedLines as: number of \n in block[defStartPos..pos) + 1
+  // where defStartPos is known to the caller. We'll compute this in parseLinkRefDefBlock.
+  // For now, just compute lines in the range from spaceCount reset position to pos.
+
+  const result: SingleRefDefResult = new SingleRefDefResult();
+  result.def.label = label;
+  const def: LinkRefDef = new LinkRefDef();
+  def.url = url;
+  def.title = title;
+  result.def.def = def;
+  result.nextPos = pos;
+  return result;
+}
+
+/**
+ * 解析多行链接引用定义块。
+ * 从 lines[start] 起收集连续非空行拼成 block 字符串（\n 连接，到空行/EOF 止），
+ * 在 block 上基于位置反复解析 ref-def，返回 defs 列表 + linesConsumed（消费行数）。
+ * 至少 1 个 def 才返回非 null。
+ */
+export function parseLinkRefDefBlock(lines: string[], start: number): LinkRefDefBlockResult | null {
+  if (start >= lines.length) return null;
+
+  // Step 1: Collect consecutive non-blank lines
+  let end: number = start;
+  while (end < lines.length) {
+    if (lines[end].trim() === '') break;
+    end++;
+  }
+  if (end === start) return null;
+
+  // Build block string (\n joined)
+  let block: string = lines[start];
+  for (let i: number = start + 1; i < end; i++) {
+    block += '\n' + lines[i];
+  }
+
+  // Step 2: Parse ref-defs on block
+  let pos: number = 0;
+  const defs: LinkRefDefParseResult[] = [];
+  let defStartPos: number = 0;
+
+  while (pos < block.length) {
+    const singleRes: SingleRefDefResult | null = parseSingleRefDef(block, pos);
+    if (singleRes === null) break;
+
+    // Compute lines consumed by this def: count \n in block[defStartPos..singleRes.nextPos)
+    let defNewlines: number = 0;
+    for (let k: number = defStartPos; k < singleRes.nextPos && k < block.length; k++) {
+      if (block[k] === '\n') defNewlines++;
+    }
+    // consumedLines for this def = defNewlines + 1 (the first line)
+    // Track for total
+    singleRes.consumedLines = defNewlines + 1;
+
+    defs.push(singleRes.def);
+    pos = singleRes.nextPos;
+    defStartPos = pos;
+  }
+
+  if (defs.length === 0) return null;
+
+  // Step 3: Compute total linesConsumed
+  let totalLines: number = 0;
+  // Recompute by scanning from block start to final pos
+  // Count \n in block[0..pos)
+  let newlineCount: number = 0;
+  for (let k: number = 0; k < pos && k < block.length; k++) {
+    if (block[k] === '\n') newlineCount++;
+  }
+  // If pos is at end of block (past last char), the last line has no trailing \n → +1
+  if (pos >= block.length) {
+    totalLines = newlineCount + 1;
+  } else {
+    totalLines = newlineCount;
+  }
+
+  const result: LinkRefDefBlockResult = new LinkRefDefBlockResult();
+  result.defs = defs;
+  result.linesConsumed = totalLines;
   return result;
 }
 

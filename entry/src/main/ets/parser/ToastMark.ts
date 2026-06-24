@@ -15,7 +15,7 @@ import { AstNode, AstNodeType } from './commonmark/Node';
 import { ParseState } from './commonmark/ParseState';
 import { parseBlocks } from './commonmark/Blocks';
 import { linkRefs } from './commonmark/LinkRefs';
-import { parseLinkRefDefLine, LinkRefDefParseResult } from './commonmark/Inlines';
+import { parseLinkRefDefLine, parseLinkRefDefBlock, LinkRefDefParseResult, LinkRefDefBlockResult } from './commonmark/Inlines';
 
 export class ToastMark {
   private state: ParseState = new ParseState();
@@ -30,10 +30,16 @@ export class ToastMark {
       .split('\r\n').join('\n')
       .split('\r').join('\n');
     const lines: string[] = preScan.split('\n');
-    for (let i: number = 0; i < lines.length; i++) {
-      const result: LinkRefDefParseResult | null = parseLinkRefDefLine(lines[i]);
-      if (result) {
-        linkRefs.set(result.label, result.def);
+    let i: number = 0;
+    while (i < lines.length) {
+      const blockResult: LinkRefDefBlockResult | null = parseLinkRefDefBlock(lines, i);
+      if (blockResult !== null) {
+        for (let j: number = 0; j < blockResult.defs.length; j++) {
+          linkRefs.set(blockResult.defs[j].label, blockResult.defs[j].def);
+        }
+        i += blockResult.linesConsumed;
+      } else {
+        i++;
       }
     }
 

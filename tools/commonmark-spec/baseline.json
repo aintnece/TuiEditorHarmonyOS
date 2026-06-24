@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T14:53:48.573Z",
+  "date": "2026-06-24T15:22:34.756Z",
   "total": 652,
-  "exact": 596,
+  "exact": 602,
   "cosmetic": 0,
-  "struct": 56,
+  "struct": 50,
   "error": 0,
   "hang": 0,
-  "exactPct": 91.41,
-  "nearPct": 91.41,
+  "exactPct": 92.33,
+  "nearPct": 92.33,
   "bySection": [
     {
       "section": "ATX headings",
@@ -139,9 +139,9 @@
     {
       "section": "Link reference definitions",
       "total": 27,
-      "exact": 16,
+      "exact": 22,
       "cosmetic": 0,
-      "struct": 11,
+      "struct": 5,
       "error": 0,
       "hang": 0
     },

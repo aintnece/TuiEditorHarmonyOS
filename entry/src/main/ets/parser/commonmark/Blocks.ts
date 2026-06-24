@@ -8,7 +8,7 @@
 
 import { AstNode, AstNodeType } from './Node';
 import { ParseState } from './ParseState';
-import { parseInlines, parseLinkRefDefLine, parseHtmlOpenTag, parseHtmlCloseTag, unescapeString } from './Inlines';
+import { parseInlines, parseLinkRefDefLine, parseLinkRefDefBlock, LinkRefDefBlockResult, parseHtmlOpenTag, parseHtmlCloseTag, unescapeString } from './Inlines';
 import { tryParseGfmBlock } from './Gfm';
 
 /**
@@ -75,12 +75,39 @@ export function tryParseBlock(state: ParseState): AstNode | null {
   const gfm: AstNode | null = tryParseGfmBlock(state);
   if (gfm) return gfm;
 
-  // 链接引用定义行 [label]: dest "title" — 消费但不渲染
-  if (parseLinkRefDefLine(line) !== null) {
-    state.nextLine(); // 必须推进，否则死循环
-    // 返回空段落节点（renderParagraph 对空内容返回 ''，定义行不产生输出）
-    return new AstNode(AstNodeType.Paragraph);
+  // 链接引用定义 [label]: dest "title" — 多行消费但不渲染
+  const savedPos: number = state.save();
+  const blockLines: string[] = [];
+  let tmpPos: number = savedPos;
+  // Collect consecutive non-blank lines from ParseState
+  while (tmpPos < state.len) {
+    let lineEnd: number = tmpPos;
+    while (lineEnd < state.len && state.input[lineEnd] !== '\n') {
+      lineEnd++;
+    }
+    let peekLine: string = state.input.substring(tmpPos, lineEnd);
+    // Strip trailing \r (CRLF normalization)
+    if (peekLine.length > 0 && peekLine[peekLine.length - 1] === '\r') {
+      peekLine = peekLine.substring(0, peekLine.length - 1);
+    }
+    if (peekLine.trim() === '') break;
+    blockLines.push(peekLine);
+    tmpPos = lineEnd + 1; // skip \n
+    if (lineEnd >= state.len) break;
   }
+
+  if (blockLines.length > 0) {
+    const blockResult: LinkRefDefBlockResult | null = parseLinkRefDefBlock(blockLines, 0);
+    if (blockResult !== null) {
+      // Consume the lines
+      for (let j: number = 0; j < blockResult.linesConsumed; j++) {
+        state.nextLine();
+      }
+      // 返回空段落节点（renderParagraph 对空内容返回 ''，定义行不产生输出）
+      return new AstNode(AstNodeType.Paragraph);
+    }
+  }
+  state.restore(savedPos);
 
   return null;
 }
