@@ -42,7 +42,7 @@ export function tryParseBlock(state: ParseState): AstNode | null {
     return parseCodeBlock(state);
   }
   // ATX 标题
-  if (line.startsWith('#')) {
+  if (isAtxHeadingStart(line)) {
     return parseHeading(state);
   }
   // 分割线（优先级高于 Setext 标题，因为 --- 可能是分割线）
@@ -168,26 +168,70 @@ export function parseCodeBlock(state: ParseState): AstNode {
   return node;
 }
 
+/** ATX 开标记解析结果（具名 class，禁匿名对象字面量） */
+class AtxOpen {
+  level: number = 0;
+  contentStart: number = 0;
+}
+
+/** 解析 ATX 开标记；不是合法 ATX 标题返回 null。
+ *  规则：≤3 前导空格 + 1-6 个 # + 其后跟 空格/Tab/行尾。 */
+function parseAtxOpen(line: string): AtxOpen | null {
+  let i: number = 0;
+  while (i < line.length && line[i] === ' ' && i < 4) i++;
+  if (i >= 4) return null;                       // ≥4 空格 → 缩进代码，非标题
+  const start: number = i;
+  while (i < line.length && line[i] === '#') i++;
+  const level: number = i - start;
+  if (level < 1 || level > 6) return null;        // 0 个或 7+ 个 → 非标题
+  if (i < line.length) {                          // run 后必须空格/Tab（行尾 i===length 也合法）
+    const c: string = line[i];
+    if (c !== ' ' && c !== '\t') return null;
+  }
+  const ah: AtxOpen = new AtxOpen();
+  ah.level = level;
+  ah.contentStart = i;
+  return ah;
+}
+
+/** 入口用：是否合法 ATX 标题开始 */
+function isAtxHeadingStart(line: string): boolean {
+  return parseAtxOpen(line) !== null;
+}
+
 /** ATX 标题 # Heading */
 export function parseHeading(state: ParseState): AstNode {
   const node: AstNode = new AstNode(AstNodeType.Heading);
   const line: string = state.currentLine();
   state.nextLine();
+  const ah: AtxOpen | null = parseAtxOpen(line);
+  // 入口已保证非 null；防御性处理
+  const level: number = ah !== null ? ah.level : 1;
+  const cStart: number = ah !== null ? ah.contentStart : 1;
+  node.attrs.level = level;
 
-  let level: number = 0;
-  for (let i = 0; i < line.length && line[i] === '#'; i++) {
-    level++;
+  // 内容：开标记之后，首尾去空格/Tab
+  let s: string = line.substring(cStart);
+  // 去首部空格/Tab
+  let a: number = 0;
+  while (a < s.length && (s[a] === ' ' || s[a] === '\t')) a++;
+  // 去尾部空格/Tab
+  let e: number = s.length;
+  while (e > a && (s[e - 1] === ' ' || s[e - 1] === '\t')) e--;
+  s = s.substring(a, e);
+
+  // 闭合序列：尾部 # run，仅当其前是 空格/Tab 或 run 即整个内容 才剥除
+  let he: number = s.length;                         // run 末端（已无尾随空白）
+  let h: number = he;
+  while (h > 0 && s[h - 1] === '#') h--;             // [h, he) 为尾部 # run
+  if (h < he && (h === 0 || s[h - 1] === ' ' || s[h - 1] === '\t')) {
+    // 是闭合序列 → 剥除 run + 其前的空格/Tab
+    let k: number = h;
+    while (k > 0 && (s[k - 1] === ' ' || s[k - 1] === '\t')) k--;
+    s = s.substring(0, k);
   }
-  node.attrs.level = level > 6 ? 6 : level;
-  // 去除开头的 # 和结尾的 #（closing sequence）
-  let text: string = line.substring(level).trim();
-  // 去除结尾的 # 序列
-  let endIdx: number = text.length - 1;
-  while (endIdx >= 0 && text[endIdx] === '#') {
-    endIdx--;
-  }
-  text = text.substring(0, endIdx + 1).trim();
-  parseInlines(text, node);
+
+  parseInlines(s, node);
   return node;
 }
 
@@ -521,7 +565,7 @@ export function parseParagraph(state: ParseState): AstNode {
     // 空行 → 段落结束
     if (line === '') break;
     // 块级标记 → 段落结束
-    if (line.startsWith('#') || isCodeFenceStart(line)) break;
+    if (isAtxHeadingStart(line) || isCodeFenceStart(line)) break;
     if (line.startsWith('>')) break;
     if (isBulletListMarker(line) || isOrderedListMarker(line)) break;
     if (isThematicBreak(line)) break;

@@ -1,21 +1,21 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T13:25:31.074Z",
+  "date": "2026-06-24T14:12:02.268Z",
   "total": 652,
-  "exact": 567,
+  "exact": 573,
   "cosmetic": 0,
-  "struct": 85,
+  "struct": 79,
   "error": 0,
   "hang": 0,
-  "exactPct": 86.96,
-  "nearPct": 86.96,
+  "exactPct": 87.88,
+  "nearPct": 87.88,
   "bySection": [
     {
       "section": "ATX headings",
       "total": 18,
-      "exact": 12,
+      "exact": 18,
       "cosmetic": 0,
-      "struct": 6,
+      "struct": 0,
       "error": 0,
       "hang": 0
     },
