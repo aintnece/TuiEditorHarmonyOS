@@ -606,9 +606,8 @@ function parseDestAndTitle(text: string, start: number): DestAndTitleResult | nu
     pos = bareRes.nextIdx;
   }
 
-  // 反斜杠转义解析 + URI 百分号编码
-  let url: string = resolveBackslashEscapes(urlRaw);
-  url = normalizeUri(url);
+  // urlRaw already unescaped by parseAngleDest/parseBareDest
+  const url: string = normalizeUri(urlRaw);
 
   // destination 后空白 → 可选 title → 空白 → )
   pos = skipSpace(text, pos);
@@ -659,7 +658,7 @@ export function parseAngleDest(text: string, start: number): DestResult | null {
     if (ch === '<') return null; // 未转义的 < 非法
     if (ch === '>') {
       // 找到闭合 >
-      const url: string = resolveBackslashEscapes(content);
+      const url: string = unescapeString(content);
       const r: DestResult = new DestResult();
       r.url = url;
       r.nextIdx = pos + 1;
@@ -688,7 +687,7 @@ export function parseBareDest(text: string, start: number): DestResult | null {
     }
     if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f' || ch === '\v') {
       // 遇空白停止
-      const url: string = resolveBackslashEscapes(content);
+      const url: string = unescapeString(content);
       const r: DestResult = new DestResult();
       r.url = url;
       r.nextIdx = pos;
@@ -704,7 +703,7 @@ export function parseBareDest(text: string, start: number): DestResult | null {
       depth--;
       if (depth < 0) {
         // 未配对的 )，结束 destination（是链接的闭合 )）
-        const url: string = resolveBackslashEscapes(content);
+        const url: string = unescapeString(content);
         const r: DestResult = new DestResult();
         r.url = url;
         r.nextIdx = pos;
@@ -719,7 +718,7 @@ export function parseBareDest(text: string, start: number): DestResult | null {
   }
 
   // 文本末尾
-  const url: string = resolveBackslashEscapes(content);
+  const url: string = unescapeString(content);
   const r: DestResult = new DestResult();
   r.url = url;
   r.nextIdx = pos;
@@ -747,7 +746,7 @@ export function parseTitle(text: string, start: number): TitleResult | null {
       }
       if (ch === '(') return null; // 不许嵌套
       if (ch === ')') {
-        const title: string = resolveBackslashEscapes(raw);
+        const title: string = unescapeString(raw);
         const r: TitleResult = new TitleResult();
         r.title = title;
         r.nextIdx = pos + 1;
@@ -770,7 +769,7 @@ export function parseTitle(text: string, start: number): TitleResult | null {
     }
     if (ch === '\n') return null;
     if (ch === delimiter) {
-      const title: string = resolveBackslashEscapes(raw);
+      const title: string = unescapeString(raw);
       const r: TitleResult = new TitleResult();
       r.title = title;
       r.nextIdx = pos + 1;
@@ -807,6 +806,33 @@ export function resolveBackslashEscapes(s: string): string {
     } else {
       result += s[i];
       i++;
+    }
+  }
+  return result;
+}
+
+/** 单趟反斜杠转义 + 实体解码（用于 dest/title/info）。
+ *  \X(X 为 ASCII 标点) → X；&...;(命名/数字实体) → 解码值；其余原样。 */
+export function unescapeString(s: string): string {
+  let result: string = '';
+  let i: number = 0;
+  while (i < s.length) {
+    const ch: string = s[i];
+    if (ch === '\\' && i + 1 < s.length && isEscapable(s[i + 1])) {
+      result += s[i + 1];
+      i += 2;
+    } else if (ch === '&') {
+      const er: EntityResult | null = tryParseEntity(s, i);
+      if (er !== null) {
+        result += er.value;
+        i = er.nextIdx;
+      } else {
+        result += ch;
+        i += 1;
+      }
+    } else {
+      result += ch;
+      i += 1;
     }
   }
   return result;

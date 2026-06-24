@@ -8,7 +8,7 @@
 
 import { AstNode, AstNodeType } from './Node';
 import { ParseState } from './ParseState';
-import { parseInlines, parseLinkRefDefLine, parseHtmlOpenTag, parseHtmlCloseTag } from './Inlines';
+import { parseInlines, parseLinkRefDefLine, parseHtmlOpenTag, parseHtmlCloseTag, unescapeString } from './Inlines';
 import { tryParseGfmBlock } from './Gfm';
 
 /**
@@ -97,7 +97,7 @@ export function parseCodeBlock(state: ParseState): AstNode {
   let infoStart: number = 0;
   if (fence.startsWith('```')) infoStart = 3;
   else if (fence.startsWith('~~~')) infoStart = 3;
-  node.attrs.info = fence.substring(infoStart).trim();
+  node.attrs.info = unescapeString(fence.substring(infoStart).trim());
 
   let code: string = '';
   const fenceChar: string = fence[0]; // ` 或 ~
