@@ -173,6 +173,59 @@ export function parseBlockQuote(state: ParseState): AstNode {
   return node;
 }
 
+// ── 列表 marker 解析（具名 class，禁匿名对象字面量）──
+
+/** 无序列表 marker 解析结果 */
+class BulletMarker {
+  ch: string = '';          // marker 字符：- * +
+  contentStart: number = 0; // 内容起始下标（marker + 空白之后）
+}
+
+/** 有序列表 marker 解析结果 */
+class OrderedMarker {
+  num: number = 0;          // 编号数值
+  delim: string = '';       // 分隔符：. 或 )
+  contentStart: number = 0; // 内容起始下标（数字 + 分隔符 + 空白之后）
+}
+
+/**
+ * 解析无序列表 marker：行首 [-*+] + ≥1 空白
+ * 返回 BulletMarker 或 null
+ */
+function parseBulletMarker(line: string): BulletMarker | null {
+  if (line.length < 2) return null;
+  const ch: string = line[0];
+  if (ch !== '-' && ch !== '*' && ch !== '+') return null;
+  if (line[1] !== ' ' && line[1] !== '\t') return null;
+  const result: BulletMarker = new BulletMarker();
+  result.ch = ch;
+  result.contentStart = 2; // marker 字符 + 1 空白
+  return result;
+}
+
+/**
+ * 解析有序列表 marker：行首 1-9 位数字 + (. 或 )) + ≥1 空白
+ * 返回 OrderedMarker 或 null
+ */
+function parseOrderedMarker(line: string): OrderedMarker | null {
+  let i: number = 0;
+  while (i < line.length && i < 9 && line[i] >= '0' && line[i] <= '9') {
+    i++;
+  }
+  if (i === 0) return null; // 无数字
+  if (i >= line.length) return null; // 只有数字，无分隔符
+  const delim: string = line[i];
+  if (delim !== '.' && delim !== ')') return null;
+  // 必须后跟 ≥1 空白
+  if (i + 1 >= line.length) return null;
+  if (line[i + 1] !== ' ' && line[i + 1] !== '\t') return null;
+  const result: OrderedMarker = new OrderedMarker();
+  result.num = parseInt(line.substring(0, i));
+  result.delim = delim;
+  result.contentStart = i + 2; // 数字 + 分隔符 + 1 空白
+  return result;
+}
+
 /** 列表（有序或无序） */
 export function parseList(state: ParseState, ordered: boolean): AstNode {
   const listType: AstNodeType = ordered
@@ -180,23 +233,44 @@ export function parseList(state: ParseState, ordered: boolean): AstNode {
   const list: AstNode = new AstNode(listType);
   list.attrs.ordered = ordered;
 
+  // 记录首项 marker 身份，用于后续边界检测
+  let bulletCh: string = '';
+  let orderedDelim: string = '';
+  const firstLine: string = state.currentLine();
+  if (ordered) {
+    const fm: OrderedMarker | null = parseOrderedMarker(firstLine);
+    if (fm) {
+      orderedDelim = fm.delim;
+      list.attrs.start = fm.num;
+    }
+  } else {
+    const fm: BulletMarker | null = parseBulletMarker(firstLine);
+    if (fm) {
+      bulletCh = fm.ch;
+    }
+  }
+
   while (!state.isEnd()) {
     const line: string = state.currentLine();
-    if (ordered && !isOrderedListMarker(line)) break;
-    if (!ordered && !isBulletListMarker(line)) break;
+
+    // 解析当前行 marker，检查列表身份一致性
+    let contentStart: number = 0;
+    if (ordered) {
+      const m: OrderedMarker | null = parseOrderedMarker(line);
+      if (!m) break;
+      if (m.delim !== orderedDelim) break; // 分隔符变了 → 另起新列表
+      contentStart = m.contentStart;
+    } else {
+      const m: BulletMarker | null = parseBulletMarker(line);
+      if (!m) break;
+      if (m.ch !== bulletCh) break; // 字符变了 → 另起新列表
+      contentStart = m.contentStart;
+    }
 
     const item: AstNode = new AstNode(AstNodeType.ListItem);
 
-    // 提取列表项文本（跳过标记部分）
-    let itemText: string = '';
-    if (ordered) {
-      // 找 ". " 的位置
-      const dotIdx: number = line.indexOf('.');
-      itemText = line.substring(dotIdx + 1).trimStart();
-    } else {
-      // 跳过 "- " / "* " / "+ "
-      itemText = line.substring(2).trimStart();
-    }
+    // 提取列表项文本（用 parse 得到的 contentStart）
+    let itemText: string = line.substring(contentStart).trimStart();
     state.nextLine();
 
     // 任务列表检测 (GFM)
@@ -209,7 +283,7 @@ export function parseList(state: ParseState, ordered: boolean): AstNode {
       itemText = itemText.substring(itemText.indexOf(']') + 1).trim();
     }
 
-    // 收集子块（缩进内容）
+    // 收集子块（缩进内容）—— 本批保持不动（内容模型留 8.2d-2）
     let subContent: string = '';
     while (!state.isEnd()) {
       const next: string = state.currentLine();
@@ -432,21 +506,10 @@ export function isThematicBreak(line: string): boolean {
 }
 
 export function isBulletListMarker(line: string): boolean {
-  return (line.startsWith('- ') || line.startsWith('* ') || line.startsWith('+ '));
+  return parseBulletMarker(line) !== null;
 }
 
 export function isOrderedListMarker(line: string): boolean {
-  // 匹配 "1. " "123. " 等
-  let dotIdx: number = -1;
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] === '.') { dotIdx = i; break; }
-    if (line[i] < '0' || line[i] > '9') return false;
-  }
-  if (dotIdx <= 0) return false;
-  if (dotIdx > 9) return false; // 最多 9 位数字
-  // 后面必须有空格或 tab
-  if (dotIdx + 1 < line.length && (line[dotIdx + 1] === ' ' || line[dotIdx + 1] === '\t')) {
-    return true;
-  }
-  return false;
+  // 基于 parseOrderedMarker，现在也认 "数字)" 不只是 "数字."
+  return parseOrderedMarker(line) !== null;
 }

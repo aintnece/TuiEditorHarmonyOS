@@ -175,6 +175,10 @@ export class HtmlRenderer {
   }
 
   private renderList(node: AstNode, ordered: boolean): string {
+    if (ordered && node.attrs.start !== 1) {
+      const inner: string = this.renderChildren(node);
+      return '<ol start="' + node.attrs.start + '">\n' + inner + '</ol>\n';
+    }
     const tag: string = ordered ? 'ol' : 'ul';
     const inner: string = this.renderChildren(node);
     return '<' + tag + '>\n' + inner + '</' + tag + '>\n';
