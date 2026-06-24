@@ -256,7 +256,7 @@ export function parseInlines(text: string, parent: AstNode): void {
         const inner: string = text.substring(i + 1, end);
         if (isUriAutolink(inner)) {
           const node: AstNode = new AstNode(AstNodeType.Link);
-          node.attrs.url = inner;                 // 原文（normalizeURI 留横切批次）；renderer 做 HTML escape
+          node.attrs.url = normalizeUri(inner);
           const txt: AstNode = new AstNode(AstNodeType.Text);
           txt.text = inner;
           node.appendChild(txt);
@@ -266,7 +266,7 @@ export function parseInlines(text: string, parent: AstNode): void {
         }
         if (isEmailAutolink(inner)) {
           const node: AstNode = new AstNode(AstNodeType.Link);
-          node.attrs.url = 'mailto:' + inner;
+          node.attrs.url = 'mailto:' + normalizeUri(inner);
           const txt: AstNode = new AstNode(AstNodeType.Text);
           txt.text = inner;
           node.appendChild(txt);
@@ -596,9 +596,9 @@ function parseDestAndTitle(text: string, start: number): DestAndTitleResult | nu
     pos = bareRes.nextIdx;
   }
 
-  // 反斜杠转义解析 + 空格归一化
+  // 反斜杠转义解析 + URI 百分号编码
   let url: string = resolveBackslashEscapes(urlRaw);
-  url = encodeSpacesInUrl(url);
+  url = normalizeUri(url);
 
   // destination 后空白 → 可选 title → 空白 → )
   pos = skipSpace(text, pos);
@@ -916,6 +916,72 @@ function isHexDigit(ch: string): boolean {
          (c >= 97 && c <= 102);                   // a-f
 }
 
+/** URL 安全标点：; / ? : @ & = + $ , - _ . ! ~ * ' ( ) # */
+function isUriSafePunct(c: number): boolean {
+  return c === 59 || c === 47 || c === 63 || c === 58 || c === 64 || c === 38 ||
+         c === 61 || c === 43 || c === 36 || c === 44 || c === 45 || c === 95 ||
+         c === 46 || c === 33 || c === 126 || c === 42 || c === 39 || c === 40 ||
+         c === 41 || c === 35;
+}
+
+/** 一个字节 → "%XX"（大写十六进制） */
+function uriHexByte(b: number): string {
+  const HEX: string = '0123456789ABCDEF';
+  return '%' + HEX[(b >> 4) & 0xF] + HEX[b & 0xF];
+}
+
+/** 码点 → UTF-8 字节的百分号编码 */
+function pctEncodeCodePoint(cp: number): string {
+  let s: string = '';
+  if (cp < 0x80) {
+    s += uriHexByte(cp);
+  } else if (cp < 0x800) {
+    s += uriHexByte(0xC0 | (cp >> 6));
+    s += uriHexByte(0x80 | (cp & 0x3F));
+  } else if (cp < 0x10000) {
+    s += uriHexByte(0xE0 | (cp >> 12));
+    s += uriHexByte(0x80 | ((cp >> 6) & 0x3F));
+    s += uriHexByte(0x80 | (cp & 0x3F));
+  } else {
+    s += uriHexByte(0xF0 | (cp >> 18));
+    s += uriHexByte(0x80 | ((cp >> 12) & 0x3F));
+    s += uriHexByte(0x80 | ((cp >> 6) & 0x3F));
+    s += uriHexByte(0x80 | (cp & 0x3F));
+  }
+  return s;
+}
+
+/** CommonMark normalizeURI：保留 alnum/安全标点/已有 %XX，其余按 UTF-8 百分号编码 */
+function normalizeUri(sVal: string): string {
+  let result: string = '';
+  let i: number = 0;
+  const n: number = sVal.length;
+  while (i < n) {
+    const c0: number = sVal.charCodeAt(i);
+    if (isAsciiAlnum(c0)) { result += sVal[i]; i++; continue; }
+    if (isUriSafePunct(c0)) { result += sVal[i]; i++; continue; }
+    // keepEscaped：% + 两位 hex 原样保留
+    if (c0 === 37 && i + 2 < n && isHexDigit(sVal[i + 1]) && isHexDigit(sVal[i + 2])) {
+      result += sVal.substring(i, i + 3);
+      i += 3;
+      continue;
+    }
+    // 百分号编码（含 surrogate pair → astral 码点）
+    let cp: number = c0;
+    let adv: number = 1;
+    if (c0 >= 0xD800 && c0 <= 0xDBFF && i + 1 < n) {
+      const c1: number = sVal.charCodeAt(i + 1);
+      if (c1 >= 0xDC00 && c1 <= 0xDFFF) {
+        cp = 0x10000 + ((c0 - 0xD800) << 10) + (c1 - 0xDC00);
+        adv = 2;
+      }
+    }
+    result += pctEncodeCodePoint(cp);
+    i += adv;
+  }
+  return result;
+}
+
 /** 实体引用解码：命名(6 个) + 数字(十进制/十六进制)。返回 EntityResult 或 null(非实体，留字面) */
 function tryParseEntity(text: string, start: number): EntityResult | null {
   const len: number = text.length;
@@ -1074,7 +1140,7 @@ export function parseLinkRefDefLine(line: string): LinkRefDefParseResult | null 
     const angleRes: DestResult | null = parseAngleDest(line, pos);
     if (!angleRes) return null;
     // parseAngleDest already resolves backslash escapes
-    url = encodeSpacesInUrl(angleRes.url);
+    url = normalizeUri(angleRes.url);
     pos = angleRes.nextIdx;
   } else {
     const bareRes: DestResult | null = parseBareDest(line, pos);
@@ -1082,7 +1148,7 @@ export function parseLinkRefDefLine(line: string): LinkRefDefParseResult | null 
     // parseBareDest already resolves backslash escapes; destination must be non-empty
     const resolved: string = bareRes.url;
     if (resolved === '') return null;
-    url = encodeSpacesInUrl(resolved);
+    url = normalizeUri(resolved);
     pos = bareRes.nextIdx;
   }
 
