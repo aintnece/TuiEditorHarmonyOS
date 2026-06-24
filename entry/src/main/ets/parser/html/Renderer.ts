@@ -120,6 +120,7 @@ export class HtmlRenderer {
       case AstNodeType.Table: return this.renderTable(node);
       case AstNodeType.ThematicBreak: return '<hr />\n';
       case AstNodeType.HtmlBlock: return node.getTextContent() + '\n';
+      case AstNodeType.HtmlInline: return node.text;
       case AstNodeType.CustomBlock: return '<div class="custom-block">' + this.renderChildren(node) + '</div>\n';
       case AstNodeType.FrontMatter: return '';  // 不渲染 YAML front matter
       case AstNodeType.Text: return this.escapeHtml(node.text);

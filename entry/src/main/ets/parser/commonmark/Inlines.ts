@@ -275,6 +275,15 @@ export function parseInlines(text: string, parent: AstNode): void {
           continue;
         }
       }
+      // ── 行内原始 HTML 标签 ──
+      const htmlEnd: number = tryParseHtmlTag(text, i);
+      if (htmlEnd > i) {
+        const htmlNode: AstNode = new AstNode(AstNodeType.HtmlInline);
+        htmlNode.text = text.substring(i, htmlEnd);
+        out.push(htmlNode);
+        i = htmlEnd;
+        continue;
+      }
     }
 
     // ── 脚注引用 [^label] (GFM) ──
@@ -845,6 +854,156 @@ function isEscapable(ch: string): boolean {
 function isAsciiLetter(c: number): boolean { return (c >= 65 && c <= 90) || (c >= 97 && c <= 122); }
 function isAsciiDigit(c: number): boolean { return c >= 48 && c <= 57; }
 function isAsciiAlnum(c: number): boolean { return isAsciiLetter(c) || isAsciiDigit(c); }
+
+// ── 行内原始 HTML 标签解析 ──
+
+/** HTML 空白：空格/Tab/换行/回车/换页 */
+function isHtmlWs(ch: string): boolean {
+  return ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === '\f';
+}
+function isAttrNameStart(c: number): boolean {
+  return isAsciiLetter(c) || c === 95 /*_*/ || c === 58 /*:*/;
+}
+function isAttrNameChar(c: number): boolean {
+  return isAsciiAlnum(c) || c === 95 /*_*/ || c === 58 /*:*/ || c === 46 /*.*/ || c === 45 /*-*/;
+}
+/** 无引号属性值字符：非 " ' = < > ` 且非空白/控制符（码点 > 0x20） */
+function isUnquotedValueChar(c: number): boolean {
+  if (c <= 0x20) return false;
+  return c !== 34 /*"*/ && c !== 39 /*'*/ && c !== 61 /*=*/ &&
+         c !== 60 /*<*/ && c !== 62 /*>*/ && c !== 96 /*`*/;
+}
+function skipHtmlWs(text: string, p: number): number {
+  while (p < text.length && isHtmlWs(text[p])) { p++; }
+  return p;
+}
+
+/** 行内 HTML 标签：从 start('<') 解析，返回标签后第一个索引；非法返回 -1 */
+function tryParseHtmlTag(text: string, start: number): number {
+  const len: number = text.length;
+  if (start >= len || text[start] !== '<') return -1;
+  if (start + 1 >= len) return -1;
+  const c1: string = text[start + 1];
+  if (c1 === '!') {
+    // 注释 <!-- / CDATA <![CDATA[ / 声明 <!Letter
+    if (start + 3 < len && text[start + 2] === '-' && text[start + 3] === '-') {
+      return parseHtmlComment(text, start);
+    }
+    if (start + 8 < len && text.substring(start + 2, start + 9) === '[CDATA[') {
+      return parseHtmlCdata(text, start);
+    }
+    return parseHtmlDeclaration(text, start);
+  }
+  if (c1 === '?') return parseHtmlPI(text, start);
+  if (c1 === '/') return parseHtmlCloseTag(text, start);
+  return parseHtmlOpenTag(text, start);
+}
+
+/** 开标签 <tag attr* /?> */
+function parseHtmlOpenTag(text: string, start: number): number {
+  const len: number = text.length;
+  let p: number = start + 1;
+  if (p >= len || !isAsciiLetter(text.charCodeAt(p))) return -1;
+  p++;
+  while (p < len && (isAsciiAlnum(text.charCodeAt(p)) || text[p] === '-')) { p++; }
+  // 属性循环
+  while (p < len) {
+    if (isHtmlWs(text[p])) {
+      p = skipHtmlWs(text, p);
+      if (p < len && isAttrNameStart(text.charCodeAt(p))) {
+        p++;
+        while (p < len && isAttrNameChar(text.charCodeAt(p))) { p++; }
+        // 可选 = 值
+        let vp: number = skipHtmlWs(text, p);
+        if (vp < len && text[vp] === '=') {
+          vp = skipHtmlWs(text, vp + 1);
+          if (vp >= len) return -1;
+          const q: string = text[vp];
+          if (q === '\'') {
+            const e: number = text.indexOf('\'', vp + 1);
+            if (e < 0) return -1;
+            p = e + 1;
+          } else if (q === '"') {
+            const e: number = text.indexOf('"', vp + 1);
+            if (e < 0) return -1;
+            p = e + 1;
+          } else {
+            const s2: number = vp;
+            while (vp < len && isUnquotedValueChar(text.charCodeAt(vp))) { vp++; }
+            if (vp === s2) return -1;
+            p = vp;
+          }
+        }
+        continue;   // 该属性消费完，继续找下一个
+      } else {
+        break;      // 空白后非属性名 → 结尾空白，去判 /?>
+      }
+    } else {
+      break;        // 无空白 → 直接判 /?>
+    }
+  }
+  if (p < len && text[p] === '/') { p++; }
+  if (p < len && text[p] === '>') return p + 1;
+  return -1;
+}
+
+/** 闭标签 </tag > （不许属性） */
+function parseHtmlCloseTag(text: string, start: number): number {
+  const len: number = text.length;
+  let p: number = start + 2;   // 跳过 </
+  if (p >= len || !isAsciiLetter(text.charCodeAt(p))) return -1;
+  p++;
+  while (p < len && (isAsciiAlnum(text.charCodeAt(p)) || text[p] === '-')) { p++; }
+  p = skipHtmlWs(text, p);
+  if (p < len && text[p] === '>') return p + 1;
+  return -1;
+}
+
+/** 注释 */
+function parseHtmlComment(text: string, start: number): number {
+  const len: number = text.length;
+  let p: number = start + 4;   // 跳过 <!--
+  if (p < len && text[p] === '>') return p + 1;                       // <!-->
+  if (p + 1 < len && text[p] === '-' && text[p + 1] === '>') return p + 2;  // <!--->
+  while (p + 2 < len) {
+    if (text[p] === '-' && text[p + 1] === '-' && text[p + 2] === '>') return p + 3;
+    p++;
+  }
+  return -1;
+}
+
+/** 处理指令 <? ... ?> */
+function parseHtmlPI(text: string, start: number): number {
+  const len: number = text.length;
+  let p: number = start + 2;
+  while (p + 1 < len) {
+    if (text[p] === '?' && text[p + 1] === '>') return p + 2;
+    p++;
+  }
+  return -1;
+}
+
+/** 声明 <!Letter ... > */
+function parseHtmlDeclaration(text: string, start: number): number {
+  const len: number = text.length;
+  let p: number = start + 2;   // 跳过 <!
+  if (p >= len || !isAsciiLetter(text.charCodeAt(p))) return -1;
+  p++;
+  while (p < len && text[p] !== '>') { p++; }
+  if (p < len && text[p] === '>') return p + 1;
+  return -1;
+}
+
+/** CDATA <![CDATA[ ... ]]> */
+function parseHtmlCdata(text: string, start: number): number {
+  const len: number = text.length;
+  let p: number = start + 9;   // 跳过 <![CDATA[
+  while (p + 2 < len) {
+    if (text[p] === ']' && text[p + 1] === ']' && text[p + 2] === '>') return p + 3;
+    p++;
+  }
+  return -1;
+}
 
 /** URI autolink：合法返回 true（inner = <...> 之间的内容） */
 function isUriAutolink(inner: string): boolean {

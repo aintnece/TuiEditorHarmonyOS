@@ -21,6 +21,7 @@ export enum AstNodeType {
   TableCell = 'tableCell',
   ThematicBreak = 'thematicBreak',
   HtmlBlock = 'htmlBlock',
+  HtmlInline = 'htmlInline',
   CustomBlock = 'customBlock',
   FrontMatter = 'frontMatter',
   Text = 'text',
