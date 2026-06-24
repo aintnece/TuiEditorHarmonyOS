@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T01:56:15.677Z",
+  "date": "2026-06-24T02:09:11.714Z",
   "total": 652,
-  "exact": 434,
+  "exact": 441,
   "cosmetic": 2,
-  "struct": 216,
+  "struct": 209,
   "error": 0,
   "hang": 0,
-  "exactPct": 66.56,
-  "nearPct": 66.87,
+  "exactPct": 67.64,
+  "nearPct": 67.94,
   "bySection": [
     {
       "section": "ATX headings",
@@ -76,9 +76,9 @@
     {
       "section": "Entity and numeric character references",
       "total": 17,
-      "exact": 5,
+      "exact": 12,
       "cosmetic": 0,
-      "struct": 12,
+      "struct": 5,
       "error": 0,
       "hang": 0
     },

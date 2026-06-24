@@ -22,6 +22,12 @@ class TitleResult {
   nextIdx: number = 0;
 }
 
+/** 实体解析结果：解码值 + 消费到的下一位置 */
+class EntityResult {
+  value: string = '';
+  nextIdx: number = 0;   // 实体之后第一个字符的索引（即 ';' 之后）
+}
+
 /**
  * 解析行内 Markdown 文本，将生成的节点添加到 parent。
  * 这是行内解析的主入口。
@@ -278,17 +284,14 @@ export function parseInlines(text: string, parent: AstNode): void {
       }
     }
 
-    // ── 实体引用 &amp; &lt; 等 ──
-    if (text[i] === '&' && i + 2 < len) {
-      const entity: string | null = tryParseEntity(text, i);
-      if (entity) {
+    // ── 实体引用 &amp; &#NN; &#xHH; 等 ──
+    if (text[i] === '&') {
+      const er: EntityResult | null = tryParseEntity(text, i);
+      if (er !== null) {
         const txt: AstNode = new AstNode(AstNodeType.Text);
-        txt.text = entity;
+        txt.text = er.value;
         out.push(txt);
-        i += entity.length + 2; // rough estimate — 实际按原文本长度跳
-        // 用找到的 ; 位置
-        const semi: number = text.indexOf(';', i);
-        if (semi >= 0) { i = semi + 1; }
+        i = er.nextIdx;
         continue;
       }
     }
@@ -834,23 +837,66 @@ function isAutolink(text: string): boolean {
   return false;
 }
 
-/** 实体引用解码 */
-function tryParseEntity(text: string, start: number): string | null {
-  // &amp; &lt; &gt; &quot; &apos; &#NNNN; &#xNNNN;
-  const semi: number = text.indexOf(';', start);
-  if (semi < 0 || semi - start > 20) return null;
-  const entity: string = text.substring(start, semi + 1);
-  if (entity === '&amp;') return '&';
-  if (entity === '&lt;') return '<';
-  if (entity === '&gt;') return '>';
-  if (entity === '&quot;') return '"';
-  if (entity === '&apos;') return "'";
-  if (entity === '&nbsp;') return ' ';
-  // 数字实体
-  if (entity.startsWith('&#')) {
-    return '?'; // 简化：返回占位符（完整实现需查 Unicode）
+/** 是否十进制数字字符 */
+function isDecimalDigit(ch: string): boolean {
+  const c: number = ch.charCodeAt(0);
+  return c >= 48 && c <= 57;                      // 0-9
+}
+
+/** 是否十六进制数字字符 */
+function isHexDigit(ch: string): boolean {
+  const c: number = ch.charCodeAt(0);
+  return (c >= 48 && c <= 57) ||                  // 0-9
+         (c >= 65 && c <= 70) ||                  // A-F
+         (c >= 97 && c <= 102);                   // a-f
+}
+
+/** 实体引用解码：命名(6 个) + 数字(十进制/十六进制)。返回 EntityResult 或 null(非实体，留字面) */
+function tryParseEntity(text: string, start: number): EntityResult | null {
+  const len: number = text.length;
+  if (start >= len || text[start] !== '&') return null;
+
+  // ── 数字引用 &#... ──
+  if (start + 1 < len && text[start + 1] === '#') {
+    let p: number = start + 2;
+    let isHex: boolean = false;
+    if (p < len && (text[p] === 'x' || text[p] === 'X')) { isHex = true; p++; }
+    const digitStart: number = p;
+    while (p < len && (isHex ? isHexDigit(text[p]) : isDecimalDigit(text[p]))) { p++; }
+    const numDigits: number = p - digitStart;
+    // 合法性
+    if (numDigits < 1) return null;
+    if (isHex && numDigits > 6) return null;
+    if (!isHex && numDigits > 7) return null;
+    if (p >= len || text[p] !== ';') return null;
+    // 解析码点
+    const digits: string = text.substring(digitStart, p);
+    let cp: number = parseInt(digits, isHex ? 16 : 10);
+    if (cp === 0 || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+      cp = 0xFFFD;
+    }
+    const er: EntityResult = new EntityResult();
+    er.value = String.fromCodePoint(cp);
+    er.nextIdx = p + 1;                            // 跳过 ';'
+    return er;
   }
-  return null;
+
+  // ── 命名实体（保留现有 6 个）──
+  const semi: number = text.indexOf(';', start);
+  if (semi < 0 || semi - start > 32) return null;
+  const entity: string = text.substring(start, semi + 1);
+  let v: string | null = null;
+  if (entity === '&amp;') { v = '&'; }
+  else if (entity === '&lt;') { v = '<'; }
+  else if (entity === '&gt;') { v = '>'; }
+  else if (entity === '&quot;') { v = '"'; }
+  else if (entity === '&apos;') { v = "'"; }
+  else if (entity === '&nbsp;') { v = ' '; }
+  if (v === null) return null;
+  const er2: EntityResult = new EntityResult();
+  er2.value = v;
+  er2.nextIdx = semi + 1;
+  return er2;
 }
 
 // ── 引用式链接解析 ──
