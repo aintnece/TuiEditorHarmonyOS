@@ -94,6 +94,7 @@ export class AstAttrs {
   ordered: boolean = false; // 有序列表
   start: number = 1;        // 有序列表起始编号
   checked: boolean | null = null; // 任务列表状态 (null = 非任务)
+  tight: boolean = true;          // 列表 tight/loose (true=tight, false=loose)
   alignments: string[] = [];      // 表格列对齐
   headerRow: boolean = false;     // 表格头行
 }

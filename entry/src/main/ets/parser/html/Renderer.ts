@@ -185,15 +185,34 @@ export class HtmlRenderer {
   }
 
   private renderListItem(node: AstNode): string {
+    const isTight: boolean = node.attrs.tight === true;
     // 任务列表
     if (node.attrs.checked !== null) {
       const checked: string = node.attrs.checked ? ' checked' : '';
       const checkHtml: string = '<input type="checkbox" disabled' + checked + ' class="task-check" /> ';
-      const inner: string = this.renderChildren(node);
+      const inner: string = this.renderListItemChildren(node, isTight);
       return '<li class="task-item">' + checkHtml + inner + '</li>\n';
     }
-    const inner: string = this.renderChildren(node);
-    return '<li>' + inner + '</li>\n';
+    const inner: string = this.renderListItemChildren(node, isTight);
+    if (isTight) {
+      return '<li>' + inner + '</li>\n';
+    }
+    return '<li>\n' + inner + '</li>\n';
+  }
+
+  /** 渲染列表项子节点，tight 时解包直接子 Paragraph（不包 p） */
+  private renderListItemChildren(node: AstNode, tight: boolean): string {
+    let result: string = '';
+    for (let i: number = 0; i < node.children.length; i++) {
+      const child: AstNode = node.children[i];
+      if (tight && child.type === AstNodeType.Paragraph) {
+        // Tight: 只渲染段落 inner，不包 <p>
+        result += this.renderChildren(child);
+      } else {
+        result += this.renderNode(child);
+      }
+    }
+    return result;
   }
 
   private renderTable(node: AstNode): string {

@@ -178,34 +178,46 @@ export function parseBlockQuote(state: ParseState): AstNode {
 /** 无序列表 marker 解析结果 */
 class BulletMarker {
   ch: string = '';          // marker 字符：- * +
-  contentStart: number = 0; // 内容起始下标（marker + 空白之后）
+  contentCol: number = 0;   // 内容起始列 W（marker + 空白之后的列位置）
 }
 
 /** 有序列表 marker 解析结果 */
 class OrderedMarker {
   num: number = 0;          // 编号数值
   delim: string = '';       // 分隔符：. 或 )
-  contentStart: number = 0; // 内容起始下标（数字 + 分隔符 + 空白之后）
+  contentCol: number = 0;   // 内容起始列 W（数字 + 分隔符 + 空白之后的列位置）
 }
 
 /**
  * 解析无序列表 marker：行首 [-*+] + ≥1 空白
- * 返回 BulletMarker 或 null
+ * 返回 BulletMarker 或 null。contentCol 按空格数计算真实内容缩进列 W。
+ * 规则：marker 后 s 个空白列（tab 展开），1≤s≤4 → W=1+s，s≥5 或 s=0 → W=2
  */
 function parseBulletMarker(line: string): BulletMarker | null {
   if (line.length < 2) return null;
   const ch: string = line[0];
   if (ch !== '-' && ch !== '*' && ch !== '+') return null;
   if (line[1] !== ' ' && line[1] !== '\t') return null;
+
+  // 计 marker 后空白列数（从位置 1 开始，当前处于列 1）
+  const wsEndCol: number = countWhitespaceFrom(line, 1, 1);
+  const wsCols: number = wsEndCol - 1; // 扣除 marker 字符占的 1 列
+
   const result: BulletMarker = new BulletMarker();
   result.ch = ch;
-  result.contentStart = 2; // marker 字符 + 1 空白
+  // W 计算：1≤s≤4 → W=1+s，s≥5 → W=2
+  if (wsCols >= 1 && wsCols <= 4) {
+    result.contentCol = 1 + wsCols; // marker 字符(1列) + 空白列
+  } else {
+    // s ≥ 5 或 s === 0（不应出现）
+    result.contentCol = 2;
+  }
   return result;
 }
 
 /**
  * 解析有序列表 marker：行首 1-9 位数字 + (. 或 )) + ≥1 空白
- * 返回 OrderedMarker 或 null
+ * 返回 OrderedMarker 或 null。contentCol 按空格数计算真实内容缩进列 W。
  */
 function parseOrderedMarker(line: string): OrderedMarker | null {
   let i: number = 0;
@@ -219,14 +231,36 @@ function parseOrderedMarker(line: string): OrderedMarker | null {
   // 必须后跟 ≥1 空白
   if (i + 1 >= line.length) return null;
   if (line[i + 1] !== ' ' && line[i + 1] !== '\t') return null;
+
+  // marker 文本结束位置：(i+1) 是分隔符之后第一个字符位置
+  // marker 文本宽度 = i + 1 列（数字 + 分隔符各 1 列）
+  const markerEndIdx: number = i + 1;
+  const markerWidth: number = markerEndIdx; // 数字和分隔符都是单宽字符
+
+  // 计 marker 后空白列数（从 markerEndIdx 开始，当前处于列 markerWidth）
+  const wsEndCol: number = countWhitespaceFrom(line, markerEndIdx, markerWidth);
+  const wsCols: number = wsEndCol - markerWidth;
+
   const result: OrderedMarker = new OrderedMarker();
   result.num = parseInt(line.substring(0, i));
   result.delim = delim;
-  result.contentStart = i + 2; // 数字 + 分隔符 + 1 空白
+  // W 计算：1≤s≤4 → W=markerWidth+s，s≥5 → W=markerWidth+1
+  if (wsCols >= 1 && wsCols <= 4) {
+    result.contentCol = markerWidth + wsCols;
+  } else {
+    result.contentCol = markerWidth + 1;
+  }
   return result;
 }
 
-/** 列表（有序或无序） */
+/** 列表（有序或无序）
+ *
+ * 按 CommonMark 规范重写内容收集：
+ * - A) marker 后按空格数计算真实内容缩进列 W
+ * - B) 收集整项内容（首行+续行），含空行/懒续行
+ * - C) tight/loose 判定并同步到 list + 每个 item
+ * - 唯一内容路径：itemLines.join('\n') 走 parseBlocks（不单独 parseInlines）
+ */
 export function parseList(state: ParseState, ordered: boolean): AstNode {
   const listType: AstNodeType = ordered
     ? AstNodeType.OrderedList : AstNodeType.BulletList;
@@ -250,74 +284,124 @@ export function parseList(state: ParseState, ordered: boolean): AstNode {
     }
   }
 
+  let listIsLoose: boolean = false;
+
   while (!state.isEnd()) {
     const line: string = state.currentLine();
 
-    // 解析当前行 marker，检查列表身份一致性
-    let contentStart: number = 0;
+    // 解析当前行 marker，获取 W 并检查列表身份一致性
+    let contentCol: number = 0;
     if (ordered) {
       const m: OrderedMarker | null = parseOrderedMarker(line);
       if (!m) break;
-      if (m.delim !== orderedDelim) break; // 分隔符变了 → 另起新列表
-      contentStart = m.contentStart;
+      if (m.delim !== orderedDelim) break;
+      contentCol = m.contentCol;
     } else {
       const m: BulletMarker | null = parseBulletMarker(line);
       if (!m) break;
-      if (m.ch !== bulletCh) break; // 字符变了 → 另起新列表
-      contentStart = m.contentStart;
+      if (m.ch !== bulletCh) break;
+      contentCol = m.contentCol;
     }
 
     const item: AstNode = new AstNode(AstNodeType.ListItem);
 
-    // 提取列表项文本（用 parse 得到的 contentStart）
-    let itemText: string = line.substring(contentStart).trimStart();
+    // B1) 首行内容 = line 从列 W 开始（不 trimStart，保留相对缩进）
+    const firstContent: string = substringByColumn(line, contentCol);
     state.nextLine();
 
-    // 任务列表检测 (GFM)
-    const trimmed: string = itemText;
-    if (trimmed.startsWith('[ ] ')) {
-      item.attrs.checked = false;
-      itemText = itemText.substring(itemText.indexOf(']') + 1).trim();
-    } else if (trimmed.startsWith('[x] ') || trimmed.startsWith('[X] ')) {
-      item.attrs.checked = true;
-      itemText = itemText.substring(itemText.indexOf(']') + 1).trim();
-    }
+    // B2) 收集后续行进 itemLines（保持顺序）
+    const itemLines: string[] = [];
+    itemLines.push(firstContent);
+    let itemHadBlank: boolean = false;
 
-    // 收集子块（缩进内容）—— 本批保持不动（内容模型留 8.2d-2）
-    let subContent: string = '';
     while (!state.isEnd()) {
       const next: string = state.currentLine();
-      // 缩进行（2+ 空格或 tab）
-      if (next.startsWith('  ') || next.startsWith('\t')) {
-        subContent += next.trimStart() + '\n';
+
+      // 空行 → 记空行并标记
+      if (next === '') {
+        itemLines.push('');
+        itemHadBlank = true;
         state.nextLine();
-      } else if (next === '') {
-        // 空行可能是子块结束
-        subContent += '\n';
+        continue;
+      }
+
+      // 行缩进 ≥ W → 去掉前 W 列（tab 展开）后 push
+      const indentCols: number = countIndentColumns(next);
+      if (indentCols >= contentCol) {
+        itemLines.push(stripIndentCols(next, contentCol));
         state.nextLine();
-      } else if (isBulletListMarker(next) || isOrderedListMarker(next)) {
+        continue;
+      }
+
+      // 缩进 < W 且非空：新列表 marker → 本项结束（不消费）
+      if (isBulletListMarker(next) || isOrderedListMarker(next)) {
         break;
-      } else {
-        // 非缩进非标记行 — 检查是否是段落续行
+      }
+
+      // 非列表块起始 → 本项结束（不消费）
+      if (isNonListBlockStart(next)) {
+        break;
+      }
+
+      // 已遇空行后再有缩进不足的行 → 非懒续行，本项结束
+      if (itemHadBlank) {
+        break;
+      }
+
+      // 懒续行 → push 原行（不去缩进）；继续
+      itemLines.push(next);
+      state.nextLine();
+    }
+
+    // C) tight/loose 判定 — 项间空行
+    if (itemHadBlank && !state.isEnd()) {
+      const nextLine: string = state.currentLine();
+      if (isBulletListMarker(nextLine) || isOrderedListMarker(nextLine)) {
+        listIsLoose = true;
+      }
+    }
+
+    // B3) 去掉尾部空行
+    while (itemLines.length > 0 && itemLines[itemLines.length - 1] === '') {
+      itemLines.pop();
+    }
+
+    // C) tight/loose — 项内非尾部空行
+    for (let j: number = 0; j < itemLines.length; j++) {
+      if (itemLines[j] === '') {
+        listIsLoose = true;
         break;
       }
     }
 
-    if (subContent !== '') {
-      // 递归解析子块
-      const innerState: ParseState = new ParseState();
-      innerState.reset(subContent);
-      parseBlocks(innerState, item);
+    // B4) 任务列表检测（GFM）：作用于 itemLines[0]（首行内容）
+    if (itemLines.length > 0) {
+      const fl: string = itemLines[0];
+      if (fl.startsWith('[ ] ')) {
+        item.attrs.checked = false;
+        itemLines[0] = fl.substring(4);
+      } else if (fl.startsWith('[x] ') || fl.startsWith('[X] ')) {
+        item.attrs.checked = true;
+        itemLines[0] = fl.substring(4);
+      }
     }
 
-    parseInlines(itemText, item);
-    if (item.children.length === 0) {
-      const txt: AstNode = new AstNode(AstNodeType.Text);
-      txt.text = itemText;
-      item.appendChild(txt);
-    }
+    // B5) 唯一内容路径：itemLines.join('\n') → parseBlocks
+    // 删掉原先单独的 parseInlines(itemText) 追加 —— Ex254 顺序 bug 根因
+    const content: string = itemLines.join('\n');
+    const innerState: ParseState = new ParseState();
+    innerState.reset(content);
+    parseBlocks(innerState, item);
+
     list.appendChild(item);
   }
+
+  // C) 设 tight 并同步到每个 item（渲染器拿不到父 list 上下文）
+  list.attrs.tight = !listIsLoose;
+  for (let i: number = 0; i < list.children.length; i++) {
+    list.children[i].attrs.tight = list.attrs.tight;
+  }
+
   return list;
 }
 
@@ -339,7 +423,7 @@ export function parseParagraph(state: ParseState): AstNode {
     // HTML 块
     if (isHtmlBlockStart(line)) break;
 
-    text += (text !== '' ? '\n' : '') + line;
+    text += (text !== '' ? '\n' : '') + line.trimStart();
     state.nextLine();
 
     // Setext 标题前瞻：下一行是 === 或 ---
@@ -377,6 +461,74 @@ function countIndentColumns(line: string): number {
   return col;
 }
 
+/** 计空白列：从 line[startIdx]（位于 startCol 列）开始数空白到达的列号 */
+function countWhitespaceFrom(line: string, startIdx: number, startCol: number): number {
+  let col: number = startCol;
+  let i: number = startIdx;
+  while (i < line.length) {
+    const ch: string = line[i];
+    if (ch === ' ') {
+      col += 1;
+      i += 1;
+    } else if (ch === '\t') {
+      col += 4 - (col % 4);
+      i += 1;
+    } else {
+      break;
+    }
+  }
+  return col;
+}
+
+/** 从 line 的第 colW 列开始取子串（跳过 colW 列，含非空白字符） */
+function substringByColumn(line: string, colW: number): string {
+  let col: number = 0;
+  let pos: number = 0;
+  while (pos < line.length && col < colW) {
+    const ch: string = line[pos];
+    if (ch === ' ') {
+      col += 1;
+      pos += 1;
+    } else if (ch === '\t') {
+      col += 4 - (col % 4);
+      pos += 1;
+    } else {
+      col += 1;
+      pos += 1;
+    }
+  }
+  return line.substring(pos);
+}
+
+/** 剥掉行首最多 colW 列空白（遇到非空白字符立即停止），返回剩余内容 */
+function stripIndentCols(line: string, colW: number): string {
+  let col: number = 0;
+  let pos: number = 0;
+  while (pos < line.length && col < colW) {
+    const ch: string = line[pos];
+    if (ch === ' ') {
+      col += 1;
+      pos += 1;
+    } else if (ch === '\t') {
+      col += 4 - (col % 4);
+      pos += 1;
+    } else {
+      break;
+    }
+  }
+  return line.substring(pos);
+}
+
+/** 检查行是否是非列表的块起始标记（用于懒续行边界判定） */
+function isNonListBlockStart(line: string): boolean {
+  if (line.startsWith('#')) return true;
+  if (line.startsWith('>')) return true;
+  if (line.startsWith('```') || line.startsWith('~~~')) return true;
+  if (isThematicBreak(line)) return true;
+  if (isHtmlBlockStart(line)) return true;
+  return false;
+}
+
 /** 剥掉行首前 4 列缩进（按 tab 展开计算），返回剩余内容 */
 function stripIndent(line: string): string {
   let col: number = 0;
@@ -408,9 +560,26 @@ function parseIndentedCodeBlock(state: ParseState): AstNode | null {
   while (!state.isEnd()) {
     const line: string = state.currentLine();
     if (line === '') {
-      code += '\n';
-      state.nextLine();
-      continue;
+      // 前瞻：连续空白行之后是否还有缩进≥4的行？若无则尾随空白恢复并结束
+      const blankSaved: number = state.save();
+      let blankCount: number = 0;
+      while (!state.isEnd() && state.currentLine() === '') {
+        state.nextLine();
+        blankCount++;
+      }
+      if (!state.isEnd()) {
+        const nextLine: string = state.currentLine();
+        if (countIndentColumns(nextLine) >= 4) {
+          // 后续还有缩进代码行 → 空白是代码块内部空行
+          for (let b: number = 0; b < blankCount; b++) {
+            code += '\n';
+          }
+          continue;
+        }
+      }
+      // 尾随空白（或EOF）→ 不是代码内容，恢复并结束
+      state.restore(blankSaved);
+      break;
     }
     // 检查是否缩进 ≥4 列
     if (countIndentColumns(line) >= 4) {
