@@ -72,5 +72,5 @@
 
 ## Checkpoint
 
-**Status**: Phase 8.2d-1（列表边界与编号：marker 分家 + `<ol start>`）完成，commit f0acd8f 已 push main。基线 exact **45.40%** (296/652)，error 0，hang 0。Lists 4→6。无进行中批次。
-**Resume**: 新会话读本文件 + `status.md`。下一步候选：**8.2d-2 列表内容模型**（多块列表项/嵌套/tight-loose，修 Ex253/254 内容错位，较大/有风险）或 **8.2b Emphasis**（最大簇 86/132，delimiter-run 算法）。每批 CC 修 → 重跑 harness → baseline.json 量增量。⚠️ 解析器改动审 diff 必过 ArkTS 规则（见 Phase 8 测试管线 末条）。
+**Status**: Phase 8.2d-2（列表项内容模型重写：多块/嵌套/tight-loose）完成，commit d1567a0 已 push main。基线 exact **50.46%** (329/652)，error 0，hang 0，全 26 节 0 回归。List items 9→23，Lists 6→14。无进行中批次。
+**Resume**: 新会话读本文件 + `status.md`。剩余最大杠杆 = **8.2b Emphasis**（最大簇 86/132，需 CommonMark delimiter-run 算法，大工程/高风险）；或 **8.2e 零碎节**（Entity refs/Code spans/HTML blocks 等）。每批 CC 修 → 重跑 harness → baseline.json 量增量。⚠️ 解析器改动审 diff 必过 ArkTS 规则 + 全节回归对比（见 Phase 8 测试管线）。
