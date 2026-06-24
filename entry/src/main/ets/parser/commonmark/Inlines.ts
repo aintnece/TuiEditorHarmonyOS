@@ -92,7 +92,7 @@ export function parseInlines(text: string, parent: AstNode): void {
       const result: InlineMatchResult | null = tryParseLinkOrImage(text, i, true);
       if (result) {
         const node: AstNode = new AstNode(AstNodeType.Image);
-        node.attrs.alt = result.text;
+        node.attrs.alt = extractAltText(result.text);
         node.attrs.url = result.url;
         node.attrs.title = result.title;
         out.push(node);
@@ -103,7 +103,7 @@ export function parseInlines(text: string, parent: AstNode): void {
       const refImgResult: InlineMatchResult | null = tryParseReferenceLink(text, i, true);
       if (refImgResult) {
         const imgNode: AstNode = new AstNode(AstNodeType.Image);
-        imgNode.attrs.alt = refImgResult.text;
+        imgNode.attrs.alt = extractAltText(refImgResult.text);
         imgNode.attrs.url = refImgResult.url;
         imgNode.attrs.title = refImgResult.title;
         out.push(imgNode);
@@ -1339,4 +1339,34 @@ export function parseLinkRefDefLine(line: string): LinkRefDefParseResult | null 
   def.title = title;
   result.def = def;
   return result;
+}
+
+// ── 图片 alt 纯文本化（CommonMark 6.4）──
+
+/** 取节点子树的「纯文本」（用于图片 alt）：
+ *  Text/Code/HtmlInline → 字面 text；Image → 其 attrs.alt（已是纯文本）；
+ *  SoftBreak/HardBreak → '\n'；其余容器节点(Emph/Strong/Strike/Link…) → 递归子节点。 */
+function plainTextOf(node: AstNode): string {
+  let out: string = '';
+  for (let k: number = 0; k < node.children.length; k++) {
+    const c: AstNode = node.children[k];
+    const t: AstNodeType = c.type;
+    if (t === AstNodeType.Text || t === AstNodeType.Code || t === AstNodeType.HtmlInline) {
+      out += c.text;
+    } else if (t === AstNodeType.Image) {
+      out += c.attrs.alt;
+    } else if (t === AstNodeType.SoftBreak || t === AstNodeType.HardBreak) {
+      out += '\n';
+    } else {
+      out += plainTextOf(c);   // Emph/Strong/Strike/Link 等容器递归
+    }
+  }
+  return out;
+}
+
+/** 把括号原始文本解析为内联、再抽纯文本，作为图片 alt。 */
+function extractAltText(rawText: string): string {
+  const tmp: AstNode = new AstNode(AstNodeType.Paragraph);
+  parseInlines(rawText, tmp);
+  return plainTextOf(tmp);
 }

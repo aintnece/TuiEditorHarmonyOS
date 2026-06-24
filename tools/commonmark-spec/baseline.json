@@ -1,14 +1,14 @@
 {
   "specVersion": "0.31.2",
-  "date": "2026-06-24T04:35:56.100Z",
+  "date": "2026-06-24T04:47:00.283Z",
   "total": 652,
-  "exact": 527,
+  "exact": 532,
   "cosmetic": 0,
-  "struct": 125,
+  "struct": 120,
   "error": 0,
   "hang": 0,
-  "exactPct": 80.83,
-  "nearPct": 80.83,
+  "exactPct": 81.6,
+  "nearPct": 81.6,
   "bySection": [
     {
       "section": "ATX headings",
@@ -112,9 +112,9 @@
     {
       "section": "Images",
       "total": 22,
-      "exact": 11,
+      "exact": 16,
       "cosmetic": 0,
-      "struct": 11,
+      "struct": 6,
       "error": 0,
       "hang": 0
     },
