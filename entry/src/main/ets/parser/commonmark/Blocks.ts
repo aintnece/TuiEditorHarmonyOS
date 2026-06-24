@@ -287,7 +287,7 @@ function isLazyContinuable(line: string): boolean {
   if (isThematicBreak(line)) return false;             // 分割线打断
   if (line.startsWith('>')) return false;              // > 行另行处理
   if (isHtmlBlockInterrupt(line)) return false;        // HTML 块 type1-6 打断
-  if (isBulletListMarker(line) || isOrderedListMarker(line)) return false;  // 非缩进列表标记打断
+  if (isNonEmptyListMarker(line)) return false;  // non-empty list markers interrupt lazy continuation (empty markers don't)
   return true;
 }
 
@@ -343,9 +343,20 @@ class OrderedMarker {
  * 规则：marker 后 s 个空白列（tab 展开），1≤s≤4 → W=1+s，s≥5 或 s=0 → W=2
  */
 function parseBulletMarker(line: string): BulletMarker | null {
-  if (line.length < 2) return null;
+  if (line.length < 1) return null;
   const ch: string = line[0];
   if (ch !== '-' && ch !== '*' && ch !== '+') return null;
+
+  // Empty marker branch: marker char followed by EOL or only whitespace
+  // CommonMark 5.2 — empty list items are valid (e.g. "-" / "-   ")
+  if (line.length === 1 || isAllWhitespaceFrom(line, 1)) {
+    const result: BulletMarker = new BulletMarker();
+    result.ch = ch;
+    result.contentCol = 2; // marker width (1) + 1
+    return result;
+  }
+
+  // Non-empty marker: must have ≥1 whitespace after marker char
   if (line[1] !== ' ' && line[1] !== '\t') return null;
 
   // 计 marker 后空白列数（从位置 1 开始，当前处于列 1）
@@ -377,14 +388,24 @@ function parseOrderedMarker(line: string): OrderedMarker | null {
   if (i >= line.length) return null; // 只有数字，无分隔符
   const delim: string = line[i];
   if (delim !== '.' && delim !== ')') return null;
-  // 必须后跟 ≥1 空白
-  if (i + 1 >= line.length) return null;
-  if (line[i + 1] !== ' ' && line[i + 1] !== '\t') return null;
 
   // marker 文本结束位置：(i+1) 是分隔符之后第一个字符位置
   // marker 文本宽度 = i + 1 列（数字 + 分隔符各 1 列）
   const markerEndIdx: number = i + 1;
   const markerWidth: number = markerEndIdx; // 数字和分隔符都是单宽字符
+
+  // Empty marker branch: delimiter followed by EOL or only whitespace
+  // CommonMark 5.2 — empty list items are valid (e.g. "2." / "1)   ")
+  if (markerEndIdx >= line.length || isAllWhitespaceFrom(line, markerEndIdx)) {
+    const result: OrderedMarker = new OrderedMarker();
+    result.num = parseInt(line.substring(0, i));
+    result.delim = delim;
+    result.contentCol = markerWidth + 1; // marker width + 1
+    return result;
+  }
+
+  // Non-empty marker: must have ≥1 whitespace after delimiter
+  if (line[i + 1] !== ' ' && line[i + 1] !== '\t') return null;
 
   // 计 marker 后空白列数（从 markerEndIdx 开始，当前处于列 markerWidth）
   const wsEndCol: number = countWhitespaceFrom(line, markerEndIdx, markerWidth);
@@ -460,8 +481,23 @@ export function parseList(state: ParseState, ordered: boolean): AstNode {
 
     // B2) 收集后续行进 itemLines（保持顺序）
     const itemLines: string[] = [];
-    itemLines.push(firstContent);
     let itemHadBlank: boolean = false;
+    const isEmptyContentMarker: boolean = isBlankLine(firstContent);
+
+    if (isEmptyContentMarker) {
+      // Empty content marker: CommonMark "at most one starting blank line" rule
+      if (state.isEnd() || isBlankLine(state.currentLine())) {
+        // Empty item: marker line has no content AND next line is blank/EOF
+        // → produce empty ListItem, do NOT consume the blank line
+        // itemLines stays empty → parseBlocks produces no children → <li></li>
+        list.appendChild(item);
+        continue;
+      }
+      // Next line is non-blank: use it as content start
+      // itemLines stays empty (don't push blank firstContent → avoids false loose trigger)
+    } else {
+      itemLines.push(firstContent);
+    }
 
     while (!state.isEnd()) {
       const next: string = state.currentLine();
@@ -567,7 +603,7 @@ export function parseParagraph(state: ParseState): AstNode {
     // 块级标记 → 段落结束
     if (isAtxHeadingStart(line) || isCodeFenceStart(line)) break;
     if (line.startsWith('>')) break;
-    if (isBulletListMarker(line) || isOrderedListMarker(line)) break;
+    if (isNonEmptyListMarker(line)) break;  // empty list markers don't interrupt paragraphs (Ex367)
     if (isThematicBreak(line)) break;
     // HTML 块（type 7 不打断段落）
     if (isHtmlBlockInterrupt(line)) break;
@@ -962,4 +998,23 @@ export function isBulletListMarker(line: string): boolean {
 export function isOrderedListMarker(line: string): boolean {
   // 基于 parseOrderedMarker，现在也认 "数字)" 不只是 "数字."
   return parseOrderedMarker(line) !== null;
+}
+
+/**
+ * 检测行是否是非空列表 marker（含内容的 marker）。
+ * CommonMark: 空列表项不能打断段落（parserParagraph 和 block quote 懒续行均不应被空 marker 打断）。
+ * 返回 true 表示该行是「含内容」的列表 marker，可以打断段落。
+ */
+function isNonEmptyListMarker(line: string): boolean {
+  const bm: BulletMarker | null = parseBulletMarker(line);
+  if (bm !== null) {
+    const fc: string = substringByColumn(line, bm.contentCol);
+    return !isBlankLine(fc);
+  }
+  const om: OrderedMarker | null = parseOrderedMarker(line);
+  if (om !== null) {
+    const fc: string = substringByColumn(line, om.contentCol);
+    return !isBlankLine(fc);
+  }
+  return false;
 }
