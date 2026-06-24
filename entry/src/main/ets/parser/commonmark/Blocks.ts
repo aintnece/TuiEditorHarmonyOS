@@ -38,7 +38,7 @@ export function tryParseBlock(state: ParseState): AstNode | null {
   const line: string = state.currentLine();
 
   // 代码块 (fenced)
-  if (line.startsWith('```') || line.startsWith('~~~')) {
+  if (isCodeFenceStart(line)) {
     return parseCodeBlock(state);
   }
   // ATX 标题
@@ -87,28 +87,79 @@ export function tryParseBlock(state: ParseState): AstNode | null {
 
 // ── 具体块解析 ──
 
+/** 围栏开始信息（具名 class，禁匿名对象字面量） */
+class FenceInfo {
+  fenceChar: string = '';
+  fenceLen: number = 0;
+  indent: number = 0;
+  info: string = '';
+}
+
+/** 解析开围栏行；不是合法围栏返回 null。
+ *  规则：≤3 前导空格 + ≥3 同字符(` 或 ~) run；backtick 围栏 info 禁含 ` 。 */
+function parseCodeFenceOpen(line: string): FenceInfo | null {
+  let i: number = 0;
+  while (i < line.length && line[i] === ' ' && i < 4) i++;
+  const indent: number = i;
+  if (indent >= 4) return null;            // ≥4 空格属缩进代码块，非围栏
+  if (i >= line.length) return null;
+  const ch: string = line[i];
+  if (ch !== '`' && ch !== '~') return null;
+  let runLen: number = 0;
+  while (i < line.length && line[i] === ch) { runLen++; i++; }
+  if (runLen < 3) return null;
+  const rest: string = line.substring(i);
+  if (ch === '`' && rest.indexOf('`') >= 0) return null;  // backtick 围栏 info 禁含 backtick
+  const fi: FenceInfo = new FenceInfo();
+  fi.fenceChar = ch;
+  fi.fenceLen = runLen;
+  fi.indent = indent;
+  fi.info = unescapeString(rest.trim());
+  return fi;
+}
+
+/** 入口用：是否是合法围栏开始 */
+function isCodeFenceStart(line: string): boolean {
+  return parseCodeFenceOpen(line) !== null;
+}
+
+/** 是否是匹配的闭围栏：≤3 空格 + 同 fenceChar run ≥ openLen + 其后仅空白 */
+function isClosingFence(line: string, fenceChar: string, openLen: number): boolean {
+  let i: number = 0;
+  while (i < line.length && line[i] === ' ' && i < 4) i++;
+  if (i >= 4) return false;                // ≥4 空格 → 内容，不是闭合
+  let runLen: number = 0;
+  while (i < line.length && line[i] === fenceChar) { runLen++; i++; }
+  if (runLen < openLen) return false;
+  return isAllWhitespaceFrom(line, i);     // 复用已有 helper（第 675 行）
+}
+
+/** 内容去缩进：去掉至多 n 个前导空格 */
+function stripFenceIndent(line: string, n: number): string {
+  let i: number = 0;
+  while (i < line.length && i < n && line[i] === ' ') i++;
+  return line.substring(i);
+}
+
 /** 围栏代码块 ```lang ... ``` */
 export function parseCodeBlock(state: ParseState): AstNode {
   const node: AstNode = new AstNode(AstNodeType.CodeBlock);
-  const fence: string = state.currentLine();
+  const fi: FenceInfo | null = parseCodeFenceOpen(state.currentLine());
   state.nextLine();
-
-  // 提取语言标记（跳过开头的 ``` 或 ~~~）
-  let infoStart: number = 0;
-  if (fence.startsWith('```')) infoStart = 3;
-  else if (fence.startsWith('~~~')) infoStart = 3;
-  node.attrs.info = unescapeString(fence.substring(infoStart).trim());
+  // fi 入口已保证非 null；防御性处理
+  const fenceChar: string = fi !== null ? fi.fenceChar : '`';
+  const fenceLen: number = fi !== null ? fi.fenceLen : 3;
+  const indent: number = fi !== null ? fi.indent : 0;
+  node.attrs.info = fi !== null ? fi.info : '';
 
   let code: string = '';
-  const fenceChar: string = fence[0]; // ` 或 ~
   while (!state.isEnd()) {
     const line: string = state.currentLine();
-    // 匹配相同字符和长度的闭合围栏
-    if (line.startsWith(fenceChar + fenceChar + fenceChar)) {
+    if (isClosingFence(line, fenceChar, fenceLen)) {
       state.nextLine();
       break;
     }
-    code += line + '\n';
+    code += stripFenceIndent(line, indent) + '\n';
     state.nextLine();
   }
   const textNode: AstNode = new AstNode(AstNodeType.Text);
@@ -177,7 +228,7 @@ function isBlockQuoteStart(line: string): boolean {
 function setsParaOpen(rest: string): boolean {
   if (isBlankLine(rest)) return false;
   if (rest.startsWith('#')) return false;
-  if (rest.startsWith('```') || rest.startsWith('~~~')) return false;
+  if (isCodeFenceStart(rest)) return false;
   if (isThematicBreak(rest)) return false;
   return true;
 }
@@ -188,7 +239,7 @@ function isLazyContinuable(line: string): boolean {
   if (isBlankLine(line)) return false;
   if (countIndentColumns(line) >= 4) return false;     // 本批不处理缩进懒续行（Ex238 延后）
   if (line.startsWith('#')) return false;              // ATX 标题打断段落
-  if (line.startsWith('```') || line.startsWith('~~~')) return false;  // 围栏打断
+  if (isCodeFenceStart(line)) return false;              // 围栏打断
   if (isThematicBreak(line)) return false;             // 分割线打断
   if (line.startsWith('>')) return false;              // > 行另行处理
   if (isHtmlBlockInterrupt(line)) return false;        // HTML 块 type1-6 打断
@@ -470,7 +521,7 @@ export function parseParagraph(state: ParseState): AstNode {
     // 空行 → 段落结束
     if (line === '') break;
     // 块级标记 → 段落结束
-    if (line.startsWith('#') || line.startsWith('```') || line.startsWith('~~~')) break;
+    if (line.startsWith('#') || isCodeFenceStart(line)) break;
     if (line.startsWith('>')) break;
     if (isBulletListMarker(line) || isOrderedListMarker(line)) break;
     if (isThematicBreak(line)) break;

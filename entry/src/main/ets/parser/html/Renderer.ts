@@ -165,7 +165,14 @@ export class HtmlRenderer {
 
   private renderCodeBlock(node: AstNode): string {
     const info: string = node.attrs.info;
-    const lang: string = info ? ' class="language-' + this.escapeHtml(info) + '"' : '';
+    // language class = info 第一个空白(空格/Tab)分隔 token
+    let endTok: number = info.length;
+    for (let k: number = 0; k < info.length; k++) {
+      const c: string = info[k];
+      if (c === ' ' || c === '\t') { endTok = k; break; }
+    }
+    const langWord: string = info.substring(0, endTok);
+    const lang: string = langWord ? ' class="language-' + this.escapeHtml(langWord) + '"' : '';
     const code: string = this.escapeHtml(node.getTextContent());
     return '<pre><code' + lang + '>' + code + '</code></pre>\n';
   }
