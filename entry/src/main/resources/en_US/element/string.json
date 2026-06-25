@@ -3,6 +3,7 @@
     { "name": "app_name", "value": "TUI Editor" },
     { "name": "entry_desc", "value": "Toast UI Editor for HarmonyOS" },
     { "name": "permission_read_media", "value": "Used to read Markdown and image files" },
-    { "name": "permission_write_media", "value": "Used to save and export editor files" }
+    { "name": "permission_write_media", "value": "Used to save and export editor files" },
+    { "name": "permission_read_pasteboard", "value": "Used to read pasteboard content" }
   ]
 }

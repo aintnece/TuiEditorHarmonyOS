@@ -44,6 +44,14 @@
           "abilities": ["MainAbility"],
           "when": "inuse"
         }
+      },
+      {
+        "name": "ohos.permission.READ_PASTEBOARD",
+        "reason": "$string:permission_read_pasteboard",
+        "usedScene": {
+          "abilities": ["MainAbility"],
+          "when": "inuse"
+        }
       }
     ]
   }
