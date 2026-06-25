@@ -91,10 +91,12 @@
 
 ## Checkpoint
 
-**🎯 当前 = Phase 9.1 主题统一【已实现·待真机验证】** → 下一步 Phase 9② 跟随系统。
-- 9.1 由 CC 实现、Hermes 审过 diff、commit `215d976` 已 push main。**待用户真机验证**深浅色三处灰度是否统一（清单见 `.project/9.1-theme-unify-spec.md` §10：深色下 WYSIWYG 不再发蓝、与预览/外壳一致；行内码中性；prism 彩色保留可读；深↔浅实时切换）。
-- 真机若有灰度偏差：调 `ThemeService.ts` DarkTheme 的 token 值，或 `toastui-editor-dark.css` 某处 var 映射即可（变量已贯通，无需重构）。
-- 真机通过后 → **Phase 9② 跟随系统**：监听 `ConfigurationConstant.ColorMode` → 映射 ThemeService.isDark；设置 UI「浅/深/跟随系统」三选一。plan 见 9.0 §49-52。
+**🎯 当前 = Phase 9.2 跟随系统【已实现·待真机验证】**（Phase 9.1 主题统一已真机通过 ✅，含白线修复）。
+- **Phase 9.1 ✅ 真机已过**：三处暗色 12 个 `--ed-*` 变量统一；WYSIWYG 左/上白线修复（去 tui `.toastui-editor-defaultUI` 的 border+radius，editor.html `<style>`，commit `4d8851c`）。用户认可预览/外壳的层次色差是刻意设计、不动。
+- **Phase 9.2 跟随系统 已实现待真机**：commit `6b6a848` 已 push main。spec `.project/9.2-follow-system-spec.md`。bindMenu 三选一（浅/深/跟随系统，✓ 标当前项）+ 默认跟随系统 + 系统亮暗自动同步。改 5 文件：ThemeService(+System 态/userMode+systemIsDark/setMode/setSystemColorMode/applyEffective) · EditorCore(订阅 onThemeChange 统一重建 renderer+stateChange) · Editor(setMode/getUserMode 透传) · app.ets(onConfigurationUpdate+onCreate 喂初始 colorMode) · EditorPage(bindMenu 三选一)。
+  - ⚠️ **待编译确认**：app.ets 的 `Configuration` 从 `@kit.AbilityKit` 导入；若 DevEco 报找不到，改 `import { Configuration } from '@ohos.app.ability.Configuration';`。
+  - 验证清单见 spec §9：三选一✓标记 / 手选即时变 / 选跟随系统后系统切暗 app 三处自动变 / 手动模式不跟随 / 重启记住选择。
+- 真机过后 **Phase 9（主题）全收官**。后续候选见 status.md Next（查找替换 / GFM spec 测试 / Phase 8 解析器剩余硬骨头等）。
 
 **Phase 9.1 做了什么（恢复用）**: 三处暗色（WYSIWYG tui dark.css / 预览 Renderer / 外壳 ArkUI）统一为 **12 个 `--ed-*` CSS 变量**，单一数据源 = ThemeService。改 5 文件：① `ThemeService.ts` +3 token(editorCodeBg/editorBorderSubtle/editorAccentHover) + `toCssVars()` 序列化(纯字符串拼接,ArkTS安全)；② `toastui-editor-dark.css` 全量变量化(134 处 `var(--ed-*,#fallback)`,零硬编码残留,base64 SVG/prism/保留 rgba 未动)；③ `editor.html` `setTheme(dark,varsCss)` 注入 `:root` 到 `#ed-theme-vars`；④ `WwEditor.ets` themeHandler/applyInitial 传 `theme.toCssVars()`；⑤ `Renderer.ts` renderFullPage 内联 `:root` + body 读 var。行内代码中性化、prism 语法色保留、base64 SVG 图标本批未动、跟随系统未做。审 diff 已过：ArkTS + 映射零误配 + 一致性(Renderer 内联值==toCssVars 产出)。
 
