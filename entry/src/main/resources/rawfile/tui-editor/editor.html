@@ -28,6 +28,7 @@
       display: none !important;
     }
   </style>
+  <style id="ed-theme-vars"></style>
 </head>
 <body>
   <div id="editor"></div>
@@ -91,8 +92,8 @@
           return ed.getMarkdown();
         },
 
-        /** Toggle dark theme: enable/disable dark CSS + toggle body class */
-        setTheme: function (dark) {
+        /** Toggle dark theme: enable/disable dark CSS + toggle body class + inject CSS vars */
+        setTheme: function (dark, varsCss) {
           var darkLink = document.getElementById('tui-dark-css');
           if (darkLink) {
             darkLink.disabled = !dark;
@@ -103,6 +104,11 @@
             document.body.classList.add('toastui-editor-dark');
           } else {
             document.body.classList.remove('toastui-editor-dark');
+          }
+          // Inject/update unified theme CSS variables
+          if (typeof varsCss === 'string' && varsCss.length > 0) {
+            var el = document.getElementById('ed-theme-vars');
+            if (el) { el.textContent = ':root{' + varsCss + '}'; }
           }
         },
 

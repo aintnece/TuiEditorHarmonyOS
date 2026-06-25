@@ -28,6 +28,9 @@ export class ThemeColors {
   editorGutter: string = '#f6f8fa';
   editorActiveLine: string = '#f8f9fa';
   editorPlaceholder: string = '#959da5';
+  editorCodeBg: string = '#f6f8fa';         // 行内+块代码背景（中性）
+  editorBorderSubtle: string = '#eaecef';   // 次级边框（引用左边框等）
+  editorAccentHover: string = '#0256b9';    // 链接/按钮 hover
 
   // ── 预览 (Preview) ──
   previewBg: string = '#ffffff';
@@ -77,6 +80,9 @@ export class ThemeColors {
     this.editorGutter = other.editorGutter;
     this.editorActiveLine = other.editorActiveLine;
     this.editorPlaceholder = other.editorPlaceholder;
+    this.editorCodeBg = other.editorCodeBg;
+    this.editorBorderSubtle = other.editorBorderSubtle;
+    this.editorAccentHover = other.editorAccentHover;
     this.previewBg = other.previewBg;
     this.previewFg = other.previewFg;
     this.previewCodeBg = other.previewCodeBg;
@@ -103,6 +109,24 @@ export class ThemeColors {
     this.scrollbarThumb = other.scrollbarThumb;
     this.scrollbarTrack = other.scrollbarTrack;
     this.errorColor = other.errorColor;
+  }
+
+  /** 序列化为 :root CSS 变量声明体（不含 :root{} 包裹），供 WebView 注入 */
+  toCssVars(): string {
+    let s: string = '';
+    s += '--ed-bg:' + this.editorBg + ';';
+    s += '--ed-bg-elevated:' + this.editorCodeBg + ';';
+    s += '--ed-bg-deep:' + this.editorGutter + ';';
+    s += '--ed-fg:' + this.editorFg + ';';
+    s += '--ed-fg-muted:' + this.editorLineNumber + ';';
+    s += '--ed-fg-subtle:' + this.editorPlaceholder + ';';
+    s += '--ed-border:' + this.borderColor + ';';
+    s += '--ed-border-subtle:' + this.editorBorderSubtle + ';';
+    s += '--ed-accent:' + this.editorCursor + ';';
+    s += '--ed-accent-hover:' + this.editorAccentHover + ';';
+    s += '--ed-selection:' + this.editorSelection + ';';
+    s += '--ed-error:' + this.errorColor + ';';
+    return s;
   }
 }
 
@@ -148,6 +172,9 @@ DarkTheme.borderColor = '#404040';
 DarkTheme.scrollbarThumb = '#424242';
 DarkTheme.scrollbarTrack = '#2d2d2d';
 DarkTheme.errorColor = '#f85149';
+DarkTheme.editorCodeBg = '#2d2d2d';
+DarkTheme.editorBorderSubtle = '#333333';
+DarkTheme.editorAccentHover = '#4b8bc4';
 
 const PREF_NAME: string = 'editor_theme';
 const PREF_KEY: string = 'theme_mode';

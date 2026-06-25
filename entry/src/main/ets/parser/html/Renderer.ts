@@ -38,9 +38,9 @@ export class HtmlRenderer {
   /** 渲染 AST 为完整 HTML 页面 */
   renderFullPage(ast: AstNode): string {
     const body: string = this.renderBody(ast);
-    const bg: string = this.options.darkMode ? '#1e1e1e' : '#ffffff';
-    const fg: string = this.options.darkMode ? '#d4d4d4' : '#24292e';
-    const codeBg: string = this.options.darkMode ? '#2d2d2d' : '#f6f8fa';
+    const root: string = this.options.darkMode
+      ? ':root{--ed-bg:#1e1e1e;--ed-bg-elevated:#2d2d2d;--ed-bg-deep:#252526;--ed-fg:#d4d4d4;--ed-fg-muted:#858585;--ed-fg-subtle:#6a737d;--ed-border:#404040;--ed-border-subtle:#333333;--ed-accent:#569cd6;--ed-accent-hover:#4b8bc4;--ed-selection:#264f78;--ed-error:#f85149;}'
+      : ':root{--ed-bg:#ffffff;--ed-bg-elevated:#f6f8fa;--ed-bg-deep:#f6f8fa;--ed-fg:#24292e;--ed-fg-muted:#6a737d;--ed-fg-subtle:#959da5;--ed-border:#dfe2e5;--ed-border-subtle:#eaecef;--ed-accent:#0366d6;--ed-accent-hover:#0256b9;--ed-selection:#c8e1ff;--ed-error:#d73a49;}';
 
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -48,10 +48,11 @@ export class HtmlRenderer {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+  ${root}
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: ${bg};
-    color: ${fg};
+    background: var(--ed-bg);
+    color: var(--ed-fg);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: ${this.options.fontSize}px;
     line-height: 1.6;
@@ -60,32 +61,32 @@ export class HtmlRenderer {
     margin: 0 auto;
   }
   h1, h2, h3, h4, h5, h6 { margin: 16px 0 8px; line-height: 1.3; }
-  h1 { font-size: 1.8em; border-bottom: 1px solid ${this.options.darkMode ? '#404040' : '#dfe2e5'}; padding-bottom: 8px; }
-  h2 { font-size: 1.5em; border-bottom: 1px solid ${this.options.darkMode ? '#404040' : '#dfe2e5'}; padding-bottom: 6px; }
+  h1 { font-size: 1.8em; border-bottom: 1px solid var(--ed-border); padding-bottom: 8px; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid var(--ed-border); padding-bottom: 6px; }
   h3 { font-size: 1.25em; }
   p { margin: 8px 0; }
-  code { background: ${codeBg}; padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: 0.9em; }
-  pre { background: ${codeBg}; padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+  code { background: var(--ed-bg-elevated); padding: 2px 6px; border-radius: 4px; font-family: 'Cascadia Code', monospace; font-size: 0.9em; }
+  pre { background: var(--ed-bg-elevated); padding: 16px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
   pre code { background: none; padding: 0; }
   blockquote {
-    border-left: 4px solid ${this.options.darkMode ? '#569cd6' : '#0366d6'};
+    border-left: 4px solid var(--ed-accent);
     padding: 4px 16px;
     margin: 12px 0;
-    background: ${this.options.darkMode ? '#252526' : '#f8f9fa'};
+    background: var(--ed-bg-deep);
   }
   ul, ol { padding-left: 24px; margin: 8px 0; }
   li { margin: 4px 0; }
   table { border-collapse: collapse; width: 100%; margin: 12px 0; }
   th, td {
-    border: 1px solid ${this.options.darkMode ? '#404040' : '#dfe2e5'};
+    border: 1px solid var(--ed-border);
     padding: 8px 12px;
     text-align: left;
   }
-  th { background: ${this.options.darkMode ? '#2d2d2d' : '#f6f8fa'}; font-weight: 600; }
-  a { color: ${this.options.darkMode ? '#569cd6' : '#0366d6'}; text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  th { background: var(--ed-bg-elevated); font-weight: 600; }
+  a { color: var(--ed-accent); text-decoration: none; }
+  a:hover { color: var(--ed-accent-hover); text-decoration: underline; }
   img { max-width: 100%; }
-  hr { border: none; border-top: 1px solid ${this.options.darkMode ? '#404040' : '#dfe2e5'}; margin: 16px 0; }
+  hr { border: none; border-top: 1px solid var(--ed-border); margin: 16px 0; }
   .task-list { list-style: none; padding-left: 0; }
   .task-list li { display: flex; align-items: center; gap: 6px; }
   .task-check { width: 16px; height: 16px; }

@@ -65,10 +65,15 @@ export struct WwEditor {
     self.lastIsDark = editorContext.core ? editorContext.core.getTheme().isDark : this.themeColors.isDark;
     this.themeHandler = (): void => {
       if (!editorContext.core || !self.isReady) return;
-      const dark: boolean = editorContext.core.getTheme().isDark;
+      const theme: ThemeColors = editorContext.core.getTheme();
+      const dark: boolean = theme.isDark;
       if (dark === self.lastIsDark) return;
       self.lastIsDark = dark;
-      self.controller.runJavaScript('window.__ww && window.__ww.setTheme(' + (dark ? 'true' : 'false') + ')');
+      const vars: string = theme.toCssVars();
+      self.controller.runJavaScript(
+        'window.__ww && window.__ww.setTheme(' + (dark ? 'true' : 'false') +
+        ', decodeURIComponent("' + encodeURIComponent(vars) + '"))'
+      );
     };
     if (editorContext.core) {
       editorContext.core.on('stateChange', this.themeHandler);
@@ -187,9 +192,11 @@ export struct WwEditor {
     );
 
     // Sync theme (in case it changed between aboutToAppear and onPageEnd)
-    const isDarkStr: string = this.themeColors.isDark ? 'true' : 'false';
+    const theme: ThemeColors = this.themeColors;
+    const vars: string = theme.toCssVars();
     this.controller.runJavaScript(
-      'window.__ww && window.__ww.setTheme(' + isDarkStr + ')'
+      'window.__ww && window.__ww.setTheme(' + (theme.isDark ? 'true' : 'false') +
+      ', decodeURIComponent("' + encodeURIComponent(vars) + '"))'
     );
   }
 
