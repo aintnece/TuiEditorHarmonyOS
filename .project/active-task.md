@@ -54,7 +54,7 @@
 - **Hermes 绝不写代码**：全部 `delegate` 给 CC（Docker 容器 `claude-code`）。Hermes 负责：写 spec → 审 diff → 修权限 → commit/push → 更新 .project。
 - **调用 CC**：`/app/venv/bin/docker exec claude-code bash -c 'source /root/.cc_env && cd /data/docs/TuiEditorHarmonyOS && claude -p "..." --allowedTools "Read,Edit,Write"'`（实现类任务**不设 --max-turns**；后台跑用 `background=true, notify_on_complete=true`）。
 - **审 diff 前修权限**：`/app/venv/bin/docker run --rm -v "/home/aintnece/Online Document/TuiEditorHarmonyOS:/ws" alpine chown -R 1000:1000 /ws`，再 `chmod 644` 改过的文件。
-- **推送**：`git remote set-url origin git@github.com:aintnece/TuiEditorHarmonyOS.git && git config core.sshCommand 'ssh -i /tmp/gitpush_key -o StrictHostKeyChecking=no' && git push origin master:main`，完了 set-url 回 https + `git config --unset core.sshCommand`。
+- **推送**：`git remote set-url origin git@github.com:aintnece/TuiEditorHarmonyOS.git && git config core.sshCommand 'ssh -i ~/.ssh/gitpush_key -o StrictHostKeyChecking=no' && git push origin master:main`，完了 set-url 回 https + `git config --unset core.sshCommand`。⚠️ **SSH 私钥放 `~/.ssh/gitpush_key`（不要放 /tmp——/tmp 会被系统清理致私钥丢失、push 失败，2026-06-25 踩过；丢了须 ssh-keygen 重生成 + 公钥重加 GitHub Settings/Keys）**。
 - **开工前**：grep/读 Obsidian `鸿蒙开发/踩坑记录/` 对应文档；新坑解决后补录（一坑一文件）。`官方组件示例` 离线仓库在 `/data/Online Document/_refs/HarmonyOSComponentUXExamples/`。
 - CC 不编译（无 CLI）；编译/真机由用户在 DevEco(Windows) 做。每个改动 push 后请用户 `git pull` + 真机验证。
 
