@@ -340,7 +340,7 @@ struct EditorPage {
   /** 显示 Toast 提示（安全封装） */
   private showToast(msg: string): void {
     try {
-      promptAction.showToast({
+      promptAction.openToast({
         message: msg,
         duration: 2000
       });

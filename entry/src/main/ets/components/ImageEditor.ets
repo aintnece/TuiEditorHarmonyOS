@@ -7,7 +7,7 @@
  * 参考：tui.editor src/ui/popup/imagePopup.ts
  */
 
-import { picker } from '@kit.CoreFileKit';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { ThemeColors } from '../services/ThemeService';
 import { fileService } from '../services/FileService';
 
@@ -23,11 +23,11 @@ export struct ImageEditor {
   private pickFromGallery(): void {
     const self: ImageEditor = this;
     try {
-      const photoPicker = new picker.PhotoViewPicker();
-      const opt = new picker.PhotoSelectOptions();
-      opt.MIMEType = picker.PhotoViewMIMETypes.IMAGE_TYPE;
-      opt.maxSelectNumber = 1;
-      photoPicker.select(opt).then((res: picker.PhotoSelectResult): void => {
+      const photoPicker = new photoAccessHelper.PhotoViewPicker();
+      photoPicker.select({
+        MIMEType: photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE,
+        maxSelectNumber: 1
+      }).then((res: photoAccessHelper.PhotoSelectResult): void => {
         try {
           if (res && res.photoUris && res.photoUris.length > 0) {
             const uri: string = res.photoUris[0];
