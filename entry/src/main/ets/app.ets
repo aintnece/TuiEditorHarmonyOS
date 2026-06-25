@@ -20,7 +20,7 @@ export default class MainAbility extends UIAbility {
       ThemeService.getInstance().init(this.context);
       I18n.getInstance().init(this.context);
       // 喂初始系统亮暗 — init(读 userMode)之后，applyEffective 才有真实系统值
-      const cm: ConfigurationConstant.ColorMode = this.context.config.colorMode;
+      const cm: ConfigurationConstant.ColorMode | undefined = this.context.config.colorMode;
       ThemeService.getInstance().setSystemColorMode(cm === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
       hilog.info(0x0000, 'TUIEditor', 'Preferences initialized');
     } catch (e) {
@@ -33,7 +33,7 @@ export default class MainAbility extends UIAbility {
   }
 
   onConfigurationUpdate(newConfig: Configuration): void {
-    const cm: ConfigurationConstant.ColorMode = newConfig.colorMode;
+    const cm: ConfigurationConstant.ColorMode | undefined = newConfig.colorMode;
     ThemeService.getInstance().setSystemColorMode(cm === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
   }
 
