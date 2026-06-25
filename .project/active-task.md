@@ -89,10 +89,13 @@
 
 ## Checkpoint
 
-**🎯 下一批 = Phase 9 主题统一**（用户暂停 Phase 8 解析器于 92.33%，转做长期遗留的 UI 设计债）。新会话开场「继续 TuiEditorHarmonyOS，做 Phase 9 主题统一」→ 读 `.project/9.0-theme-unification-plan.md`（完整方案 + 开工第一步）+ 本文件 + status.md。
+**🎯 当前 = Phase 9.1 主题统一【已实现·待真机验证】** → 下一步 Phase 9② 跟随系统。
+- 9.1 由 CC 实现、Hermes 审过 diff、commit `215d976` 已 push main。**待用户真机验证**深浅色三处灰度是否统一（清单见 `.project/9.1-theme-unify-spec.md` §10：深色下 WYSIWYG 不再发蓝、与预览/外壳一致；行内码中性；prism 彩色保留可读；深↔浅实时切换）。
+- 真机若有灰度偏差：调 `ThemeService.ts` DarkTheme 的 token 值，或 `toastui-editor-dark.css` 某处 var 映射即可（变量已贯通，无需重构）。
+- 真机通过后 → **Phase 9② 跟随系统**：监听 `ConfigurationConstant.ColorMode` → 映射 ThemeService.isDark；设置 UI「浅/深/跟随系统」三选一。plan 见 9.0 §49-52。
 
-**Status（Phase 8 解析器存档）**: Phase 8.2 CommonMark 正确性做到 exact **92.33%** (602/652)，用户选择**暂停 spec 兼容**（剩 8% 是最刁钻边角，性价比递减）。最后批次 8.2j（多行 ref-def）完成、DevEco 编译通过、全节 0 回归。六批累计 +51（551→602），满分节 8 个（Emphasis/Autolinks/Raw HTML/Entity/HTML blocks/Fenced/ATX/List items）。无进行中批次。
+**Phase 9.1 做了什么（恢复用）**: 三处暗色（WYSIWYG tui dark.css / 预览 Renderer / 外壳 ArkUI）统一为 **12 个 `--ed-*` CSS 变量**，单一数据源 = ThemeService。改 5 文件：① `ThemeService.ts` +3 token(editorCodeBg/editorBorderSubtle/editorAccentHover) + `toCssVars()` 序列化(纯字符串拼接,ArkTS安全)；② `toastui-editor-dark.css` 全量变量化(134 处 `var(--ed-*,#fallback)`,零硬编码残留,base64 SVG/prism/保留 rgba 未动)；③ `editor.html` `setTheme(dark,varsCss)` 注入 `:root` 到 `#ed-theme-vars`；④ `WwEditor.ets` themeHandler/applyInitial 传 `theme.toCssVars()`；⑤ `Renderer.ts` renderFullPage 内联 `:root` + body 读 var。行内代码中性化、prism 语法色保留、base64 SVG 图标本批未动、跟随系统未做。审 diff 已过：ArkTS + 映射零误配 + 一致性(Renderer 内联值==toCssVars 产出)。
 
-**Resume — Phase 9 主题统一（主路径）**: 读 `.project/9.0-theme-unification-plan.md`。目标 = WYSIWYG(WwEditor)/Markdown 预览(MdPreview) 的暗色与原生外壳(ThemeService 28 token) 由同一数据源驱动，消除灰度割裂 + 加「跟随系统」。**已具备**：ThemeService 有 preview* 专用 token（数据源现成）+ 两个 WebView 有注入通道（injectPrism/setTheme/stateChange，Phase 7 建立）。**开工第一步**：精确定位 ThemeService/MdPreview/WwEditor 注入点 + 摸清 tui 暗色 CSS（toastui-editor-dark.css）选择器/变量清单，再写可派 CC 的 spec。**系统深色（forceDark）不采用**（理由见 plan）。**靠真机验证（非 harness）**。
+**Status（Phase 8 解析器存档）**: Phase 8.2 CommonMark exact **92.33%** (602/652)，用户暂停 spec 兼容。8.2j 完成、DevEco 编译通过、全节 0 回归。满分节 8 个（Emphasis/Autolinks/Raw HTML/Entity/HTML blocks/Fenced/ATX/List items）。无进行中批次。
 
-**Resume — Phase 8 解析器（若回来继续，备用）**: 剩余 50 失败全硬骨头：Links bracket 栈(13,最难) / ref-def 上下文 8.2k(212/213/218) / Images(6) / tight-loose(4) / Tab(5)。⚠️ 关键模式（8.2f/g/h/i 四次）：marker/块起始识别变化必须同步审 parseParagraph + isLazyContinuable break。设计经验：列表缩进→contentCol 绝对列不碰 parseList 主体；多行块→复用 text+pos 解析器拼 block 字符串。审 diff 必过 ArkTS + 全节回归（亲跑回归脚本 + 净增量自洽 + hang=0）。
+**Resume — Phase 8 解析器（备用）**: 剩余 50 失败全硬骨头：Links bracket 栈(13,最难)/ref-def 8.2k(212/213/218)/Images(6)/tight-loose(4)/Tab(5)。⚠️ marker/块起始识别变化必须同步审 parseParagraph + isLazyContinuable break。审 diff 必过 ArkTS + 全节回归（亲跑回归脚本 + 净增量自洽 + hang=0）。
