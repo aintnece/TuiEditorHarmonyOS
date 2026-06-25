@@ -91,12 +91,12 @@
 
 ## Checkpoint
 
-**🎯 当前 = Phase 9.2 跟随系统【已实现·待真机验证】**（Phase 9.1 主题统一已真机通过 ✅，含白线修复）。
-- **Phase 9.1 ✅ 真机已过**：三处暗色 12 个 `--ed-*` 变量统一；WYSIWYG 左/上白线修复（去 tui `.toastui-editor-defaultUI` 的 border+radius，editor.html `<style>`，commit `4d8851c`）。用户认可预览/外壳的层次色差是刻意设计、不动。
-- **Phase 9.2 跟随系统 已实现待真机**：commit `6b6a848` 已 push main。spec `.project/9.2-follow-system-spec.md`。bindMenu 三选一（浅/深/跟随系统，✓ 标当前项）+ 默认跟随系统 + 系统亮暗自动同步。改 5 文件：ThemeService(+System 态/userMode+systemIsDark/setMode/setSystemColorMode/applyEffective) · EditorCore(订阅 onThemeChange 统一重建 renderer+stateChange) · Editor(setMode/getUserMode 透传) · app.ets(onConfigurationUpdate+onCreate 喂初始 colorMode) · EditorPage(bindMenu 三选一)。
-  - ⚠️ **待编译确认**：app.ets 的 `Configuration` 从 `@kit.AbilityKit` 导入；若 DevEco 报找不到，改 `import { Configuration } from '@ohos.app.ability.Configuration';`。
-  - 验证清单见 spec §9：三选一✓标记 / 手选即时变 / 选跟随系统后系统切暗 app 三处自动变 / 手动模式不跟随 / 重启记住选择。
-- 真机过后 **Phase 9（主题）全收官**。后续候选见 status.md Next（查找替换 / GFM spec 测试 / Phase 8 解析器剩余硬骨头等）。
+**🎯 当前 = Phase 9.3 首帧主题修复【已实现·待真机验证】**（Phase 9.1 统一 + 9.2 跟随系统均真机通过 ✅）。
+- **Phase 9.1 ✅ 真机已过**：12 个 `--ed-*` 变量统一三处暗色 + WYSIWYG 白线修复（commit 4d8851c）。
+- **Phase 9.2 ✅ 真机已过**：bindMenu 三选一（浅/深/跟随系统）+ 系统亮暗自动同步，5 点全验过。编译期补修 `colorMode` 可选类型（commit 2b8c04d；`Configuration` 从 `@kit.AbilityKit` 导入 OK，无需改源）。
+- **Phase 9.3 首帧主题修复 已实现待真机**：commit `d06dc48` push main。spec `.project/9.3-init-theme-fix-spec.md`。修 2 个真机发现的首帧 bug：① 启动页 `Index.ets` 没接 ThemeService（全硬编码浅色）→ 接入 + token 化 + 订阅 onThemeChange；② 首次进文档预览/编辑浅色（`opts.useDarkTheme` 硬编码 false + 首帧 this.theme 时机）→ useDarkTheme 取当前 isDark + Factory 后强制 `this.theme = getTheme()`。
+  - 验证：系统深色冷启动 → 启动页即深色；首次进文档不切换 → 编辑/预览/外壳三处首帧即一致。
+- 真机过后 **Phase 9（主题）全收官**。后续候选见 status.md Next（查找替换 / GFM spec 测试 / Phase 8 解析器剩余硬骨头 / 技术债清理[deprecated API+SDK12 守卫]）。
 
 **Phase 9.1 做了什么（恢复用）**: 三处暗色（WYSIWYG tui dark.css / 预览 Renderer / 外壳 ArkUI）统一为 **12 个 `--ed-*` CSS 变量**，单一数据源 = ThemeService。改 5 文件：① `ThemeService.ts` +3 token(editorCodeBg/editorBorderSubtle/editorAccentHover) + `toCssVars()` 序列化(纯字符串拼接,ArkTS安全)；② `toastui-editor-dark.css` 全量变量化(134 处 `var(--ed-*,#fallback)`,零硬编码残留,base64 SVG/prism/保留 rgba 未动)；③ `editor.html` `setTheme(dark,varsCss)` 注入 `:root` 到 `#ed-theme-vars`；④ `WwEditor.ets` themeHandler/applyInitial 传 `theme.toCssVars()`；⑤ `Renderer.ts` renderFullPage 内联 `:root` + body 读 var。行内代码中性化、prism 语法色保留、base64 SVG 图标本批未动、跟随系统未做。审 diff 已过：ArkTS + 映射零误配 + 一致性(Renderer 内联值==toCssVars 产出)。
 
