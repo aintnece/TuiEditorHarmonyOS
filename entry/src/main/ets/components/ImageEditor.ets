@@ -31,7 +31,7 @@ export struct ImageEditor {
         try {
           if (res && res.photoUris && res.photoUris.length > 0) {
             const uri: string = res.photoUris[0];
-            const imageDir: string = getContext(self).filesDir + '/userimg';
+            const imageDir: string = self.getUIContext().getHostContext().filesDir + '/userimg';
             const name: string = fileService.copyImageToSandbox(uri, imageDir);
             self.imageUrl = 'userimg/' + name;
             self.pickStatus = '已选择: ' + name;

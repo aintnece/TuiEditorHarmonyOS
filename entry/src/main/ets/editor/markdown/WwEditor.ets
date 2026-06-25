@@ -120,7 +120,7 @@ export struct WwEditor {
           // ★ 用户图片：从沙箱 filesDir/userimg 读
           if (relPath.startsWith('userimg/')) {
             try {
-              const filePath: string = getContext(this).filesDir + '/' + relPath;
+              const filePath: string = this.getUIContext().getHostContext().filesDir + '/' + relPath;
               const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
               const stat = fs.statSync(filePath);
               const buf: ArrayBuffer = new ArrayBuffer(stat.size);
@@ -136,7 +136,7 @@ export struct WwEditor {
           }
 
           try {
-            const ctx: resourceManager.ResourceManager = getContext(this).resourceManager;
+            const ctx: resourceManager.ResourceManager = this.getUIContext().getHostContext().resourceManager;
             const data: Uint8Array = ctx.getRawFileContentSync(rawPath);
 
             // Must copy buffer to avoid shared-buffer offset issues
@@ -187,17 +187,21 @@ export struct WwEditor {
     const core = editorContext.core;
     const initialMd: string = core ? core.getMarkdown() : '';
     const escaped: string = encodeURIComponent(initialMd);
-    this.controller.runJavaScript(
-      'window.__ww && window.__ww.setMarkdown(decodeURIComponent("' + escaped + '"))'
-    );
+    try {
+      this.controller.runJavaScript(
+        'window.__ww && window.__ww.setMarkdown(decodeURIComponent("' + escaped + '"))'
+      );
+    } catch (e) {}
 
     // Sync theme (in case it changed between aboutToAppear and onPageEnd)
     const theme: ThemeColors = this.themeColors;
     const vars: string = theme.toCssVars();
-    this.controller.runJavaScript(
-      'window.__ww && window.__ww.setTheme(' + (theme.isDark ? 'true' : 'false') +
-      ', decodeURIComponent("' + encodeURIComponent(vars) + '"))'
-    );
+    try {
+      this.controller.runJavaScript(
+        'window.__ww && window.__ww.setTheme(' + (theme.isDark ? 'true' : 'false') +
+        ', decodeURIComponent("' + encodeURIComponent(vars) + '"))'
+      );
+    } catch (e) {}
   }
 
   // ── WYSIWYG exec bridge ──

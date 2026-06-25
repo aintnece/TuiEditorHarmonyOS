@@ -216,13 +216,17 @@ export class FileService {
     const name: string = 'img_' + Date.now().toString() + ext;
     const dest: string = imageDir + '/' + name;
     // 打开图库 URI（选择器已授临时读权限），再用 fd 复制——比直接 copyFileSync(uri,path) 可靠
-    const srcFile = fs.openSync(srcUri, fs.OpenMode.READ_ONLY);
-    const destFile = fs.openSync(dest, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
     try {
-      fs.copyFileSync(srcFile.fd, destFile.fd);
-    } finally {
-      fs.closeSync(srcFile);
-      fs.closeSync(destFile);
+      const srcFile = fs.openSync(srcUri, fs.OpenMode.READ_ONLY);
+      const destFile = fs.openSync(dest, fs.OpenMode.CREATE | fs.OpenMode.WRITE_ONLY | fs.OpenMode.TRUNC);
+      try {
+        fs.copyFileSync(srcFile.fd, destFile.fd);
+      } finally {
+        try { fs.closeSync(srcFile); } catch (e) {}
+        try { fs.closeSync(destFile); } catch (e) {}
+      }
+    } catch (e) {
+      throw e;
     }
     return name;
   }

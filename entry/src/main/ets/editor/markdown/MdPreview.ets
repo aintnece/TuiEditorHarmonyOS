@@ -121,7 +121,7 @@ export struct MdPreview {
           resp.setReasonMessage('OK');
 
           try {
-            const ctx: resourceManager.ResourceManager = getContext(this).resourceManager;
+            const ctx: resourceManager.ResourceManager = this.getUIContext().getHostContext().resourceManager;
             const rawPath: string = 'katex/' + path;
             const data: Uint8Array = ctx.getRawFileContentSync(rawPath);
             const copy: Uint8Array = new Uint8Array(data.byteLength);
@@ -149,7 +149,7 @@ export struct MdPreview {
           resp.setReasonMessage('OK');
 
           try {
-            const ctx: resourceManager.ResourceManager = getContext(this).resourceManager;
+            const ctx: resourceManager.ResourceManager = this.getUIContext().getHostContext().resourceManager;
             const rawPath: string = 'prism/' + path;
             const data: Uint8Array = ctx.getRawFileContentSync(rawPath);
             const copy: Uint8Array = new Uint8Array(data.byteLength);
@@ -176,7 +176,7 @@ export struct MdPreview {
           resp.setResponseCode(200);
           resp.setReasonMessage('OK');
           try {
-            const filePath: string = getContext(this).filesDir + '/' + rel;
+            const filePath: string = this.getUIContext().getHostContext().filesDir + '/' + rel;
             const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
             const stat = fs.statSync(filePath);
             const buf: ArrayBuffer = new ArrayBuffer(stat.size);
