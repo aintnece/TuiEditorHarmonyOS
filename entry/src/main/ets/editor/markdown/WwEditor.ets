@@ -120,7 +120,7 @@ export struct WwEditor {
           // ★ 用户图片：从沙箱 filesDir/userimg 读
           if (relPath.startsWith('userimg/')) {
             try {
-              const filePath: string = this.getUIContext().getHostContext().filesDir + '/' + relPath;
+              const filePath: string = this.getUIContext().getHostContext()!.filesDir + '/' + relPath;
               const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
               const stat = fs.statSync(filePath);
               const buf: ArrayBuffer = new ArrayBuffer(stat.size);
@@ -136,7 +136,7 @@ export struct WwEditor {
           }
 
           try {
-            const ctx: resourceManager.ResourceManager = this.getUIContext().getHostContext().resourceManager;
+            const ctx: resourceManager.ResourceManager = this.getUIContext().getHostContext()!.resourceManager;
             const data: Uint8Array = ctx.getRawFileContentSync(rawPath);
 
             // Must copy buffer to avoid shared-buffer offset issues

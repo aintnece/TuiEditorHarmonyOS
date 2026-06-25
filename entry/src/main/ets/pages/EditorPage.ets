@@ -351,7 +351,7 @@ struct EditorPage {
 
   aboutToAppear(): void {
     // 1. 初始化文件服务：设置沙箱目录
-    const context = this.getUIContext().getHostContext();
+    const context = this.getUIContext().getHostContext()!;
     const docsDir: string = context.filesDir + '/docs';
     fileService.setBaseDir(docsDir);
     fileService.ensureDir(docsDir);
