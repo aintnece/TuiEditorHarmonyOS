@@ -6,6 +6,7 @@
  */
 
 import { router } from '@kit.ArkUI';
+import { ThemeService, ThemeColors } from '../services/ThemeService';
 
 class NavData {
   filePath: string = '';
@@ -20,11 +21,13 @@ interface FileItem {
 @Entry
 @Component
 struct Index {
+  @State private theme: ThemeColors = ThemeService.getInstance().getTheme();
   @State private files: FileItem[] = [
     { name: '欢迎文档.md', path: '' },
   ];
 
   aboutToAppear(): void {
+    ThemeService.getInstance().onThemeChange((t: ThemeColors): void => { this.theme = t; });
     // 实际项目中应读取文件列表
   }
 
@@ -35,13 +38,13 @@ struct Index {
         Text('TUI Editor')
           .fontSize(24)
           .fontWeight(700)
-          .fontColor('#24292e')
+          .fontColor(this.theme.toolbarFg)
       }
       .width('100%')
       .height(56)
       .padding({ left: 16, right: 16 })
-      .backgroundColor('#f6f8fa')
-      .border({ width: { bottom: 1 }, color: '#dfe2e5' })
+      .backgroundColor(this.theme.toolbarBg)
+      .border({ width: { bottom: 1 }, color: this.theme.borderColor })
 
       // 新建文档按钮
       Button('+ 新建 Markdown 文档')
@@ -49,7 +52,8 @@ struct Index {
         .height(44)
         .margin({ top: 20, bottom: 12 })
         .fontSize(15)
-        .backgroundColor('#0366d6')
+        .fontColor('#ffffff')
+        .backgroundColor(this.theme.toolbarActive)
         .borderRadius(8)
         .onClick(() => {
           const data = new NavData();
@@ -65,13 +69,13 @@ struct Index {
             Row() {
               Text('📄 ' + file.name)
                 .fontSize(16)
-                .fontColor('#24292e')
+                .fontColor(this.theme.editorFg)
                 .layoutWeight(1)
             }
             .width('100%')
             .height(48)
             .padding({ left: 16, right: 16 })
-            .border({ width: { bottom: 1 }, color: '#f0f0f0' })
+            .border({ width: { bottom: 1 }, color: this.theme.borderColor })
           }
           .onClick(() => {
             const data = new NavData();
@@ -87,11 +91,11 @@ struct Index {
       // 底部信息
       Text('TUI Editor v1.0.0 — HarmonyOS Edition')
         .fontSize(12)
-        .fontColor('#959da5')
+        .fontColor(this.theme.editorPlaceholder)
         .margin({ bottom: 12 })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#ffffff')
+    .backgroundColor(this.theme.editorBg)
   }
 }

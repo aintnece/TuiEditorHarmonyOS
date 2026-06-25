@@ -382,13 +382,14 @@ struct EditorPage {
     opts.initialValue = initialContent;
     opts.initialEditType = EditorType.Markdown;
     opts.viewMode = ViewMode.Split;
-    opts.useDarkTheme = false;
+    opts.useDarkTheme = ThemeService.getInstance().getTheme().isDark;
     opts.language = 'zh-CN';
     opts.placeholder = '开始编辑…';
     opts.autofocus = true;
     opts.hideModeSwitch = false;
 
     editorContext.editor = Editor.factory(opts);
+    this.theme = ThemeService.getInstance().getTheme();
     editorContext.core = editorContext.editor.getCore();
 
     // 5. 监听内容变更
