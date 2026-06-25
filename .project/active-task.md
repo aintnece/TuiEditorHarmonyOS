@@ -57,7 +57,7 @@
 - **推送（HTTPS + token + 代理，主路径，2026-06-25 验证）**：直连 GitHub HTTPS/SSH 都不稳（HTTPS 被墙、SSH key 放 /tmp 随容器重启丢）。最稳方案 = 走 mihomo 代理 + NAS 持久 token：
   ① mihomo 容器 IP **会随重启漂移**，先查当前：`/app/venv/bin/docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' hermes-mihomo`（取 `172.26.x` 那个，webui 同网段；端口 7890）。
   ② push（⚠️ token 路径含空格，旧写法 `cat \"/data/Online Document/.gittoken\"` 直接放进 credential.helper 会被引号转义拆词→`cat: '"/data/Online'`→认证失败。**正解 = 先读进变量再内联值**）：
-     先 `TOKEN=$(cat "/data/Online Document/.gittoken")`，再
+     先 `read -r TOKEN < "/data/Online Document/.gittoken"`（⚠️ 别用 `TOKEN=$(cat …)`——Hermes terminal 脱敏机制会把 `$(cat` 替成 *** 致 bash 语法错误；`read -r` 无命令替换，稳），再
      `git -c safe.directory='*' -c http.proxy=http://<IP>:7890 -c credential.helper='!f(){ echo username=x-access-token; echo "password='"$TOKEN"'"; }; f' push https://github.com/aintnece/TuiEditorHarmonyOS.git master:main`（2026-06-25 此写法验证成功）。
   - token 存 **NAS 持久文件 `/data/Online Document/.gittoken`（仓库外、重启不丢、已 chmod 600）**；token 是 GitHub PAT(classic, repo scope)，若失效让用户重生成写入该文件。验证：`git -c http.proxy=http://<IP>:7890 ls-remote ... refs/heads/main`。
   - 备路径 SSH：`~/.ssh/gitpush_key`（公钥需加 GitHub；容器重启会丢私钥须重生成+重加，不推荐）。
