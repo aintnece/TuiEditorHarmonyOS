@@ -54,7 +54,11 @@
 - **Hermes 绝不写代码**：全部 `delegate` 给 CC（Docker 容器 `claude-code`）。Hermes 负责：写 spec → 审 diff → 修权限 → commit/push → 更新 .project。
 - **调用 CC**：`/app/venv/bin/docker exec claude-code bash -c 'source /root/.cc_env && cd /data/docs/TuiEditorHarmonyOS && claude -p "..." --allowedTools "Read,Edit,Write"'`（实现类任务**不设 --max-turns**；后台跑用 `background=true, notify_on_complete=true`）。
 - **审 diff 前修权限**：`/app/venv/bin/docker run --rm -v "/home/aintnece/Online Document/TuiEditorHarmonyOS:/ws" alpine chown -R 1000:1000 /ws`，再 `chmod 644` 改过的文件。
-- **推送**：`git remote set-url origin git@github.com:aintnece/TuiEditorHarmonyOS.git && git config core.sshCommand 'ssh -i ~/.ssh/gitpush_key -o StrictHostKeyChecking=no' && git push origin master:main`，完了 set-url 回 https + `git config --unset core.sshCommand`。⚠️ **SSH 私钥放 `~/.ssh/gitpush_key`（不要放 /tmp——/tmp 会被系统清理致私钥丢失、push 失败，2026-06-25 踩过；丢了须 ssh-keygen 重生成 + 公钥重加 GitHub Settings/Keys）**。
+- **推送（HTTPS + token + 代理，主路径，2026-06-25 验证）**：直连 GitHub HTTPS/SSH 都不稳（HTTPS 被墙、SSH key 放 /tmp 随容器重启丢）。最稳方案 = 走 mihomo 代理 + NAS 持久 token：
+  ① mihomo 容器 IP **会随重启漂移**，先查当前：`/app/venv/bin/docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' hermes-mihomo`（取 `172.26.x` 那个，webui 同网段；端口 7890）。
+  ② push：`git -c http.proxy=http://<IP>:7890 -c credential.helper='!f(){ echo username=x-access-token; echo "password=$(cat \"/data/Online Document/.gittoken\")"; }; f' push https://github.com/aintnece/TuiEditorHarmonyOS.git master:main`。
+  - token 存 **NAS 持久文件 `/data/Online Document/.gittoken`（仓库外、重启不丢、已 chmod 600）**；token 是 GitHub PAT(classic, repo scope)，若失效让用户重生成写入该文件。验证：`git -c http.proxy=http://<IP>:7890 ls-remote ... refs/heads/main`。
+  - 备路径 SSH：`~/.ssh/gitpush_key`（公钥需加 GitHub；容器重启会丢私钥须重生成+重加，不推荐）。
 - **开工前**：grep/读 Obsidian `鸿蒙开发/踩坑记录/` 对应文档；新坑解决后补录（一坑一文件）。`官方组件示例` 离线仓库在 `/data/Online Document/_refs/HarmonyOSComponentUXExamples/`。
 - CC 不编译（无 CLI）；编译/真机由用户在 DevEco(Windows) 做。每个改动 push 后请用户 `git pull` + 真机验证。
 
