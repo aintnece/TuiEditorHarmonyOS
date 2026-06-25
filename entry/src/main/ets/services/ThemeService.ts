@@ -12,6 +12,7 @@ import { common } from '@kit.AbilityKit';
 export enum ThemeMode {
   Light = 'light',
   Dark = 'dark',
+  System = 'system',
 }
 
 /** 主题颜色配置 — 对标 tui.editor CSS 变量 */
@@ -187,6 +188,11 @@ export class ThemeService {
   // 偏好存储实例（需外部调用 init() 初始化）
   private prefs: preferences.Preferences | null = null;
 
+  // 用户选择(含 system)，持久化
+  private userMode: ThemeMode = ThemeMode.System;
+  // 系统当前亮暗(由 app.ets 喂)
+  private systemIsDark: boolean = false;
+
   static getInstance(): ThemeService {
     if (!ThemeService.instance) {
       ThemeService.instance = new ThemeService();
@@ -206,11 +212,19 @@ export class ThemeService {
   init(context: common.Context): void {
     try {
       this.prefs = preferences.getPreferencesSync(context, { name: PREF_NAME });
-      const saved: string = this.prefs.getSync(PREF_KEY, 'light') as string;
-      this.setTheme(saved === 'dark' ? ThemeMode.Dark : ThemeMode.Light);
+      const saved: string = this.prefs.getSync(PREF_KEY, 'system') as string;
+      if (saved === 'dark') {
+        this.userMode = ThemeMode.Dark;
+      } else if (saved === 'light') {
+        this.userMode = ThemeMode.Light;
+      } else {
+        this.userMode = ThemeMode.System;
+      }
+      this.applyEffective();
     } catch (e) {
-      // preferences 未就绪时保持默认浅色
-      this.setTheme(ThemeMode.Light);
+      // preferences 未就绪时默认跟随系统
+      this.userMode = ThemeMode.System;
+      this.applyEffective();
     }
   }
 
@@ -222,22 +236,42 @@ export class ThemeService {
     return this.currentTheme.mode;
   }
 
-  setTheme(mode: ThemeMode): void {
-    if (mode === ThemeMode.Dark) {
-      this.currentTheme.copyFrom(DarkTheme);
-    } else {
-      this.currentTheme.copyFrom(LightTheme);
-    }
+  /** 用户选择主题模式（UI 三选一调用） */
+  setMode(mode: ThemeMode): void {
+    this.userMode = mode;
     this.savePreference();
-    this.notifyListeners();
+    this.applyEffective();
   }
 
-  toggleTheme(): void {
-    if (this.currentTheme.mode === ThemeMode.Light) {
-      this.setTheme(ThemeMode.Dark);
-    } else {
-      this.setTheme(ThemeMode.Light);
+  /** app.ets 喂系统当前亮暗，仅 userMode===System 时生效 */
+  setSystemColorMode(isDark: boolean): void {
+    if (this.systemIsDark === isDark) {
+      return;
     }
+    this.systemIsDark = isDark;
+    if (this.userMode === ThemeMode.System) {
+      this.applyEffective();
+    }
+  }
+
+  /** 当前用户选择的主题模式（UI 三选一打勾用） */
+  getUserMode(): ThemeMode {
+    return this.userMode;
+  }
+
+  /** 保持兼容，切换实际亮暗：基于当前 isDark 切到手动 light/dark */
+  toggleTheme(): void {
+    const dark: boolean = this.currentTheme.isDark;
+    if (dark) {
+      this.setMode(ThemeMode.Light);
+    } else {
+      this.setMode(ThemeMode.Dark);
+    }
+  }
+
+  /** 别名：供旧代码兼容 */
+  setTheme(mode: ThemeMode): void {
+    this.setMode(mode);
   }
 
   /** 注册主题变化监听 */
@@ -261,12 +295,23 @@ export class ThemeService {
   private savePreference(): void {
     if (this.prefs) {
       try {
-        this.prefs.putSync(PREF_KEY, this.currentTheme.mode);
+        this.prefs.putSync(PREF_KEY, this.userMode);
         this.prefs.flushSync();
       } catch (e) {
         // 保存失败静默忽略
       }
     }
+  }
+
+  /** 重算实际调色板 + 通知监听者 */
+  private applyEffective(): void {
+    const dark: boolean = (this.userMode === ThemeMode.System) ? this.systemIsDark : (this.userMode === ThemeMode.Dark);
+    if (dark) {
+      this.currentTheme.copyFrom(DarkTheme);
+    } else {
+      this.currentTheme.copyFrom(LightTheme);
+    }
+    this.notifyListeners();
   }
 
   private notifyListeners(): void {

@@ -5,7 +5,7 @@
  * 初始化 ThemeService / I18n 的偏好持久化。
  */
 
-import { UIAbility, Want, AbilityConstant } from '@kit.AbilityKit';
+import { UIAbility, Want, AbilityConstant, ConfigurationConstant, Configuration } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { ThemeService } from './services/ThemeService';
@@ -19,6 +19,9 @@ export default class MainAbility extends UIAbility {
     try {
       ThemeService.getInstance().init(this.context);
       I18n.getInstance().init(this.context);
+      // 喂初始系统亮暗 — init(读 userMode)之后，applyEffective 才有真实系统值
+      const cm: ConfigurationConstant.ColorMode = this.context.config.colorMode;
+      ThemeService.getInstance().setSystemColorMode(cm === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
       hilog.info(0x0000, 'TUIEditor', 'Preferences initialized');
     } catch (e) {
       hilog.warn(0x0000, 'TUIEditor', 'Preferences init failed, using defaults');
@@ -27,6 +30,11 @@ export default class MainAbility extends UIAbility {
 
   onDestroy(): void {
     hilog.info(0x0000, 'TUIEditor', 'Application onDestroy');
+  }
+
+  onConfigurationUpdate(newConfig: Configuration): void {
+    const cm: ConfigurationConstant.ColorMode = newConfig.colorMode;
+    ThemeService.getInstance().setSystemColorMode(cm === ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {

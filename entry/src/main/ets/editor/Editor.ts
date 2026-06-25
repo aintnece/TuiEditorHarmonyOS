@@ -8,7 +8,7 @@
 
 import { EditorCore } from './EditorCore';
 import { EditorConfig, EditorType, ViewMode, PartialConfig } from './EditorType';
-import { ThemeService } from '../services/ThemeService';
+import { ThemeService, ThemeMode } from '../services/ThemeService';
 import { I18n } from '../i18n/I18n';
 import { Handler } from '../event/EventEmitter';
 import { common } from '@kit.AbilityKit';
@@ -132,6 +132,12 @@ export class Editor {
   toggleTheme(): void {
     this.core.toggleTheme();
   }
+
+  /** 设置主题模式(浅/深/跟随系统) */
+  setMode(mode: ThemeMode): void { this.core.setMode(mode); }
+
+  /** 当前用户选择的主题模式(用于 UI 三选一打勾) */
+  getUserMode(): ThemeMode { return ThemeService.getInstance().getUserMode(); }
 
   /** 初始化偏好存储（需在 UIAbility onCreate 中调用） */
   initPreferences(context: common.Context): void {

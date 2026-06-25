@@ -12,7 +12,7 @@ import { pasteboard } from '@kit.BasicServicesKit';
 import { Editor } from '../editor/Editor';
 import { EditorCore } from '../editor/EditorCore';
 import { EditorType, ViewMode, EditorConfig, PartialConfig } from '../editor/EditorType';
-import { ThemeService, ThemeColors } from '../services/ThemeService';
+import { ThemeService, ThemeColors, ThemeMode } from '../services/ThemeService';
 import { I18n } from '../i18n/I18n';
 import { Toolbar } from '../components/Toolbar';
 import { Splitter } from '../components/Splitter';
@@ -467,9 +467,9 @@ struct EditorPage {
             }
           })
 
-        // 主题切换
+        // 主题切换 → bindMenu 三选一（浅色/深色/跟随系统）
         Button() {
-          Text(this.theme.isDark ? '浅色' : '深色')
+          Text(this.themeModeLabel())
             .fontSize(12)
         }
           .height(28)
@@ -477,14 +477,14 @@ struct EditorPage {
           .backgroundColor(this.theme.toolbarHover)
           .borderRadius(4)
           .fontColor(this.theme.toolbarFg)
-          .onClick(() => {
-            if (editorContext.editor) {
-              editorContext.editor.toggleTheme();
-            } else {
-              ThemeService.getInstance().toggleTheme();
-            }
-            this.theme = ThemeService.getInstance().getTheme();
-          })
+          .bindMenu([
+            { value: this.menuLabel('浅色', ThemeMode.Light),
+              action: () => { this.pickMode(ThemeMode.Light); } },
+            { value: this.menuLabel('深色', ThemeMode.Dark),
+              action: () => { this.pickMode(ThemeMode.Dark); } },
+            { value: this.menuLabel('跟随系统', ThemeMode.System),
+              action: () => { this.pickMode(ThemeMode.System); } },
+          ])
       }
       .width('100%')
       .height(44)
@@ -764,6 +764,38 @@ struct EditorPage {
     }
     .width('100%')
     .height('100%')
+  }
+
+  // ── 主题 bindMenu 辅助方法 ──
+
+  /** 当前用户模式名（按钮标签） */
+  private themeModeLabel(): string {
+    const m: ThemeMode = ThemeService.getInstance().getUserMode();
+    if (m === ThemeMode.Dark) {
+      return '深色';
+    }
+    if (m === ThemeMode.System) {
+      return '跟随系统';
+    }
+    return '浅色';
+  }
+
+  /** 菜单项标签（当前项加 ✓） */
+  private menuLabel(name: string, mode: ThemeMode): string {
+    if (ThemeService.getInstance().getUserMode() === mode) {
+      return '✓ ' + name;
+    }
+    return '   ' + name;
+  }
+
+  /** 选择主题模式 */
+  private pickMode(mode: ThemeMode): void {
+    if (editorContext.editor) {
+      editorContext.editor.setMode(mode);
+    } else {
+      ThemeService.getInstance().setMode(mode);
+    }
+    this.theme = ThemeService.getInstance().getTheme();
   }
 }
 

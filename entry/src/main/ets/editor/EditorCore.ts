@@ -11,7 +11,7 @@ import { CommandManager } from './commands/CommandManager';
 import { SpecManager } from '../spec/SpecManager';
 import { ToastMark } from '../parser/ToastMark';
 import { HtmlRenderer } from '../parser/html/Renderer';
-import { ThemeService, ThemeColors } from '../services/ThemeService';
+import { ThemeService, ThemeColors, ThemeMode } from '../services/ThemeService';
 import { I18n } from '../i18n/I18n';
 import { Selection } from './selection/Selection';
 import {
@@ -53,6 +53,12 @@ export class EditorCore {
 
     // 注册所有内置命令
     this.registerBuiltinCommands();
+
+    // 主题变化(手动 setMode 或 系统 colorMode 变) → 重建预览渲染器 + 广播 stateChange
+    this.themeService.onThemeChange((t: ThemeColors): void => {
+      this.renderer = new HtmlRenderer({ darkMode: t.isDark, fontSize: 16 });
+      this.eventEmitter.emit('stateChange');
+    });
 
     // 同步 I18n 语言
     this.i18n.setCode(config.language);
@@ -180,16 +186,14 @@ export class EditorCore {
     return this.themeService.getTheme();
   }
 
-  /** 切换主题 */
+  /** 切换主题（订阅回调会重建 renderer + emit stateChange） */
   toggleTheme(): void {
     this.themeService.toggleTheme();
-    // 更新渲染器
-    const newTheme: ThemeColors = this.themeService.getTheme();
-    this.renderer = new HtmlRenderer({
-      darkMode: newTheme.isDark,
-      fontSize: 16,
-    });
-    this.eventEmitter.emit('stateChange');
+  }
+
+  /** 设置主题模式(浅/深/跟随系统)（订阅回调会重建 renderer + emit stateChange） */
+  setMode(mode: ThemeMode): void {
+    this.themeService.setMode(mode);
   }
 
   /** 销毁编辑器 */
