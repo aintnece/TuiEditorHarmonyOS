@@ -44,6 +44,8 @@ export struct WwEditor {
   @Prop @Watch('onLoadTokenChange') loadToken: number = 0;
 
   onControllerReady?: (ctrl: webview.WebviewController) => void;
+  /** WebView 就绪回调 — 把 runScript 的绑定传给父组件（查找替换用） */
+  onReady?: (run: (js: string) => void) => void;
 
   private controller: webview.WebviewController = new webview.WebviewController();
   private bridge: WwBridge = new WwBridge();
@@ -163,8 +165,17 @@ export struct WwEditor {
           this.isReady = true;
           this.applyInitial();
           this.registerWwExec();
+          if (this.onReady) {
+            this.onReady((js: string): void => { this.runScript(js); });
+          }
         }
       })
+  }
+
+  /** 执行任意 JS（查找替换用）。页面未就绪时静默忽略 */
+  runScript(js: string): void {
+    if (!this.isReady) return;
+    try { this.controller.runJavaScript(js); } catch (_e) { /* 忽略 */ }
   }
 
   // ── Initial content injection ──

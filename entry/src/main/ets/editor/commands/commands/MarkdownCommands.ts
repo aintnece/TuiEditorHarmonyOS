@@ -8,6 +8,7 @@
 import { Command, UndoableCommand } from '../CommandManager';
 import { EditorState } from '../../EditorType';
 import { Selection } from '../../selection/Selection';
+import { FindReplace } from '../../find/FindReplace';
 
 // ═══════════════════════════════════════════════════════════
 //  行内格式命令
@@ -420,6 +421,49 @@ function prefixLine(
   return result;
 }
 
+/** 替换单处：args = [start, end, replacement]（start/end 为 md 字符偏移） */
+export const ReplaceCommand: UndoableCommand = {
+  name: 'Replace',
+  execute(state: EditorState, ...args: string[]): EditorState {
+    const md: string = state.markdown;
+    const start: number = args.length > 0 ? parseInt(args[0]) : -1;
+    const end: number = args.length > 1 ? parseInt(args[1]) : -1;
+    const replacement: string = args.length > 2 ? args[2] : '';
+    if (start < 0 || end < start || end > md.length) return state;
+
+    const result: EditorState = state.snapshot();
+    result.markdown = md.substring(0, start) + replacement + md.substring(end);
+    const caret: number = start + replacement.length;
+    result.selectionStart = caret;
+    result.selectionEnd = caret;
+    result.isDirty = true;
+    return result;
+  },
+  undo(state: EditorState): EditorState { return state.snapshot(); }
+};
+
+/** 全部替换：args = [query, replacement, caseSensitiveFlag('1'|'0')] */
+export const ReplaceAllCommand: UndoableCommand = {
+  name: 'ReplaceAll',
+  execute(state: EditorState, ...args: string[]): EditorState {
+    const query: string = args.length > 0 ? args[0] : '';
+    const replacement: string = args.length > 1 ? args[1] : '';
+    const cs: boolean = args.length > 2 && args[2] === '1';
+    if (query.length === 0) return state;
+
+    const newText: string = FindReplace.replaceAll(state.markdown, query, replacement, cs);
+    if (newText === state.markdown) return state;
+
+    const result: EditorState = state.snapshot();
+    result.markdown = newText;
+    result.selectionStart = 0;
+    result.selectionEnd = 0;
+    result.isDirty = true;
+    return result;
+  },
+  undo(state: EditorState): EditorState { return state.snapshot(); }
+};
+
 /** 获取所有内置命令 */
 export function getBuiltinCommands(): UndoableCommand[] {
   const cmds: UndoableCommand[] = [];
@@ -439,5 +483,7 @@ export function getBuiltinCommands(): UndoableCommand[] {
   cmds.push(LinkCommand);
   cmds.push(ImageCommand);
   cmds.push(TableCommand);
+  cmds.push(ReplaceCommand);
+  cmds.push(ReplaceAllCommand);
   return cmds;
 }

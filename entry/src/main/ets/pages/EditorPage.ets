@@ -26,6 +26,8 @@ import { ExportSheet, ExportOptions } from '../components/ExportSheet';
 import { MdEditor } from '../editor/markdown/MdEditor';
 import { MdPreview } from '../editor/markdown/MdPreview';
 import { WwEditor } from '../editor/markdown/WwEditor';
+import { FindReplace, Match } from '../editor/find/FindReplace';
+import { FindReplaceBar } from '../components/FindReplaceBar';
 import { editorContext } from '../editor/EditorContext';
 import { fileService } from '../services/FileService';
 /** 路由参数 */
@@ -64,6 +66,17 @@ struct EditorPage {
   @State sidePanelRefresh: number = 0;
   @State isDirty: boolean = false;
   @State wwLoadToken: number = 0;
+
+  // ── 查找/替换 ──
+  @State private showFindBar: boolean = false;
+  @State private findQuery: string = '';
+  @State private findReplacement: string = '';
+  @State private findMatchCount: number = 0;
+  @State private findMatchIndex: number = 0;   // 当前匹配在 matches 中的下标（0-based）；-1 = 无
+  private findMatches: Match[] = [];           // 非 @State（普通数组即可）
+  private findCaseSensitive: boolean = false;  // 预留状态位，v1 固定 false（不区分大小写）
+  private mdCtrl: TextAreaController | null = null;   // 由 MdEditor.onControllerReady 回填
+  private wwRun: ((js: string) => void) | null = null;   // 由 WwEditor.onReady 回填
 
   private i18n: I18n = I18n.getInstance();
 
@@ -349,6 +362,107 @@ struct EditorPage {
     }
   }
 
+  // ── 查找/替换 ──
+
+  /** 重算匹配（查询变化 / 内容变化时调用） */
+  private recomputeMatches(highlight: boolean): void {
+    if (!editorContext.core) {
+      this.findMatches = [];
+      this.findMatchCount = 0;
+      this.findMatchIndex = -1;
+      return;
+    }
+    const md: string = editorContext.core.getMarkdown();
+    this.findMatches = FindReplace.findAll(md, this.findQuery, this.findCaseSensitive);
+    this.findMatchCount = this.findMatches.length;
+    if (this.findMatchCount === 0) {
+      this.findMatchIndex = -1;
+      return;
+    }
+    // 默认定位到光标之后第一个匹配（或保持当前）
+    if (this.findMatchIndex < 0 || this.findMatchIndex >= this.findMatchCount) {
+      const from: number = editorContext.core.state.selectionStart;
+      let k: number = FindReplace.firstIndexAtOrAfter(this.findMatches, from);
+      if (k < 0) k = 0;
+      this.findMatchIndex = k;
+    }
+    if (highlight) {
+      this.highlightCurrentMatch();
+    }
+  }
+
+  /** 高亮当前匹配（两模式分发） */
+  private highlightCurrentMatch(): void {
+    if (this.findMatchIndex < 0 || this.findMatchIndex >= this.findMatches.length) return;
+    const m: Match = this.findMatches[this.findMatchIndex];
+    if (this.editorType === EditorType.Wysiwyg) {
+      if (this.wwRun) {
+        this.wwRun('window.__ww && window.__ww.selectRange(' + m.start + ',' + m.end + ')');
+      }
+    } else {
+      if (this.mdCtrl) {
+        try { this.mdCtrl.setTextSelection(m.start, m.end); } catch (_e) {}
+      }
+    }
+  }
+
+  private findNext(): void {
+    if (this.findMatchCount === 0) return;
+    this.findMatchIndex = (this.findMatchIndex + 1) % this.findMatchCount;
+    this.highlightCurrentMatch();
+  }
+
+  private findPrev(): void {
+    if (this.findMatchCount === 0) return;
+    this.findMatchIndex = (this.findMatchIndex - 1 + this.findMatchCount) % this.findMatchCount;
+    this.highlightCurrentMatch();
+  }
+
+  private doReplace(): void {
+    if (!editorContext.core || this.findMatchIndex < 0 || this.findMatchIndex >= this.findMatches.length) return;
+    const m: Match = this.findMatches[this.findMatchIndex];
+    if (this.editorType === EditorType.Wysiwyg) {
+      if (this.wwRun) {
+        this.wwRun('window.__ww && window.__ww.replaceRange(' + m.start + ',' + m.end +
+          ', decodeURIComponent("' + encodeURIComponent(this.findReplacement) + '"))');
+      }
+    } else {
+      if (editorContext.editor) {
+        editorContext.editor.exec('Replace', m.start.toString(), m.end.toString(), this.findReplacement);
+      }
+    }
+    // 内容变化后由 change 回调重算（保持 index 不变），这里主动跳下一个
+    this.findNext();
+  }
+
+  private doReplaceAll(): void {
+    if (!editorContext.core || this.findQuery.length === 0) return;
+    const n: number = this.findMatchCount;
+    if (n === 0) return;
+    if (this.editorType === EditorType.Wysiwyg) {
+      if (this.wwRun) {
+        this.wwRun('window.__ww && window.__ww.replaceAllText(decodeURIComponent("' +
+          encodeURIComponent(this.findQuery) + '"), decodeURIComponent("' +
+          encodeURIComponent(this.findReplacement) + '"), false)');
+      }
+    } else {
+      if (editorContext.editor) {
+        editorContext.editor.exec('ReplaceAll', this.findQuery, this.findReplacement, '0');
+      }
+    }
+    this.recomputeMatches(true);
+    this.showToast('已替换 ' + n + ' 处');
+  }
+
+  private closeFindBar(): void {
+    this.showFindBar = false;
+    this.findQuery = '';
+    this.findReplacement = '';
+    this.findMatches = [];
+    this.findMatchCount = 0;
+    this.findMatchIndex = -1;
+  }
+
   aboutToAppear(): void {
     // 1. 初始化文件服务：设置沙箱目录
     const context = this.getUIContext().getHostContext()!;
@@ -399,6 +513,9 @@ struct EditorPage {
         this.isDirty = editorContext.core.state.isDirty;
         this.canUndo = editorContext.core.commandManager.canUndo();
         this.canRedo = editorContext.core.commandManager.canRedo();
+        if (this.showFindBar) {
+          this.recomputeMatches(false);
+        }
       }
     });
 
@@ -574,7 +691,26 @@ struct EditorPage {
                   return;
                 }
                 this.showTableMenu = !this.showTableMenu;
-              }
+              },
+              onFind: () => { this.showFindBar = !this.showFindBar; }
+            })
+          }
+
+          // ── 查找/替换条 ──
+          if (this.showFindBar) {
+            FindReplaceBar({
+              themeColors: this.theme,
+              query: this.findQuery,
+              replacement: this.findReplacement,
+              matchCount: this.findMatchCount,
+              matchIndex: this.findMatchIndex + 1,
+              onQueryChange: (q: string) => { this.findQuery = q; this.findMatchIndex = -1; this.recomputeMatches(true); },
+              onReplacementChange: (r: string) => { this.findReplacement = r; },
+              onPrev: () => { this.findPrev(); },
+              onNext: () => { this.findNext(); },
+              onReplace: () => { this.doReplace(); },
+              onReplaceAll: () => { this.doReplaceAll(); },
+              onClose: () => { this.closeFindBar(); }
             })
           }
 
@@ -590,7 +726,8 @@ struct EditorPage {
                   themeColors: this.theme,
                   fontSize: 16,
                   placeholder: this.i18n.get('Placeholder', '开始编辑…'),
-                  onLongPress: this.handleLongPress
+                  onLongPress: this.handleLongPress,
+                  onControllerReady: (ctrl: TextAreaController) => { this.mdCtrl = ctrl; }
                 })
                   .width(this.containerWidth * this.splitRatio - 3)
                   .height('100%')
@@ -632,7 +769,8 @@ struct EditorPage {
                 themeColors: this.theme,
                 fontSize: 16,
                 placeholder: this.i18n.get('Placeholder', '开始编辑…'),
-                onLongPress: this.handleLongPress
+                onLongPress: this.handleLongPress,
+                onControllerReady: (ctrl: TextAreaController) => { this.mdCtrl = ctrl; }
               })
                 .width('100%')
                 .layoutWeight(1)
@@ -642,7 +780,8 @@ struct EditorPage {
             WwEditor({
               themeColors: this.theme,
               fontSize: 16,
-              loadToken: this.wwLoadToken
+              loadToken: this.wwLoadToken,
+              onReady: (run: (js: string) => void) => { this.wwRun = run; }
             })
               .width('100%')
               .layoutWeight(1)

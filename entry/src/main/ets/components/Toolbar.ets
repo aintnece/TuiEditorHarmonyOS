@@ -20,6 +20,7 @@ export struct Toolbar {
   onLink?: () => void;
   onImage?: () => void;
   onTable?: () => void;
+  onFind?: () => void;
   @State hoveredTip: string = '';
 
   private i18n: I18n = I18n.getInstance();
@@ -269,6 +270,9 @@ export struct Toolbar {
         .border({ width: 1, color: this.themeColors.borderColor })
         .onClick(() => { if (this.onExport) this.onExport(); })
         .margin({ left: 4 })
+
+      // ── 查找 ──
+      this.iconBtn($r('app.media.tui_find'), '查找', () => { if (this.onFind) this.onFind(); })
     }
     .width('100%')
     .height(44)

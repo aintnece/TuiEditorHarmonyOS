@@ -124,6 +124,43 @@
           var p;
           try { p = payloadJson ? JSON.parse(payloadJson) : undefined; } catch (e) { p = undefined; }
           ed.exec(name, p);
+        },
+
+        /** 选中 markdown 偏移 [start,end)（tui 按 markdown 偏移映射到 wysiwyg 位置）*/
+        selectRange: function (start, end) {
+          try { ed.setSelection(start, end); ed.focus(); } catch (e) {}
+        },
+
+        /** 替换当前选区内容（先 setSelection 再 replaceSelection；change 事件会自然回传 nativeBridge）*/
+        replaceRange: function (start, end, text) {
+          try {
+            ed.setSelection(start, end);
+            ed.replaceSelection(text);
+          } catch (e) {}
+        },
+
+        /** 全部替换：markdown 级重写 + 显式回传（setMarkdown 在 programmaticSet 窗口内抑制 change）*/
+        replaceAllText: function (query, text, caseSensitive) {
+          try {
+            var md = ed.getMarkdown();
+            var hay = caseSensitive ? md : md.toLowerCase();
+            var needle = caseSensitive ? query : query.toLowerCase();
+            if (!needle) return;
+            var out = '';
+            var i = 0;
+            while (true) {
+              var idx = hay.indexOf(needle, i);
+              if (idx < 0) { out += md.substring(i); break; }
+              out += md.substring(i, idx) + text;
+              i = idx + needle.length;
+            }
+            if (out !== md) {
+              ed.setMarkdown(out, false);
+              if (window.nativeBridge && window.nativeBridge.onChange) {
+                try { window.nativeBridge.onChange(ed.getMarkdown()); } catch (e) {}
+              }
+            }
+          } catch (e) {}
         }
       };
 

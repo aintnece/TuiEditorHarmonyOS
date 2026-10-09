@@ -91,7 +91,8 @@
 
 ## Checkpoint
 
-**🎯 当前 = Phase 10.1 查找/替换【spec 已写·待派工实现】**。spec: `.project/10.1-find-replace-spec.md`（两模式查找→上/下→替换/全部替换；Markdown 替换走命令栈可撤销，WYSIWYG 走 `window.__ww.selectRange/replaceRange/replaceAllText`）。
+**🎯 当前 = Phase 10.1 查找/替换【已实现·待真机验证】**。spec: `.project/10.1-find-replace-spec.md`（两模式查找→上/下→替换/全部替换；Markdown 替换走命令栈可撤销，WYSIWYG 走 `window.__ww.selectRange/replaceRange/replaceAllText`）。改动：新建 `editor/find/FindReplace.ts` + `components/FindReplaceBar.ets` + 4 SVG；改 EditorPage/MdEditor/WwEditor/Toolbar/MarkdownCommands/editor.html。审 diff 已过（ArkTS 合规 6 项全绿、JS 语法 node --check OK、两模式分发与接线核过）。
+- **待真机确认的 2 点**：① Markdown 模式下 `TextAreaController.setTextSelection` 在 TextArea 未聚焦时高亮是否可见（当前不主动抢焦点，以免打断查找框输入）；② WYSIWYG 下 `ed.setSelection(start,end)` 是否按 markdown 偏移正确高亮/滚动。
 
 **待真机验证（用户侧 DevEco）**：
 - **Phase 9.3 首帧主题修复** `d06dc48`（启动页接 ThemeService + 首次进文档首帧主题同步）。

@@ -19,6 +19,8 @@ export struct MdEditor {
   @Prop placeholder: string = '开始编辑…';
   /** 长按回调 — 传递触摸点坐标（相对 TextArea） */
   onLongPress?: (localX: number, localY: number) => void;
+  /** 控制器就绪回调 — 父页面用于程序化设置选区（查找高亮） */
+  onControllerReady?: (ctrl: TextAreaController) => void;
 
   @State private editorText: string = '';
   @State private cursorLine: number = 1;
@@ -30,6 +32,10 @@ export struct MdEditor {
   private caretChangeHandler: Handler = (): void => {};
 
   aboutToAppear(): void {
+    if (this.onControllerReady) {
+      this.onControllerReady(this.controller);
+    }
+
     if (!editorContext.core) return;
 
     this.editorText = editorContext.core.getMarkdown();
@@ -69,6 +75,7 @@ export struct MdEditor {
         placeholder: this.placeholder,
         controller: this.controller,
       })
+        .id('mdTextArea')
         .width('100%')
         .height('100%')
         .fontSize(this.fontSize)

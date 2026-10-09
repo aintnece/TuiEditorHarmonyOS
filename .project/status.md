@@ -4,7 +4,7 @@
 
 **待真机验证（用户 DevEco）**: Phase 9.3 `d06dc48` 首帧主题；技术债批次1-3 WARN 38→4（`645c07c` SDK12+权限 / `92d6cc8` getContext+try-catch / `b9fad0d` 断言 / `45aaef9` photoAccessHelper+openToast）。
 
-**进行中**: Phase 10.1 查找替换（spec `.project/10.1-find-replace-spec.md`，已委派 OpenCode）。
+**进行中**: Phase 10.1 查找替换【已实现·待真机】（spec `.project/10.1-find-replace-spec.md`；OpenCode 实现 + Hermes 审 diff 通过）。
 
 ## Summary
 
