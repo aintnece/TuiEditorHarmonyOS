@@ -91,7 +91,13 @@
 
 ## Checkpoint
 
-**🎯 当前 = Phase 9.3 首帧主题修复【已实现·待真机验证】**（Phase 9.1 统一 + 9.2 跟随系统均真机通过 ✅）。
+**🎯 当前 = Phase 10.1 查找/替换【spec 已写·待派工实现】**。spec: `.project/10.1-find-replace-spec.md`（两模式查找→上/下→替换/全部替换；Markdown 替换走命令栈可撤销，WYSIWYG 走 `window.__ww.selectRange/replaceRange/replaceAllText`）。
+
+**待真机验证（用户侧 DevEco）**：
+- **Phase 9.3 首帧主题修复** `d06dc48`（启动页接 ThemeService + 首次进文档首帧主题同步）。
+- **技术债批次 1–3**（WARN 38→4）：`645c07c` bump SDK12 + READ_PASTEBOARD；`92d6cc8` getContext→getUIContext×7 + try-catch×7；`b9fad0d` getHostContext `!` 断言；`45aaef9` PhotoViewPicker→photoAccessHelper + showToast→openToast。spec: `.project/9.4-clean-deprecated-easy.md` / `9.5-clean-deprecated-refactor.md`。剩余 4 WARN（pushUrl×2/getParams/READ_PASTEBOARD）故意保留。
+
+**历史 Checkpoint（Phase 9.3 详情，保留备查）**：Phase 9.1 统一 + 9.2 跟随系统均真机通过 ✅。
 - **Phase 9.1 ✅ 真机已过**：12 个 `--ed-*` 变量统一三处暗色 + WYSIWYG 白线修复（commit 4d8851c）。
 - **Phase 9.2 ✅ 真机已过**：bindMenu 三选一（浅/深/跟随系统）+ 系统亮暗自动同步，5 点全验过。编译期补修 `colorMode` 可选类型（commit 2b8c04d；`Configuration` 从 `@kit.AbilityKit` 导入 OK，无需改源）。
 - **Phase 9.3 首帧主题修复 已实现待真机**：commit `d06dc48` push main。spec `.project/9.3-init-theme-fix-spec.md`。修 2 个真机发现的首帧 bug：① 启动页 `Index.ets` 没接 ThemeService（全硬编码浅色）→ 接入 + token 化 + 订阅 onThemeChange；② 首次进文档预览/编辑浅色（`opts.useDarkTheme` 硬编码 false + 首帧 this.theme 时机）→ useDarkTheme 取当前 isDark + Factory 后强制 `this.theme = getTheme()`。

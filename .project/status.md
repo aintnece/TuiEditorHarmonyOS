@@ -1,6 +1,10 @@
 # Project Status: TuiEditorHarmonyOS
 
-**Last updated**: 2026-06-25 (Phase 9.1+9.2 ✅ 真机已过(统一/白线4d8851c/三选一跟随系统/编译修colorMode 2b8c04d)；Phase 9.3 首帧主题修复【已实现·待真机】commit d06dc48。Phase 8 解析器暂停于 exact 92.33%)
+**Last updated**: 2026-10-09 (Phase 10.1 查找/替换 spec 已写待实现；Phase 9.3 首帧主题修复 + 技术债批次1-3 待真机验证。上次文档更新在 6-25)
+
+**待真机验证（用户 DevEco）**: Phase 9.3 `d06dc48` 首帧主题；技术债批次1-3 WARN 38→4（`645c07c` SDK12+权限 / `92d6cc8` getContext+try-catch / `b9fad0d` 断言 / `45aaef9` photoAccessHelper+openToast）。
+
+**进行中**: Phase 10.1 查找替换（spec `.project/10.1-find-replace-spec.md`，已委派 OpenCode）。
 
 ## Summary
 
